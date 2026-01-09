@@ -1,3 +1,5 @@
+import base64
+
 from odoo import http
 from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
@@ -153,9 +155,17 @@ class EventApplicationPortal(CustomerPortal):
     def event_application_submit(self, **post):
         date_begin = self._convert_datetime(post.get('date_begin'))
         date_end = self._convert_datetime(post.get('date_end'))
+        registration_start = self._convert_datetime(post.get('registration_start'))
+        registration_end = self._convert_datetime(post.get('registration_end'))
+        registration_limit = bool(post.get('registration_limit'))
+        max_registrations = int(post.get('max_registrations')) if post.get('max_registrations') else 0
         
         if not date_begin or not date_end:
             return request.redirect('/event/apply?error=invalid_dates')
+        if date_begin and date_end and date_begin > date_end:
+            return request.redirect('/event/apply?error=invalid_date_range')
+        if registration_start and registration_end and registration_start > registration_end:
+            return request.redirect('/event/apply?error=invalid_registration_dates')
         
         # Handle specialty tags (many2many)
         specialty_ids_str = post.get('specialty_ids', '')
@@ -173,6 +183,12 @@ class EventApplicationPortal(CustomerPortal):
             'partner_id': request.env.user.partner_id.id,
             'date_begin': date_begin,
             'date_end': date_end,
+            'registration_start': registration_start,
+            'registration_end': registration_end,
+            'registration_limit': registration_limit,
+            'max_registrations': max_registrations if registration_limit else 0,
+            'contact_phone': post.get('contact_phone'),
+            'contact_email': post.get('contact_email'),
             'description': post.get('description'),
             'venue_type': post.get('venue_type', 'physical'),
             'state': 'submitted',
@@ -200,6 +216,10 @@ class EventApplicationPortal(CustomerPortal):
             vals['specialty_ids'] = specialty_ids_vals
         if case_ids_vals:
             vals['case_ids'] = case_ids_vals
+
+        badge_file = request.httprequest.files.get('badge_image')
+        if badge_file and badge_file.filename:
+            vals['badge_image'] = base64.b64encode(badge_file.read())
         
         request.env['event.application'].create(vals)
         return request.redirect('/my/event/applications')

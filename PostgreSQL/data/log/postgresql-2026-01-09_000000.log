@@ -1,0 +1,116 @@
+2026-01-09 11:23:40.999 +08 [19724] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:23:41.002 +08 [31656] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:23:41.003 +08 [23000] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:23:41.004 +08 [36580] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:23:41.004 +08 [7776] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:23:41.005 +08 [25648] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.411 +08 [24244] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.412 +08 [18676] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.412 +08 [28744] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.412 +08 [6712] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.413 +08 [29540] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.413 +08 [21028] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 11:48:50.414 +08 [20556] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:29:48.663 +08 [26076] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:29:48.663 +08 [724] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:29:48.667 +08 [23408] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:29:48.668 +08 [16756] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:29:48.668 +08 [37120] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:29:48.668 +08 [33624] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:50:03.452 +08 [21540] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:50:03.452 +08 [4044] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:50:03.452 +08 [35632] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 13:50:03.453 +08 [13392] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 15:40:23.125 +08 [3204] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 15:40:23.125 +08 [16068] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 15:40:23.126 +08 [34156] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 15:40:23.127 +08 [11792] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 15:40:23.127 +08 [34352] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 15:40:23.129 +08 [6184] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:00:38.808 +08 [16188] ERROR:  column event_application.contact_phone does not exist at character 327
+2026-01-09 16:00:38.808 +08 [16188] STATEMENT:  SELECT "event_application"."id", "event_application"."name", "event_application"."partner_id", "event_application"."date_begin", "event_application"."date_end", "event_application"."registration_start", "event_application"."registration_end", "event_application"."registration_limit", "event_application"."max_registrations", "event_application"."contact_phone", "event_application"."contact_email", "event_application"."description", "event_application"."venue_type", "event_application"."online_platform", "event_application"."online_link", "event_application"."venue_name", "event_application"."street_address", "event_application"."city", "event_application"."state_id", "event_application"."zip_code", "event_application"."country_id", "event_application"."address_input", "event_application"."location", "event_application"."full_address", "event_application"."state", "event_application"."rejection_reason", "event_application"."event_id", "event_application"."create_uid", "event_application"."create_date", "event_application"."write_uid", "event_application"."write_date" FROM "event_application" WHERE ("event_application"."id" IN (14))
+2026-01-09 16:00:54.288 +08 [16188] ERROR:  column "contact_email" of relation "event_application" does not exist at character 42
+2026-01-09 16:00:54.288 +08 [16188] STATEMENT:  INSERT INTO "event_application" ("city", "contact_email", "contact_phone", "country_id", "create_date", "create_uid", "date_begin", "date_end", "description", "max_registrations", "name", "partner_id", "registration_end", "registration_limit", "registration_start", "state", "state_id", "street_address", "venue_name", "venue_type", "write_date", "write_uid", "zip_code") VALUES ('Singapore', '12345678@gmail.com', '1234567890', 157, '2026-01-09 08:00:54.280679', 2, '2026-01-09 15:19:00', '2026-01-16 15:19:00', '<p>wertyui</p>', 0, 'event testing no13', 3, '2026-01-13 15:19:00', false, '2026-01-10 15:19:00', 'submitted', 469, 'Jalan 11 Johor Bahru', 'cmak', 'physical', '2026-01-09 08:00:54.280679', 2, '56222') RETURNING "id"
+2026-01-09 16:02:16.423 +08 [16188] ERROR:  column "contact_email" of relation "event_application" does not exist at character 42
+2026-01-09 16:02:16.423 +08 [16188] STATEMENT:  INSERT INTO "event_application" ("city", "contact_email", "contact_phone", "country_id", "create_date", "create_uid", "date_begin", "date_end", "description", "max_registrations", "name", "partner_id", "registration_end", "registration_limit", "registration_start", "state", "state_id", "street_address", "venue_name", "venue_type", "write_date", "write_uid", "zip_code") VALUES ('`1234', '123456789@gmail.com', '1234567890', 157, '2026-01-09 08:02:16.413493', 2, '2026-01-09 16:01:00', '2026-01-16 16:01:00', '<p>23456uikfdwq</p>', 0, 'event testing no13', 3, '2026-01-07 16:01:00', false, '2026-01-01 16:01:00', 'submitted', 483, '1234 street 1234', 'dubai', 'physical', '2026-01-09 08:02:16.413493', 2, '76543') RETURNING "id"
+2026-01-09 16:02:57.119 +08 [16188] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:02:57.125 +08 [33356] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:02:57.125 +08 [35696] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:02:57.125 +08 [37688] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:02:57.126 +08 [37528] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:02:57.126 +08 [18868] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:24.780 +08 [17192] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:24.780 +08 [36740] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:24.781 +08 [27012] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:24.781 +08 [39060] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:24.782 +08 [34484] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:24.783 +08 [31652] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:06:38.617 +08 [18820] ERROR:  column event_event.venue_type does not exist at character 1030
+2026-01-09 16:06:38.617 +08 [18820] STATEMENT:  SELECT "event_event"."id", "event_event"."cover_properties", "event_event"."website_id", "event_event"."is_published", "event_event"."website_meta_og_img", "event_event"."seo_name"->>'en_US', "event_event"."name"->>'en_US', "event_event"."note", "event_event"."description"->>'en_US', "event_event"."active", "event_event"."user_id", "event_event"."company_id", "event_event"."organizer_id", "event_event"."event_type_id", "event_event"."registration_properties_definition", "event_event"."kanban_state", "event_event"."kanban_state_label", "event_event"."stage_id", "event_event"."seats_max", "event_event"."seats_limited", "event_event"."date_tz", "event_event"."date_begin", "event_event"."date_end", "event_event"."address_id", "event_event"."country_id", "event_event"."lang", "event_event"."badge_format", "event_event"."ticket_instructions"->>'en_US', "event_event"."create_uid", "event_event"."create_date", "event_event"."write_uid", "event_event"."write_date", "event_event"."application_id", "event_event"."location", "event_event"."venue_type", "event_event"."venue_name", "event_event"."street_address", "event_event"."city", "event_event"."state_id", "event_event"."zip_code", "event_event"."address_input", "event_event"."online_platform", "event_event"."online_link", "event_event"."full_address", "event_event"."contact_phone", "event_event"."contact_email", "event_event"."subtitle"->>'en_US', "event_event"."website_visibility", "event_event"."website_menu", "event_event"."menu_id", "event_event"."introduction_menu", "event_event"."location_menu", "event_event"."register_menu", "event_event"."community_menu" FROM "event_event" WHERE ("event_event"."id" IN (2))
+2026-01-09 16:09:57.649 +08 [18820] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:09:57.656 +08 [33828] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:09:57.656 +08 [18500] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:09:57.656 +08 [36244] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:09:57.656 +08 [16112] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:09:57.656 +08 [30552] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.211 +08 [38348] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.212 +08 [1376] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.212 +08 [37732] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.212 +08 [34004] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.213 +08 [8324] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.213 +08 [29940] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 16:39:58.213 +08 [27772] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

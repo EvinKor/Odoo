@@ -78,3 +78,29 @@
 	
 2026-01-08 16:27:13.603 +08 [2904] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
 	
+2026-01-09 09:43:05.460 +08 [31960] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 09:43:05.460 +08 [30064] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 09:43:05.460 +08 [30840] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 09:43:05.460 +08 [16756] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 09:43:05.460 +08 [18288] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 09:43:05.460 +08 [22012] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 09:43:05.461 +08 [20756] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 10:21:48.867 +08 [17520] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 10:21:48.868 +08 [36472] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 10:21:48.869 +08 [18092] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 10:21:48.870 +08 [33420] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 10:21:48.871 +08 [23340] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-01-09 10:21:48.871 +08 [12564] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

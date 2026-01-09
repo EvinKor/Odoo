@@ -60,8 +60,20 @@ class EventEvent(models.Model):
 
     # Computed full address for physical venues
     full_address = fields.Char(string='Full Address', compute='_compute_full_address', store=True)
+    contact_phone = fields.Char(string='Contact Phone')
+    contact_email = fields.Char(string='Contact Email')
 
-    @api.depends('venue_name', 'street_address', 'city', 'state_id', 'zip_code', 'country_id')
+    @api.depends(
+        'venue_name',
+        'street_address',
+        'city',
+        'state_id',
+        'zip_code',
+        'country_id',
+        'address_id',
+        'address_id.contact_address',
+        'address_id.name',
+    )
     def _compute_full_address(self):
         for event in self:
             if event.venue_type == 'physical':
@@ -81,7 +93,12 @@ class EventEvent(models.Model):
                     address_parts.append(', '.join(city_state_zip))
                 if event.country_id:
                     address_parts.append(event.country_id.name)
-                event.full_address = '\n'.join(address_parts)
+                if address_parts:
+                    event.full_address = '\n'.join(address_parts)
+                elif event.address_id:
+                    event.full_address = (event.address_id.contact_address or event.address_id.name or '').strip() or False
+                else:
+                    event.full_address = False
             else:
                 event.full_address = False
 

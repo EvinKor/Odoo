@@ -80,8 +80,9 @@
                             <field name="state_id" invisible="venue_type != 'physical'"/>
                             <field name="zip_code" invisible="venue_type != 'physical'"/>
                             <field name="country_id" invisible="venue_type != 'physical'"/>
-                            <field name="online_platform" invisible="venue_type != 'online'"/>
-                            <field name="online_link" invisible="venue_type != 'online'"/>
+                            <field name="full_address" invisible="venue_type != 'physical'" readonly="1" widget="text"/>
+                            <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
+                            <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
                             
                             <!-- Legacy address field (hidden but kept for compatibility) -->
                             <field name="address_id" invisible="1"/>
@@ -253,8 +254,8 @@
                     <field name="state_id" invisible="venue_type != 'physical'"/>
                     <field name="zip_code" invisible="venue_type != 'physical'" placeholder="ZIP"/>
                     <field name="country_id" invisible="venue_type != 'physical'"/>
-                    <field name="online_platform" invisible="venue_type != 'online'" placeholder="Platform (Zoom, Teams, etc.)"/>
-                    <field name="online_link" invisible="venue_type != 'online'" placeholder="Meeting Link"/>
+                    <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
+                    <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
                 </group>
             </form>
         </field>

@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import api, fields, models, Command
 
 class EventApplication(models.Model):
     _name = 'event.application'
@@ -9,6 +9,13 @@ class EventApplication(models.Model):
     partner_id = fields.Many2one('res.partner', string='Organizer', required=True, default=lambda self: self.env.user.partner_id.id)
     date_begin = fields.Datetime(string='Start Date', required=True)
     date_end = fields.Datetime(string='End Date', required=True)
+    registration_start = fields.Datetime(string='Registration Opens')
+    registration_end = fields.Datetime(string='Registration Closes')
+    registration_limit = fields.Boolean(string='Limit Registrations')
+    max_registrations = fields.Integer(string='Maximum Registrations')
+    badge_image = fields.Binary(string='Badge Background')
+    contact_phone = fields.Char(string='Contact Phone')
+    contact_email = fields.Char(string='Contact Email')
     description = fields.Html(string='Description')
     
     # Venue type and location fields
@@ -173,7 +180,25 @@ class EventApplication(models.Model):
             'application_id': self.id,
             'specialty_ids': [(6, 0, self.specialty_ids.ids)],  # Transfer specialty tags
             'case_ids': [(6, 0, self.case_ids.ids)],  # Transfer case tags
+            'contact_phone': self.contact_phone,
+            'contact_email': self.contact_email,
         }
+
+        if self.registration_limit and self.max_registrations:
+            event_vals['seats_max'] = self.max_registrations
+
+        if self.badge_image:
+            event_vals['badge_image'] = self.badge_image
+
+        if self.registration_start or self.registration_end or (self.registration_limit and self.max_registrations):
+            ticket_vals = {
+                'name': 'Registration',
+                'start_sale_datetime': self.registration_start,
+                'end_sale_datetime': self.registration_end,
+            }
+            if self.registration_limit and self.max_registrations:
+                ticket_vals['seats_max'] = self.max_registrations
+            event_vals['event_ticket_ids'] = [Command.create(ticket_vals)]
         
         # Handle venue information based on type
         if self.venue_type == 'online':
@@ -186,9 +211,50 @@ class EventApplication(models.Model):
             if online_info:
                 event_vals['description'] = (self.description or '') + '\n\n' + '\n'.join(online_info)
         else:
-            # For physical venues, use the venue_map module fields if available
-            if hasattr(self.env['event.event'], 'venue_name'):
-                # venue_map module is installed
+            # Always create/reuse a venue partner for physical venues and set address_id
+            venue_partner = False
+            venue_name_value = self.venue_name or self.full_address or self.address_input or self.location or 'Venue'
+            partner_street = self.street_address or self.address_input or False
+            if any([self.venue_name, self.address_input, self.street_address, self.city, self.zip_code, self.state_id, self.country_id]):
+                venue_partner = self.env['res.partner'].search([('name', '=', venue_name_value)], limit=1)
+                if not venue_partner:
+                    venue_partner = self.env['res.partner'].create({
+                        'name': venue_name_value,
+                        'street': partner_street,
+                        'city': self.city or False,
+                        'zip': self.zip_code or False,
+                        'state_id': self.state_id.id if self.state_id else False,
+                        'country_id': self.country_id.id if self.country_id else False,
+                        'phone': self.contact_phone or False,
+                        'email': self.contact_email or False,
+                        'type': 'contact',
+                    })
+                else:
+                    updates = {}
+                    if partner_street and not venue_partner.street:
+                        updates['street'] = partner_street
+                    if self.city and not venue_partner.city:
+                        updates['city'] = self.city
+                    if self.zip_code and not venue_partner.zip:
+                        updates['zip'] = self.zip_code
+                    if self.state_id and not venue_partner.state_id:
+                        updates['state_id'] = self.state_id.id
+                    if self.country_id and not venue_partner.country_id:
+                        updates['country_id'] = self.country_id.id
+                    if self.contact_phone:
+                        updates['phone'] = self.contact_phone
+                    if self.contact_email:
+                        updates['email'] = self.contact_email
+                    if updates:
+                        venue_partner.write(updates)
+
+            event_vals['address_id'] = (venue_partner or self.partner_id).id
+            event_vals['location'] = self.full_address or self.location
+
+            # For physical venues, use matching event.event fields when available
+            event_fields = self.env['event.event']._fields
+            if all(name in event_fields for name in ('venue_name', 'venue_address', 'venue_city')):
+                # event_venue_map module is installed
                 event_vals.update({
                     'venue_name': self.venue_name,
                     'venue_address': self.street_address,
@@ -197,10 +263,16 @@ class EventApplication(models.Model):
                     'venue_state_id': self.state_id.id if self.state_id else False,
                     'venue_country_id': self.country_id.id if self.country_id else False,
                 })
-            else:
-                # Fallback to legacy address handling
-                event_vals['address_id'] = self.partner_id.id
-                event_vals['location'] = self.full_address or self.location
+            elif all(name in event_fields for name in ('venue_name', 'street_address', 'city', 'state_id', 'zip_code', 'country_id')):
+                # event_application extension fields
+                event_vals.update({
+                    'venue_name': self.venue_name,
+                    'street_address': self.street_address,
+                    'city': self.city,
+                    'state_id': self.state_id.id if self.state_id else False,
+                    'zip_code': self.zip_code,
+                    'country_id': self.country_id.id if self.country_id else False,
+                })
         
         event = self.env['event.event'].create(event_vals)
         self.write({
@@ -232,6 +304,7 @@ class EventEvent(models.Model):
     
     application_id = fields.Many2one('event.application', string='Original Application', readonly=True)
     location = fields.Char(string='Location')
+    badge_image = fields.Binary(string='Badge Background')
     
     # Specialty - using tags (many2many) for flexibility
     specialty_ids = fields.Many2many(

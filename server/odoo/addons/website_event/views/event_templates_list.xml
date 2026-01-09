@@ -368,20 +368,21 @@
                             <h5 t-attf-class="card-title my-2 #{(not event.website_published) and 'text-danger'}">
                                 <span t-field="event.name" itemprop="name"/>
                             </h5>
+                            <!-- Date & Time -->
+                            <div class="text-muted small">
+                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'MMMM dd, y'}"/>
+                                <span class="mx-1">•</span>
+                                <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'h:mm a'}"/>
+                            </div>
                             <!-- Brief description -->
                             <div class="o_wevent_card_description text-muted mb-2" style="font-size: 0.875rem; line-height: 1.4;">
-                                <t t-if="event.note">
-                                    <p t-field="event.note" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
-                                </t>
-                                <t t-elif="event.description">
+                                <t t-if="event.description">
                                     <p t-field="event.description" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
                                 </t>
+                                <t t-elif="event.subtitle">
+                                    <p t-field="event.subtitle" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                                </t>
                             </div>
-                            <!-- Start Date & Time -->
-                            <!-- TODO remove t-out one in master -->
-                            <small t-if="False" class="o_not_editable opacity-75" itemprop="description" t-out="event.subtitle">
-                            </small>
-                            <small class="opacity-75" itemprop="description" t-field="event.subtitle"/>
                         </div>
                         <!-- Location -->
                         <t t-set="has_venue_address" t-value="event.venue_address or event.venue_city or event.venue_country_id"/>

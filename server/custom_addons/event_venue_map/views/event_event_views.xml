@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="event_event_view_form_inherit_venue_map" model="ir.ui.view">
+        <field name="name">event.event.form.inherit.venue.map</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_form"/>
+        <field name="arch" type="xml">
+            <!-- Replace the address_id field with our new venue fields -->
+            <xpath expr="//field[@name='address_id']" position="replace">
+                <group string="Venue Location" name="venue_group">
+                    <group>
+                        <field name="venue_name" placeholder="Venue Name (e.g., Conference Center)"/>
+                        <field name="venue_address" placeholder="Street Address"/>
+                        <field name="venue_city" placeholder="City"/>
+                        <field name="venue_zip" placeholder="ZIP Code"/>
+                    </group>
+                    <group>
+                        <field name="venue_country_id"/>
+                        <field name="venue_state_id"/>
+                        <field name="venue_latitude" widget="float" options="{'digits': (10, 7)}"/>
+                        <field name="venue_longitude" widget="float" options="{'digits': (10, 7)}"/>
+                    </group>
+                    <!-- Map widget placeholder - will be implemented with JavaScript -->
+                    <div class="venue-map-container" style="width: 100%; height: 300px; margin-top: 10px; border: 1px solid #ccc;">
+                        <div id="venue-map" style="width: 100%; height: 100%;"></div>
+                        <div class="map-controls" style="padding: 10px; background: #f8f9fa;">
+                            <button type="button" class="btn btn-sm btn-primary" id="get-current-location">
+                                <i class="fa fa-crosshairs"></i> Use Current Location
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="search-address">
+                                <i class="fa fa-search"></i> Search Address
+                            </button>
+                        </div>
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Also update the simplified add form -->
+    <record id="event_event_view_form_add_inherit_venue_map" model="ir.ui.view">
+        <field name="name">event.event.form.add.inherit.venue.map</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="website_event.event_event_view_form_add"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='address_id']" position="replace">
+                <field name="venue_name" placeholder="Venue Name"/>
+                <field name="venue_address" placeholder="Address"/>
+                <field name="venue_city" placeholder="City"/>
+                <field name="venue_country_id" placeholder="Country"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

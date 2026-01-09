@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Common Countries for Event Applications -->
+        <record id="country_us" model="res.country">
+            <field name="name">United States</field>
+            <field name="code">US</field>
+            <field name="phone_code">1</field>
+        </record>
+
+        <record id="country_ca" model="res.country">
+            <field name="name">Canada</field>
+            <field name="code">CA</field>
+            <field name="phone_code">1</field>
+        </record>
+
+        <record id="country_gb" model="res.country">
+            <field name="name">United Kingdom</field>
+            <field name="code">GB</field>
+            <field name="phone_code">44</field>
+        </record>
+
+        <record id="country_de" model="res.country">
+            <field name="name">Germany</field>
+            <field name="code">DE</field>
+            <field name="phone_code">49</field>
+        </record>
+
+        <record id="country_fr" model="res.country">
+            <field name="name">France</field>
+            <field name="code">FR</field>
+            <field name="phone_code">33</field>
+        </record>
+
+        <record id="country_au" model="res.country">
+            <field name="name">Australia</field>
+            <field name="code">AU</field>
+            <field name="phone_code">61</field>
+        </record>
+
+        <record id="country_jp" model="res.country">
+            <field name="name">Japan</field>
+            <field name="code">JP</field>
+            <field name="phone_code">81</field>
+        </record>
+
+        <record id="country_sg" model="res.country">
+            <field name="name">Singapore</field>
+            <field name="code">SG</field>
+            <field name="phone_code">65</field>
+        </record>
+    </data>
+</odoo>

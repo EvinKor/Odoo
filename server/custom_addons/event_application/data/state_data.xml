@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- US States with ZIP Code Patterns -->
+        <record id="state_us_al" model="res.country.state">
+            <field name="name">Alabama</field>
+            <field name="code">AL</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ak" model="res.country.state">
+            <field name="name">Alaska</field>
+            <field name="code">AK</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_az" model="res.country.state">
+            <field name="name">Arizona</field>
+            <field name="code">AZ</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ar" model="res.country.state">
+            <field name="name">Arkansas</field>
+            <field name="code">AR</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ca" model="res.country.state">
+            <field name="name">California</field>
+            <field name="code">CA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_co" model="res.country.state">
+            <field name="name">Colorado</field>
+            <field name="code">CO</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ct" model="res.country.state">
+            <field name="name">Connecticut</field>
+            <field name="code">CT</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_de" model="res.country.state">
+            <field name="name">Delaware</field>
+            <field name="code">DE</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_fl" model="res.country.state">
+            <field name="name">Florida</field>
+            <field name="code">FL</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ga" model="res.country.state">
+            <field name="name">Georgia</field>
+            <field name="code">GA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_hi" model="res.country.state">
+            <field name="name">Hawaii</field>
+            <field name="code">HI</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_id" model="res.country.state">
+            <field name="name">Idaho</field>
+            <field name="code">ID</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_il" model="res.country.state">
+            <field name="name">Illinois</field>
+            <field name="code">IL</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_in" model="res.country.state">
+            <field name="name">Indiana</field>
+            <field name="code">IN</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ia" model="res.country.state">
+            <field name="name">Iowa</field>
+            <field name="code">IA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ks" model="res.country.state">
+            <field name="name">Kansas</field>
+            <field name="code">KS</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ky" model="res.country.state">
+            <field name="name">Kentucky</field>
+            <field name="code">KY</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_la" model="res.country.state">
+            <field name="name">Louisiana</field>
+            <field name="code">LA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_me" model="res.country.state">
+            <field name="name">Maine</field>
+            <field name="code">ME</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_md" model="res.country.state">
+            <field name="name">Maryland</field>
+            <field name="code">MD</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ma" model="res.country.state">
+            <field name="name">Massachusetts</field>
+            <field name="code">MA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_mi" model="res.country.state">
+            <field name="name">Michigan</field>
+            <field name="code">MI</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_mn" model="res.country.state">
+            <field name="name">Minnesota</field>
+            <field name="code">MN</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ms" model="res.country.state">
+            <field name="name">Mississippi</field>
+            <field name="code">MS</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_mo" model="res.country.state">
+            <field name="name">Missouri</field>
+            <field name="code">MO</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_mt" model="res.country.state">
+            <field name="name">Montana</field>
+            <field name="code">MT</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ne" model="res.country.state">
+            <field name="name">Nebraska</field>
+            <field name="code">NE</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_nv" model="res.country.state">
+            <field name="name">Nevada</field>
+            <field name="code">NV</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_nh" model="res.country.state">
+            <field name="name">New Hampshire</field>
+            <field name="code">NH</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_nj" model="res.country.state">
+            <field name="name">New Jersey</field>
+            <field name="code">NJ</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_nm" model="res.country.state">
+            <field name="name">New Mexico</field>
+            <field name="code">NM</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ny" model="res.country.state">
+            <field name="name">New York</field>
+            <field name="code">NY</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_nc" model="res.country.state">
+            <field name="name">North Carolina</field>
+            <field name="code">NC</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_nd" model="res.country.state">
+            <field name="name">North Dakota</field>
+            <field name="code">ND</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_oh" model="res.country.state">
+            <field name="name">Ohio</field>
+            <field name="code">OH</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ok" model="res.country.state">
+            <field name="name">Oklahoma</field>
+            <field name="code">OK</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_or" model="res.country.state">
+            <field name="name">Oregon</field>
+            <field name="code">OR</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_pa" model="res.country.state">
+            <field name="name">Pennsylvania</field>
+            <field name="code">PA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ri" model="res.country.state">
+            <field name="name">Rhode Island</field>
+            <field name="code">RI</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_sc" model="res.country.state">
+            <field name="name">South Carolina</field>
+            <field name="code">SC</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_sd" model="res.country.state">
+            <field name="name">South Dakota</field>
+            <field name="code">SD</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_tn" model="res.country.state">
+            <field name="name">Tennessee</field>
+            <field name="code">TN</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_tx" model="res.country.state">
+            <field name="name">Texas</field>
+            <field name="code">TX</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_ut" model="res.country.state">
+            <field name="name">Utah</field>
+            <field name="code">UT</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_vt" model="res.country.state">
+            <field name="name">Vermont</field>
+            <field name="code">VT</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_va" model="res.country.state">
+            <field name="name">Virginia</field>
+            <field name="code">VA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_wa" model="res.country.state">
+            <field name="name">Washington</field>
+            <field name="code">WA</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_wv" model="res.country.state">
+            <field name="name">West Virginia</field>
+            <field name="code">WV</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_wi" model="res.country.state">
+            <field name="name">Wisconsin</field>
+            <field name="code">WI</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <record id="state_us_wy" model="res.country.state">
+            <field name="name">Wyoming</field>
+            <field name="code">WY</field>
+            <field name="country_id" ref="event_application.country_us"/>
+        </record>
+
+        <!-- Canadian Provinces -->
+        <record id="state_ca_ab" model="res.country.state">
+            <field name="name">Alberta</field>
+            <field name="code">AB</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_bc" model="res.country.state">
+            <field name="name">British Columbia</field>
+            <field name="code">BC</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_mb" model="res.country.state">
+            <field name="name">Manitoba</field>
+            <field name="code">MB</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_nb" model="res.country.state">
+            <field name="name">New Brunswick</field>
+            <field name="code">NB</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_nl" model="res.country.state">
+            <field name="name">Newfoundland and Labrador</field>
+            <field name="code">NL</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_ns" model="res.country.state">
+            <field name="name">Nova Scotia</field>
+            <field name="code">NS</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_on" model="res.country.state">
+            <field name="name">Ontario</field>
+            <field name="code">ON</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_pe" model="res.country.state">
+            <field name="name">Prince Edward Island</field>
+            <field name="code">PE</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_qc" model="res.country.state">
+            <field name="name">Quebec</field>
+            <field name="code">QC</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_sk" model="res.country.state">
+            <field name="name">Saskatchewan</field>
+            <field name="code">SK</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_nt" model="res.country.state">
+            <field name="name">Northwest Territories</field>
+            <field name="code">NT</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_nu" model="res.country.state">
+            <field name="name">Nunavut</field>
+            <field name="code">NU</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+
+        <record id="state_ca_yt" model="res.country.state">
+            <field name="name">Yukon</field>
+            <field name="code">YT</field>
+            <field name="country_id" ref="event_application.country_ca"/>
+        </record>
+    </data>
+</odoo>

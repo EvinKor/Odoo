@@ -1,0 +1,906 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- My Events List -->
+        <template id="portal_my_events" name="My Events">
+            <t t-call="portal.portal_layout">
+                <t t-set="breadcrumbs_searchbar" t-value="True"/>
+                
+                <t t-call="portal.portal_searchbar">
+                    <t t-set="title">My Events</t>
+                </t>
+                
+                <div class="container">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <a href="/event/apply" class="btn btn-primary">
+                                <i class="fa fa-plus"></i> Submit New Event Application
+                            </a>
+                            <a href="/my/event/applications" class="btn btn-outline-primary">
+                                <i class="fa fa-list"></i> Application History
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <t t-if="not events">
+                        <div class="alert alert-info">
+                            You don't have any published events yet.
+                        </div>
+                    </t>
+                    
+                    <t t-if="events">
+                        <div class="row">
+                            <t t-foreach="events" t-as="event">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h5 class="card-title mb-0"><t t-esc="event.name"/></h5>
+                                                <!-- Status Badge -->
+                                                <t t-if="event.application_id">
+                                                    <span t-att-class="'badge bg-secondary' if event.application_id.state == 'draft' else 'badge bg-info' if event.application_id.state == 'submitted' else 'badge bg-success' if event.application_id.state == 'approved' else 'badge bg-danger' if event.application_id.state == 'rejected' else 'badge bg-primary'">
+                                                        <t t-esc="dict(event.application_id._fields['state'].selection).get(event.application_id.state)"/>
+                                                    </span>
+                                                </t>
+                                                <t t-else="">
+                                                    <span class="badge bg-primary">Published</span>
+                                                </t>
+                                            </div>
+                                            <p class="card-text">
+                                                <i class="fa fa-calendar"></i> <t t-esc="event.date_begin" t-options="{'widget': 'datetime'}"/><br/>
+                                                <i class="fa fa-map-marker"></i> <t t-esc="event.location or event.address_id.name or 'No location'"/><br/>
+                                                <i class="fa fa-users"></i> <t t-esc="event.seats_used"/> / <t t-esc="event.seats_max or 'Unlimited'"/> registrations
+                                            </p>
+                                        </div>
+                                        <div class="card-footer">
+                                            <a t-attf-href="/my/event/#{event.id}" class="btn btn-sm btn-primary">
+                                                <i class="fa fa-edit"></i> Edit Event
+                                            </a>
+                                            <a t-attf-href="/my/event/#{event.id}/registrations" class="btn btn-sm btn-secondary">
+                                                <i class="fa fa-users"></i> Registrations
+                                            </a>
+                                            <a t-attf-href="/event/#{event.id}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <i class="fa fa-external-link"></i> Public Page
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </template>
+
+        <!-- Event Application Form -->
+        <template id="event_application_form" name="Event Application Form">
+            <t t-call="website.layout">
+                <div class="container mt-5 mb-5">
+                    <div class="row">
+                        <div class="col-lg-8 offset-lg-2">
+                            <h1 class="mb-4">Submit Event Application</h1>
+                            <form action="/event/apply/submit" method="post" class="o_website_form">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label" for="event_name">Event Name *</label>
+                                    <input type="text" name="event_name" id="event_name" class="form-control" required="required"/>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label" for="date_begin">Start Date *</label>
+                                        <input type="datetime-local" name="date_begin" id="date_begin" class="form-control" required="required"/>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label" for="date_end">End Date *</label>
+                                        <input type="datetime-local" name="date_end" id="date_end" class="form-control" required="required"/>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label" for="venue_type">Venue Type *</label>
+                                    <select name="venue_type" id="venue_type" class="form-control" required="required">
+                                        <option value="physical">Physical Venue</option>
+                                        <option value="online">Online Event</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Online Venue Fields -->
+                                <div id="online_venue_fields" class="venue-fields" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="online_platform">Online Platform</label>
+                                        <input type="text" name="online_platform" id="online_platform" class="form-control" placeholder="e.g., Zoom, Microsoft Teams, Google Meet"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="online_link">Online Link/Access Instructions</label>
+                                        <input type="text" name="online_link" id="online_link" class="form-control" placeholder="Meeting link or access instructions"/>
+                                    </div>
+                                </div>
+                                
+                                <!-- Physical Venue Fields -->
+                                <div id="physical_venue_fields" class="venue-fields">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="venue_name">Venue Name</label>
+                                        <input type="text" name="venue_name" id="venue_name" class="form-control" placeholder="e.g., Conference Center, Hotel Name"/>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="street_address">Street Address</label>
+                                        <input type="text" name="street_address" id="street_address" class="form-control" placeholder="Street name and number"/>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label" for="city">City</label>
+                                            <input type="text" name="city" id="city" class="form-control"/>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label" for="zip_code">ZIP Code</label>
+                                            <input type="text" name="zip_code" id="zip_code" class="form-control"/>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label" for="state_id">State/Province</label>
+                                            <select name="state_id" id="state_id" class="form-control">
+                                                <option value="">Select State</option>
+                                                <t t-foreach="states" t-as="state">
+                                                    <option t-att-value="state.id" t-att-data-country="state.country_id.id" style="display: none;">
+                                                        <t t-esc="state.name"/>
+                                                    </option>
+                                                </t>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label" for="country_id">Country</label>
+                                            <select name="country_id" id="country_id" class="form-control">
+                                                <t t-foreach="countries" t-as="country">
+                                                    <option t-att-value="country.id" t-att-selected="country.id == (request.env.company.country_id.id if request.env.company.country_id else False)">
+                                                        <t t-esc="country.name"/>
+                                                    </option>
+                                                </t>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Specialty Selection -->
+                                <div class="mb-3">
+                                    <label class="form-label">Specialties</label>
+                                    <div class="multi-select-container">
+                                        <select class="form-control" id="specialty-select">
+                                            <option value="">Select a specialty...</option>
+                                            <t t-foreach="specialties" t-as="specialty">
+                                            <option t-att-value="specialty.id"><t t-esc="specialty.name"/></option>
+                                            </t>
+                                        </select>
+                                        <div class="selected-tags" id="specialty-tags"></div>
+                                        <input type="hidden" name="specialty_ids" id="specialty-ids-hidden"/>
+                                    </div>
+                                </div>
+                                
+                                <!-- Case Selection -->
+                                <div class="mb-3">
+                                    <label class="form-label">Case Types</label>
+                                    <div class="multi-select-container">
+                                        <select class="form-control" id="case-select">
+                                            <option value="">Select a case type...</option>
+                                            <t t-foreach="cases" t-as="case">
+                                            <option t-att-value="case.id"><t t-esc="case.name"/></option>
+                                            </t>
+                                        </select>
+                                        <div class="selected-tags" id="case-tags"></div>
+                                        <input type="hidden" name="case_ids" id="case-ids-hidden"/>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label" for="description">Description</label>
+                                    <textarea name="description" id="description" class="form-control" rows="5"></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Submit Application</button>
+                                <a href="/event" class="btn btn-secondary">Cancel</a>
+                            </form>
+                            
+                            <style>
+                                .multi-select-container {
+                                    position: relative;
+                                }
+                                .selected-tags {
+                                    display: flex;
+                                    flex-wrap: wrap;
+                                    gap: 5px;
+                                    min-height: 38px;
+                                    padding: 5px;
+                                    border: 1px solid #ced4da;
+                                    border-radius: 0 0 0.375rem 0.375rem;
+                                    background-color: #fff;
+                                }
+                                .selected-tags .tag {
+                                    display: inline-flex;
+                                    align-items: center;
+                                    background-color: #007bff;
+                                    color: white;
+                                    padding: 2px 8px;
+                                    border-radius: 4px;
+                                    font-size: 14px;
+                                }
+                                .selected-tags .tag .remove-tag {
+                                    margin-left: 5px;
+                                    cursor: pointer;
+                                    font-weight: bold;
+                                }
+                                .selected-tags .tag .remove-tag:hover {
+                                    color: #ffcccc;
+                                }
+                                .multi-select-container .form-control {
+                                    border-radius: 0.375rem 0.375rem 0 0;
+                                }
+                            </style>
+                            
+                            <script>
+                                <![CDATA[
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const venueTypeSelect = document.getElementById('venue_type');
+                                    const onlineFields = document.getElementById('online_venue_fields');
+                                    const physicalFields = document.getElementById('physical_venue_fields');
+                                    const countrySelect = document.getElementById('country_id');
+                                    const stateSelect = document.getElementById('state_id');
+                                    const zipCodeInput = document.getElementById('zip_code');
+                                    
+                                    function toggleVenueFields() {
+                                        const selectedType = venueTypeSelect.value;
+                                        
+                                        if (selectedType === 'online') {
+                                            onlineFields.style.display = 'block';
+                                            physicalFields.style.display = 'none';
+                                            // Clear physical fields
+                                            document.getElementById('venue_name').value = '';
+                                            document.getElementById('street_address').value = '';
+                                            document.getElementById('city').value = '';
+                                            document.getElementById('zip_code').value = '';
+                                            document.getElementById('state_id').value = '';
+                                        } else {
+                                            onlineFields.style.display = 'none';
+                                            physicalFields.style.display = 'block';
+                                            // Clear online fields
+                                            document.getElementById('online_platform').value = '';
+                                            document.getElementById('online_link').value = '';
+                                        }
+                                    }
+                                    
+                                    function updateStates() {
+                                        const selectedCountryId = countrySelect.value;
+                                        const stateOptions = stateSelect.querySelectorAll('option');
+                                        
+                                        // Reset state selection
+                                        stateSelect.value = '';
+                                        
+                                        // Show/hide states based on selected country
+                                        stateOptions.forEach(option => {
+                                            if (option.value === '') {
+                                                option.style.display = 'block'; // Always show empty option
+                                            } else {
+                                                const stateCountryId = option.getAttribute('data-country');
+                                                if (selectedCountryId && stateCountryId === selectedCountryId) {
+                                                    option.style.display = 'block';
+                                                } else {
+                                                    option.style.display = 'none';
+                                                }
+                                            }
+                                        });
+                                        
+                                        validateZipCode();
+                                    }
+                                    
+                                    function validateZipCode() {
+                                        const zipCode = zipCodeInput.value;
+                                        const selectedCountry = countrySelect.options[countrySelect.selectedIndex]?.text;
+                                        
+                                        if (!zipCode) return; // Don't validate empty ZIP codes
+                                        
+                                        let isValid = false;
+                                        let errorMessage = '';
+                                        
+                                        if (selectedCountry === 'United States') {
+                                            // US ZIP code: 12345 or 12345-6789
+                                            isValid = /^\d{5}(-\d{4})?$/.test(zipCode);
+                                            errorMessage = 'US ZIP codes must be in format 12345 or 12345-6789';
+                                        } else if (selectedCountry === 'Canada') {
+                                            // Canadian postal code: A1A 1A1 or A1A1A1
+                                            isValid = /^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/.test(zipCode);
+                                            errorMessage = 'Canadian postal codes must be in format A1A 1A1 or A1A1A1';
+                                        } else {
+                                            // For other countries, basic validation (not empty and reasonable length)
+                                            isValid = zipCode.length >= 3 && zipCode.length <= 10;
+                                            errorMessage = 'Please enter a valid postal code';
+                                        }
+                                        
+                                        // Visual feedback
+                                        zipCodeInput.classList.toggle('is-invalid', !isValid && zipCode.length > 0);
+                                        zipCodeInput.classList.toggle('is-valid', isValid);
+                                        
+                                        // Update or create error message
+                                        let errorElement = zipCodeInput.parentNode.querySelector('.invalid-feedback');
+                                        if (!errorElement) {
+                                            errorElement = document.createElement('div');
+                                            errorElement.className = 'invalid-feedback';
+                                            zipCodeInput.parentNode.appendChild(errorElement);
+                                        }
+                                        errorElement.textContent = errorMessage;
+                                    }
+                                    
+                                    // Event listeners
+                                    venueTypeSelect.addEventListener('change', toggleVenueFields);
+                                    countrySelect.addEventListener('change', updateStates);
+                                    stateSelect.addEventListener('change', validateZipCode);
+                                    zipCodeInput.addEventListener('input', validateZipCode);
+                                    
+                                    // Specialty and Case multi-select functionality
+                                    const specialtyTags = document.getElementById('specialty-tags');
+                                    const specialtySelect = document.getElementById('specialty-select');
+                                    const specialtyIdsHidden = document.getElementById('specialty-ids-hidden');
+                                    
+                                    const caseTags = document.getElementById('case-tags');
+                                    const caseSelect = document.getElementById('case-select');
+                                    const caseIdsHidden = document.getElementById('case-ids-hidden');
+                                    
+                                    let selectedSpecialties = [];
+                                    let selectedCases = [];
+                                    
+                                    function createMultiSelect(tagsContainer, select, hiddenInput, selectedItems) {
+                                        // Get all available options from the select element
+                                        const allOptions = Array.from(select.querySelectorAll('option')).filter(opt => opt.value).map(opt => ({
+                                            id: parseInt(opt.value),
+                                            name: opt.textContent
+                                        }));
+                                        
+                                        function updateSelectOptions() {
+                                            // Clear current options except the placeholder
+                                            select.innerHTML = '<option value="">Select a specialty...</option>';
+                                            
+                                            // Add available options (not selected)
+                                            allOptions.forEach(option => {
+                                                if (!selectedItems.find(selected => selected.id === option.id)) {
+                                                    const opt = document.createElement('option');
+                                                    opt.value = option.id;
+                                                    opt.textContent = option.name;
+                                                    select.appendChild(opt);
+                                                }
+                                            });
+                                        }
+                                        
+                                        function updateTags() {
+                                            tagsContainer.innerHTML = '';
+                                            selectedItems.forEach(item => {
+                                                const tag = document.createElement('span');
+                                                tag.className = 'tag';
+                                                tag.innerHTML = `${item.name} <span class="remove-tag" data-id="${item.id}">&times;</span>`;
+                                                tagsContainer.appendChild(tag);
+                                            });
+                                            hiddenInput.value = selectedItems.map(item => item.id).join(',');
+                                        }
+                                        
+                                        // Initial setup
+                                        updateSelectOptions();
+                                        updateTags();
+                                        
+                                        // Handle select change
+                                        select.addEventListener('change', () => {
+                                            const selectedId = parseInt(select.value);
+                                            if (selectedId) {
+                                                const selectedOption = allOptions.find(opt => opt.id === selectedId);
+                                                if (selectedOption && !selectedItems.find(item => item.id === selectedId)) {
+                                                    selectedItems.push(selectedOption);
+                                                    updateTags();
+                                                    updateSelectOptions();
+                                                }
+                                            }
+                                            select.value = ''; // Reset to placeholder
+                                        });
+                                        
+                                        // Handle tag removal
+                                        tagsContainer.addEventListener('click', (e) => {
+                                            if (e.target.classList.contains('remove-tag')) {
+                                                const id = parseInt(e.target.getAttribute('data-id'));
+                                                const index = selectedItems.findIndex(item => item.id === id);
+                                                if (index > -1) {
+                                                    selectedItems.splice(index, 1);
+                                                    updateTags();
+                                                    updateSelectOptions();
+                                                }
+                                            }
+                                        });
+                                    }
+                                    
+                                    createMultiSelect(specialtyTags, specialtySelect, specialtyIdsHidden, selectedSpecialties);
+                                    createMultiSelect(caseTags, caseSelect, caseIdsHidden, selectedCases);
+                                    
+                                    // Initialize
+                                    toggleVenueFields();
+                                    updateStates();
+                                });
+                                ]]>
+                            </script>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        <!-- My Applications Portal Page -->
+        <template id="portal_my_applications" name="My Event Applications">
+            <t t-call="portal.portal_layout">
+                <t t-set="breadcrumbs_searchbar" t-value="True"/>
+                
+                <t t-call="portal.portal_searchbar">
+                    <t t-set="title">Event Applications</t>
+                </t>
+                
+                <div class="container">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <!-- <a href="/event/apply" class="btn btn-primary">
+                                <i class="fa fa-plus"></i> Submit New Application
+                            </a> -->
+                            <a href="/my/events" class="btn btn-outline-primary">
+                                <i class="fa fa-arrow-left"></i> Back to My Events
+                            </a>
+                            <!-- <a href="/event" class="btn btn-secondary">
+                                <i class="fa fa-list"></i> Browse Events
+                            </a> -->
+                        </div>
+                    </div>
+                    
+                    <t t-if="not applications">
+                        <div class="alert alert-info">
+                            You haven't submitted any event applications yet.
+                        </div>
+                    </t>
+                    
+                    <t t-if="applications">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Event Name</th>
+                                        <th>Start Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="applications" t-as="app">
+                                        <td><t t-esc="app.name"/></td>
+                                        <td><t t-esc="app.date_begin" t-options="{'widget': 'datetime'}"/></td>
+                                        <td>
+                                            <span t-att-class="'badge bg-secondary' if app.state == 'draft' else 'badge bg-info' if app.state == 'submitted' else 'badge bg-success' if app.state == 'approved' else 'badge bg-danger' if app.state == 'rejected' else 'badge bg-primary'">
+                                                <t t-esc="dict(app._fields['state'].selection).get(app.state)"/>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a t-attf-href="/my/event/application/#{app.id}" class="btn btn-sm btn-secondary">
+                                                <i class="fa fa-eye"></i> View
+                                            </a>
+                                            <t t-if="app.state == 'published' and app.event_id">
+                                                <a t-attf-href="/my/event/#{app.event_id.id}" class="btn btn-sm btn-primary">
+                                                    <i class="fa fa-edit"></i> Edit Event
+                                                </a>
+                                                <a t-attf-href="/my/event/#{app.event_id.id}/registrations" class="btn btn-sm btn-info">
+                                                    <i class="fa fa-users"></i> Registrations
+                                                </a>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </template>
+
+        <!-- Application Detail View -->
+        <template id="portal_application_detail" name="Event Application Detail">
+            <t t-call="portal.portal_layout">
+                <t t-set="breadcrumbs_searchbar" t-value="True"/>
+                
+                <div class="container mt-4 mb-5">
+                    <div class="row">
+                        <div class="col-lg-8 offset-lg-2">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><t t-esc="application.name"/></h3>
+                                    <span t-att-class="'badge bg-secondary' if application.state == 'draft' else 'badge bg-info' if application.state == 'submitted' else 'badge bg-success' if application.state == 'approved' else 'badge bg-danger' if application.state == 'rejected' else 'badge bg-primary'">
+                                        <t t-esc="dict(application._fields['state'].selection).get(application.state)"/>
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <strong>Organizer:</strong><br/>
+                                            <t t-esc="application.partner_id.name"/>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Location:</strong><br/>
+                                            <t t-esc="application.location or 'Not specified'"/>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <strong>Start Date:</strong><br/>
+                                            <t t-esc="application.date_begin" t-options="{'widget': 'datetime'}"/>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>End Date:</strong><br/>
+                                            <t t-esc="application.date_end" t-options="{'widget': 'datetime'}"/>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3" t-if="application.description">
+                                        <strong>Description:</strong><br/>
+                                        <t t-raw="application.description"/>
+                                    </div>
+
+                                    <!-- Status Messages -->
+                                    <div class="alert alert-info" t-if="application.state == 'submitted'">
+                                        <i class="fa fa-clock-o"></i> Your application is under review. We'll notify you once it's been processed.
+                                    </div>
+                                    <div class="alert alert-danger" t-if="application.state == 'rejected' and application.rejection_reason">
+                                        <strong>Rejection Reason:</strong><br/>
+                                        <t t-esc="application.rejection_reason"/>
+                                    </div>
+                                    <div class="alert alert-success" t-if="application.state == 'published' and application.event_id">
+                                        <strong>Your event has been published!</strong><br/>
+                                        <a t-attf-href="/my/event/#{application.event_id.id}" class="btn btn-success btn-sm mt-2">
+                                            <i class="fa fa-edit"></i> Edit Event Details
+                                        </a>
+                                        <a t-attf-href="/event/#{application.event_id.id}" class="btn btn-primary btn-sm mt-2" target="_blank">
+                                            <i class="fa fa-external-link"></i> View Public Page
+                                        </a>
+                                        <a t-attf-href="/my/event/#{application.event_id.id}/registrations" class="btn btn-info btn-sm mt-2">
+                                            <i class="fa fa-users"></i> View Registrations
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="/my/event/applications" class="btn btn-secondary">Back to Applications</a>
+                                    <a href="/my/events" class="btn btn-outline-primary" t-if="application.state == 'published'">My Events</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+        
+        <!-- Add buttons to Events page -->
+        <template id="event_index_submit_application" name="Submit Event Application Button" inherit_id="website_event.index">
+            <xpath expr="//div[@id='o_wevent_index_main_col']" position="before">
+                <div class="container mb-3" t-if="not request.env.user._is_public()">
+                    <div class="row">
+                        <div class="col-12 text-end">
+                            <!-- <a href="/my/events" class="btn btn-success me-2">
+                                <i class="fa fa-cog"></i> Manage My Events
+                                </a> -->
+                            <a href="/event/apply" class="btn btn-primary me-2">
+                                <i class="fa fa-paper-plane"></i> Submit Your Event
+                            </a>
+                            <a href="/my/events" class="btn btn-outline-primary">
+                                <i class="fa fa-list"></i> Event Applications
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </template>        
+
+        <!-- My Event Detail/Edit -->
+        <template id="portal_my_event_detail" name="My Event Detail">
+            <t t-call="portal.portal_layout">
+                <div class="container mt-4 mb-5">
+                    <div class="row">
+                        <div class="col-lg-8 offset-lg-2">
+                            <div class="alert alert-success" role="alert" t-if="request.params.get('success')">
+                                Event updated successfully!
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Edit Event: <t t-esc="event.name"/></h3>
+                                </div>
+                                <div class="card-body">
+                                    <form t-attf-action="/my/event/#{event.id}/update" method="post">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label" for="name">Event Name *</label>
+                                            <input type="text" name="name" id="name" class="form-control" t-att-value="event.name" required="required"/>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="date_begin">Start Date *</label>
+                                                <input type="datetime-local" name="date_begin" id="date_begin" class="form-control" 
+                                                       t-att-value="event.date_begin.strftime('%Y-%m-%dT%H:%M') if event.date_begin else ''" required="required"/>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="date_end">End Date *</label>
+                                                <input type="datetime-local" name="date_end" id="date_end" class="form-control" 
+                                                       t-att-value="event.date_end.strftime('%Y-%m-%dT%H:%M') if event.date_end else ''" required="required"/>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label" for="location">Location</label>
+                                            <input type="text" name="location" id="location" class="form-control" t-att-value="event.location or event.address_id.name or ''"/>
+                                        </div>
+                                        
+                                        <!-- Specialty Selection -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Specialties</label>
+                                            <div class="row">
+                                                <t t-foreach="specialties" t-as="specialty">
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="specialty_ids" 
+                                                                   t-att-value="specialty.id" 
+                                                                   t-att-id="'specialty_' + str(specialty.id)"
+                                                                   t-att-checked="'checked' if specialty in event.specialty_ids else None"/>
+                                                            <label class="form-check-label" t-att-for="'specialty_' + str(specialty.id)">
+                                                                <t t-esc="specialty.name"/>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Case Selection -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Case Types</label>
+                                            <div class="row">
+                                                <t t-foreach="cases" t-as="case">
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="case_ids" 
+                                                                   t-att-value="case.id" 
+                                                                   t-att-id="'case_' + str(case.id)"
+                                                                   t-att-checked="'checked' if case in event.case_ids else None"/>
+                                                            <label class="form-check-label" t-att-for="'case_' + str(case.id)">
+                                                                <t t-esc="case.name"/>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="seats_max">Maximum Attendees</label>
+                                                <input type="number" name="seats_max" id="seats_max" class="form-control" 
+                                                       t-att-value="event.seats_max" placeholder="Leave empty for unlimited"/>
+                                                <small class="form-text text-muted">Current registrations: <t t-esc="event.seats_used"/></small>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="seats_available">Seats Available</label>
+                                                <input type="number" name="seats_available" id="seats_available" class="form-control" 
+                                                       t-att-value="event.seats_available" readonly="readonly"/>
+                                                <small class="form-text text-muted">Calculated automatically</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label" for="description">Description</label>
+                                            <textarea name="description" id="description" class="form-control" rows="5"><t t-esc="event.description or ''"/></textarea>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-primary">Update Event</button>
+                                        <a href="/my/events" class="btn btn-secondary">Back to My Events</a>
+                                        <a t-attf-href="/my/event/#{event.id}/registrations" class="btn btn-outline-primary">View Registrations</a>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        <!-- Event Registrations View -->
+        <template id="portal_my_event_registrations" name="Event Registrations">
+            <t t-call="portal.portal_layout">
+                <div class="container mt-4 mb-5">
+                    <h2>Registrations for: <t t-esc="event.name"/></h2>
+                    
+                    <div class="alert alert-info mb-4">
+                        <strong>Total Registrations:</strong> <t t-esc="event.seats_used"/> 
+                        <span t-if="event.seats_max">/ <t t-esc="event.seats_max"/> (Maximum)</span>
+                    </div>
+                    
+                    <t t-if="not registrations">
+                        <div class="alert alert-warning">
+                            No registrations yet.
+                        </div>
+                    </t>
+                    
+                    <t t-if="registrations">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>State</th>
+                                        <th>Registration Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="registrations" t-as="reg">
+                                        <td><t t-esc="reg.name"/></td>
+                                        <td><t t-esc="reg.email"/></td>
+                                        <td><t t-esc="reg.phone or '-'"/></td>
+                                        <td>
+                                            <span t-att-class="'badge bg-success' if reg.state == 'open' else 'badge bg-secondary'">
+                                                <t t-esc="reg.state.title()"/>
+                                            </span>
+                                        </td>
+                                        <td><t t-esc="reg.create_date" t-options="{'widget': 'datetime'}"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                    
+                    <div class="mt-3">
+                        <a t-attf-href="/my/event/#{event.id}" class="btn btn-secondary">Back to Event</a>
+                        <a href="/my/events" class="btn btn-outline-secondary">All My Events</a>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        <!-- Add link in portal sidebar for My Events -->
+        <template id="portal_my_home_events" name="Portal My Home : my events entries" inherit_id="portal.portal_my_home" priority="50">
+            <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+                <t t-call="portal.portal_docs_entry">
+                    <t t-set="title">My Events</t>
+                    <t t-set="url" t-value="'/my/events'"/>
+                    <t t-set="placeholder_count" t-value="'my_events_count'"/>
+                </t>
+            </xpath>
+        </template>
+
+        <!-- View Registrations for an Event -->
+        <template id="portal_my_event_registrations" name="My Event Registrations">
+            <t t-call="portal.portal_layout">
+                <div class="container mt-4 mb-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3>Registrations for: <t t-esc="event.name"/></h3>
+                                <a t-attf-href="/my/event/#{event.id}" class="btn btn-secondary">
+                                    <i class="fa fa-arrow-left"></i> Back to Event
+                                </a>
+                            </div>
+                            
+                            <div class="alert alert-success" role="alert" t-if="request.params.get('success')">
+                                Attendance status updated successfully!
+                            </div>
+                            
+                            <!-- Statistics Card -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-3">
+                                            <h4><t t-esc="total_count"/></h4>
+                                            <small class="text-muted">Total Registrations</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h4 class="text-success"><t t-esc="attended_count"/></h4>
+                                            <small class="text-muted">Attended</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h4 class="text-warning"><t t-esc="not_attended_count"/></h4>
+                                            <small class="text-muted">Not Yet Attended</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h4><t t-esc="int(attendance_rate)"/>%</h4>
+                                            <small class="text-muted">Attendance Rate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Registrations Table -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <t t-if="registrations">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Attendee Name</th>
+                                                        <th>Email</th>
+                                                        <th>Phone</th>
+                                                        <th>Registration Date</th>
+                                                        <th>Status</th>
+                                                        <th class="text-center">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <t t-foreach="registrations" t-as="registration">
+                                                        <tr>
+                                                            <td>
+                                                                <strong><t t-esc="registration.name"/></strong>
+                                                            </td>
+                                                            <td><t t-esc="registration.email or '-'"/></td>
+                                                            <td><t t-esc="registration.phone or '-'"/></td>
+                                                            <td><t t-esc="registration.create_date.strftime('%Y-%m-%d %H:%M') if registration.create_date else '-'"/></td>
+                                                            <td>
+                                                                <t t-if="registration.state == 'done'">
+                                                                    <span class="badge bg-success">
+                                                                        <i class="fa fa-check"></i> Attended
+                                                                    </span>
+                                                                </t>
+                                                                <t t-elif="registration.state == 'open'">
+                                                                    <span class="badge bg-info">
+                                                                        <i class="fa fa-user"></i> Confirmed
+                                                                    </span>
+                                                                </t>
+                                                                <t t-elif="registration.state == 'draft'">
+                                                                    <span class="badge bg-warning">
+                                                                        <i class="fa fa-clock-o"></i> Draft
+                                                                    </span>
+                                                                </t>
+                                                                <t t-elif="registration.state == 'cancel'">
+                                                                    <span class="badge bg-danger">
+                                                                        <i class="fa fa-times"></i> Cancelled
+                                                                    </span>
+                                                                </t>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <t t-if="registration.state == 'done'">
+                                                                    <form t-attf-action="/my/event/#{event.id}/registration/#{registration.id}/unmark" method="post" style="display:inline;">
+                                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Mark as Not Attended">
+                                                                            <i class="fa fa-undo"></i> Unmark
+                                                                        </button>
+                                                                    </form>
+                                                                </t>
+                                                                <t t-elif="registration.state == 'open'">
+                                                                    <form t-attf-action="/my/event/#{event.id}/registration/#{registration.id}/mark" method="post" style="display:inline;">
+                                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                                        <button type="submit" class="btn btn-sm btn-success" title="Mark as Attended">
+                                                                            <i class="fa fa-check"></i> Mark Attended
+                                                                        </button>
+                                                                    </form>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <span class="text-muted">-</span>
+                                                                </t>
+                                                            </td>
+                                                        </tr>
+                                                    </t>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="alert alert-info text-center">
+                                            <i class="fa fa-info-circle fa-2x mb-2"></i>
+                                            <p class="mb-0">No registrations yet for this event.</p>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        
+    </data>
+</odoo>

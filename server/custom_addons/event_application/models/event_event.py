@@ -62,6 +62,7 @@ class EventEvent(models.Model):
     full_address = fields.Char(string='Full Address', compute='_compute_full_address', store=True)
     contact_phone = fields.Char(string='Contact Phone')
     contact_email = fields.Char(string='Contact Email')
+    venue_display = fields.Text(string='Venue Details', compute='_compute_venue_display', readonly=True)
 
     @api.depends(
         'venue_name',
@@ -101,6 +102,28 @@ class EventEvent(models.Model):
                     event.full_address = False
             else:
                 event.full_address = False
+
+    @api.depends(
+        'address_id',
+        'address_id.name',
+        'address_id.street',
+        'address_id.street2',
+        'address_id.city',
+        'address_id.zip',
+        'address_id.state_id',
+        'address_id.country_id',
+    )
+    def _compute_venue_display(self):
+        for event in self:
+            if not event.address_id:
+                event.venue_display = False
+                continue
+            name = event.address_id.name or ''
+            address = (event.address_id._display_address(without_company=True) or '').strip()
+            if name and address:
+                event.venue_display = f"{name}\n{address}"
+            else:
+                event.venue_display = name or address or False
 
 
 class EventSpecialty(models.Model):

@@ -8,3 +8,4 @@ access_event_specialty_manager,event.specialty.manager,model_event_specialty,bas
 access_event_case_user,event.case.user,model_event_case,base.group_portal,1,0,0,0
 access_event_case_public,event.case.public,model_event_case,base.group_public,1,0,0,0
 access_event_case_manager,event.case.manager,model_event_case,base.group_system,1,1,1,1
+access_event_event_user_delete,event.event.user.delete,model_event_event,event.group_event_user,1,1,1,1

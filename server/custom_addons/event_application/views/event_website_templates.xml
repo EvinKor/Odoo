@@ -192,5 +192,28 @@
                 </t>
             </div>
         </xpath>
+</template>
+
+    <template id="event_page_specialty_case" inherit_id="website_event.event_description_full">
+        <xpath expr="//aside[@id='o_wevent_event_main_sidebar']/div[@class='o_wevent_sidebar_block border-bottom pb-3 mb-4'][1]" position="after">
+            <div t-if="event.specialty_ids or event.case_ids" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
+                <t t-if="event.specialty_ids">
+                    <h6 class="o_wevent_sidebar_title">Specialties</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <t t-foreach="event.specialty_ids" t-as="specialty">
+                            <span class="badge text-bg-light"><t t-esc="specialty.name"/></span>
+                        </t>
+                    </div>
+                </t>
+                <t t-if="event.case_ids">
+                    <h6 class="o_wevent_sidebar_title">Case Types</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <t t-foreach="event.case_ids" t-as="case_item">
+                            <span class="badge text-bg-light"><t t-esc="case_item.name"/></span>
+                        </t>
+                    </div>
+                </t>
+            </div>
+        </xpath>
     </template>
 </odoo>

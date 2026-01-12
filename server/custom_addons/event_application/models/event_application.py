@@ -228,7 +228,28 @@ class EventApplication(models.Model):
             venue_name_value = self.venue_name or self.full_address or self.address_input or self.location or 'Venue'
             partner_street = self.street_address or self.address_input or False
             if any([self.venue_name, self.address_input, self.street_address, self.city, self.zip_code, self.state_id, self.country_id]):
-                venue_partner = self.env['res.partner'].search([('name', '=', venue_name_value)], limit=1)
+                def _norm(value):
+                    return (value or '').strip().lower()
+
+                def _partner_matches(candidate):
+                    if partner_street and _norm(candidate.street) != _norm(partner_street):
+                        return False
+                    if self.city and _norm(candidate.city) != _norm(self.city):
+                        return False
+                    if self.zip_code and _norm(candidate.zip) != _norm(self.zip_code):
+                        return False
+                    if self.state_id and candidate.state_id != self.state_id:
+                        return False
+                    if self.country_id and candidate.country_id != self.country_id:
+                        return False
+                    return True
+
+                venue_candidates = self.env['res.partner'].search([('name', '=', venue_name_value)])
+                for candidate in venue_candidates:
+                    if _partner_matches(candidate):
+                        venue_partner = candidate
+                        break
+
                 if not venue_partner:
                     venue_partner = self.env['res.partner'].create({
                         'name': venue_name_value,
@@ -243,19 +264,9 @@ class EventApplication(models.Model):
                     })
                 else:
                     updates = {}
-                    if partner_street and not venue_partner.street:
-                        updates['street'] = partner_street
-                    if self.city and not venue_partner.city:
-                        updates['city'] = self.city
-                    if self.zip_code and not venue_partner.zip:
-                        updates['zip'] = self.zip_code
-                    if self.state_id and not venue_partner.state_id:
-                        updates['state_id'] = self.state_id.id
-                    if self.country_id and not venue_partner.country_id:
-                        updates['country_id'] = self.country_id.id
-                    if self.contact_phone:
+                    if self.contact_phone and not venue_partner.phone:
                         updates['phone'] = self.contact_phone
-                    if self.contact_email:
+                    if self.contact_email and not venue_partner.email:
                         updates['email'] = self.contact_email
                     if updates:
                         venue_partner.write(updates)

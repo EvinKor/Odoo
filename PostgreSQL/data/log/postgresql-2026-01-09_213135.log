@@ -1,0 +1,6 @@
+2026-01-09 21:31:35.324 +08 [9204] LOG:  database system was interrupted; last known up at 2026-01-09 18:42:10 +08
+2026-01-09 21:31:36.271 +08 [9204] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-01-09 21:31:36.276 +08 [9204] LOG:  redo starts at 0/13E07A10
+2026-01-09 21:31:36.285 +08 [9204] LOG:  invalid record length at 0/13E1B730: wanted 24, got 0
+2026-01-09 21:31:36.286 +08 [9204] LOG:  redo done at 0/13E1B708
+2026-01-09 21:31:36.314 +08 [8000] LOG:  database system is ready to accept connections

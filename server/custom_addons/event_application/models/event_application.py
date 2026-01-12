@@ -210,6 +210,18 @@ class EventApplication(models.Model):
                 online_info.append(f"Link: {self.online_link}")
             if online_info:
                 event_vals['description'] = (self.description or '') + '\n\n' + '\n'.join(online_info)
+            # Use a default online venue partner for consistency
+            online_partner = self.env['res.partner'].search([('name', '=', 'Online Event')], limit=1)
+            if not online_partner:
+                online_partner = self.env['res.partner'].create({
+                    'name': 'Online Event',
+                    'website': self.online_link or False,
+                    'type': 'contact',
+                })
+            else:
+                if self.online_link:
+                    online_partner.write({'website': self.online_link})
+            event_vals['address_id'] = online_partner.id
         else:
             # Always create/reuse a venue partner for physical venues and set address_id
             venue_partner = False

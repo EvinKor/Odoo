@@ -165,6 +165,10 @@
                                         <input type="text" name="venue_name" id="venue_name" class="form-control" placeholder="e.g., Conference Center, Hotel Name"/>
                                     </div>
                                     <div class="mb-3">
+                                        <label class="form-label" for="address_input">Complete Address</label>
+                                        <textarea name="address_input" id="address_input" class="form-control" rows="2" placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."></textarea>
+                                    </div>
+                                    <div class="mb-3">
                                         <label class="form-label" for="street_address">Street Address</label>
                                         <input type="text" name="street_address" id="street_address" class="form-control" placeholder="Street name and number"/>
                                     </div>

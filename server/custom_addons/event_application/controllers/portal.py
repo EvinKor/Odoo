@@ -204,6 +204,7 @@ class EventApplicationPortal(CustomerPortal):
         else:  # physical
             vals.update({
                 'venue_name': post.get('venue_name'),
+                'address_input': post.get('address_input'),
                 'street_address': post.get('street_address'),
                 'city': post.get('city'),
                 'zip_code': post.get('zip_code'),

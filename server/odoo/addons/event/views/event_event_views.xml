@@ -66,27 +66,7 @@
                             <field name="organizer_id"/>
                             <field name="user_id" widget="many2one_avatar_user" domain="[('share', '=', False)]"/>
                             <field name="company_id" groups="base.group_multi_company"/>
-                            
-                            <!-- Detailed Venue Information -->
-                            <field name="venue_type"/>
-                            <field name="address_input" 
-                                   invisible="venue_type != 'physical'"
-                                   colspan="2"
-                                   placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."
-                                   widget="text"/>
-                            <field name="venue_name" invisible="venue_type != 'physical'"/>
-                            <field name="street_address" invisible="venue_type != 'physical'"/>
-                            <field name="city" invisible="venue_type != 'physical'"/>
-                            <field name="state_id" invisible="venue_type != 'physical'"/>
-                            <field name="zip_code" invisible="venue_type != 'physical'"/>
-                            <field name="country_id" invisible="venue_type != 'physical'"/>
-                            <field name="full_address" invisible="venue_type != 'physical'" readonly="1" widget="text"/>
-                            <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
-                            <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
-                            
-                            <!-- Legacy address field (hidden but kept for compatibility) -->
-                            <field name="address_id" invisible="1"/>
-                            
+                            <field name="address_id"/>
                             <label for="seats_limited" string="Limit Registrations"/>
                             <div>
                                 <field name="seats_limited"/>
@@ -190,10 +170,6 @@
                 multi_edit="1"
                 sample="1">
                 <field name="name"/>
-                <field name="venue_type" optional="show"/>
-                <field name="venue_name" optional="show"/>
-                <field name="city" optional="show"/>
-                <field name="address_input" optional="hide"/>
                 <field name="address_id" readonly="1" optional="hide"/>
                 <field name="organizer_id" readonly="1" optional="hide"/>
                 <field name="user_id" readonly="1" widget="many2one_avatar_user"/>
@@ -242,20 +218,6 @@
                     <field name="name" placeholder="e.g. Conference for Architects"/>
                     <field name="date_begin" string="Date" widget="daterange" options="{'end_date_field': 'date_end'}" />
                     <field name="date_end" invisible="1" />
-                    <field name="venue_type"/>
-                    <field name="address_input" 
-                           invisible="venue_type != 'physical'"
-                           colspan="2"
-                           placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."
-                           widget="text"/>
-                    <field name="venue_name" invisible="venue_type != 'physical'" placeholder="Venue Name"/>
-                    <field name="street_address" invisible="venue_type != 'physical'" placeholder="Street Address"/>
-                    <field name="city" invisible="venue_type != 'physical'" placeholder="City"/>
-                    <field name="state_id" invisible="venue_type != 'physical'"/>
-                    <field name="zip_code" invisible="venue_type != 'physical'" placeholder="ZIP"/>
-                    <field name="country_id" invisible="venue_type != 'physical'"/>
-                    <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
-                    <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
                 </group>
             </form>
         </field>
@@ -269,9 +231,6 @@
                 <field name="stage_id" options='{"group_by_tooltip": {"description": "Description"}}'/>
                 <field name="date_begin"/>
                 <field name="date_end"/>
-                <field name="venue_type"/>
-                <field name="venue_name"/>
-                <field name="city"/>
                 <field name="address_id"/>
                 <field name="legend_done"/>
                 <templates>
@@ -293,21 +252,14 @@
                                     <div class="fw-bold fs-5 o_text_overflow flex-grow-1" t-att-title="record.name.value">
                                         <field name="name"/>
                                     </div>
-                                    <button t-if="widget.deletable" type="delete" class="btn btn-sm btn-link text-danger p-0" title="Delete">
+                                    <button t-if="widget.deletable" name="unlink" type="delete" class="btn btn-sm btn-link text-danger p-0" title="Delete">
                                         <i class="fa fa-trash" aria-label="Delete"/>
                                     </button>
                                 </div>
                                 <div class="d-flex ps-1">
                                     <i class="fa fa-map-marker mt-1 me-2 text-center ps-1" title="Location"/>
-                                    <t t-if="record.venue_type.raw_value == 'physical'">
-                                        <span t-if="record.venue_name.raw_value" t-esc="record.venue_name.raw_value" class="ms-1"/>
-                                        <span t-if="record.city.raw_value">, <t t-esc="record.city.raw_value"/></span>
-                                    </t>
-                                    <t t-elif="record.address_id.raw_value">
+                                    <t t-if="record.address_id.raw_value">
                                         <field name="address_id" class="ms-1"/>
-                                    </t>
-                                    <t t-else="">
-                                        <span class="ms-1">Online Event</span>
                                     </t>
                                 </div>
                                 <div t-if="record.seats_taken.raw_value" class="d-flex ps-1">

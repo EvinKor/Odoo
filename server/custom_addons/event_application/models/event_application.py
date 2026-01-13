@@ -184,7 +184,7 @@ class EventApplication(models.Model):
             'contact_email': self.contact_email,
         }
 
-        if self.registration_limit and self.max_registrations:
+        if self.registration_limit and self.max_registdirations:
             event_vals['seats_max'] = self.max_registrations
 
         if self.badge_image:
@@ -273,6 +273,7 @@ class EventApplication(models.Model):
 
             event_vals['address_id'] = (venue_partner or self.partner_id).id
             event_vals['location'] = self.full_address or self.location
+            event_vals['address_input'] = self.address_input
 
             # For physical venues, use matching event.event fields when available
             event_fields = self.env['event.event']._fields

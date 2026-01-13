@@ -5,7 +5,7 @@
         <field name="model">event.event</field>
         <field name="inherit_id" ref="event.view_event_kanban"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@class='fw-bold fs-5 o_text_overflow']" position="replace">
+            <xpath expr="//div[contains(@class, 'o_text_overflow') and contains(@class, 'fw-bold')]" position="replace">
                 <div class="d-flex align-items-start gap-2">
                     <div class="fw-bold fs-5 o_text_overflow flex-grow-1" t-att-title="record.name.value">
                         <field name="name"/>

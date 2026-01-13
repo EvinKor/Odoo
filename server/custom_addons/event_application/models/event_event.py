@@ -48,6 +48,11 @@ class EventEvent(models.Model):
     city = fields.Char(string='City')
     state_id = fields.Many2one('res.country.state', string='State')
     zip_code = fields.Char(string='ZIP Code')
+    venue_address = fields.Char(string='Venue Address')
+    venue_city = fields.Char(string='Venue City')
+    venue_zip = fields.Char(string='Venue ZIP')
+    venue_state_id = fields.Many2one('res.country.state', string='Venue State')
+    venue_country_id = fields.Many2one('res.country', string='Venue Country')
     
     # Address input field for typing complete address
     address_input = fields.Text(string='Complete Address', 
@@ -60,6 +65,7 @@ class EventEvent(models.Model):
 
     # Computed full address for physical venues
     full_address = fields.Char(string='Full Address', compute='_compute_full_address', store=True)
+    venue_full_address = fields.Char(string='Venue Full Address', compute='_compute_venue_full_address', store=True)
     contact_phone = fields.Char(string='Contact Phone')
     contact_email = fields.Char(string='Contact Email')
     venue_display = fields.Text(string='Venue Details', compute='_compute_venue_display', readonly=True)
@@ -124,6 +130,50 @@ class EventEvent(models.Model):
                 event.venue_display = f"{name}\n{address}"
             else:
                 event.venue_display = name or address or False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for event in records:
+            if not event.address_input:
+                event.address_input = event.full_address or event.venue_full_address or False
+        return records
+
+    def write(self, vals):
+        result = super().write(vals)
+        if 'address_input' not in vals:
+            for event in self:
+                if not event.address_input:
+                    event.address_input = event.full_address or event.venue_full_address or False
+        return result
+
+    @api.depends(
+        'venue_name',
+        'venue_address',
+        'venue_city',
+        'venue_zip',
+        'venue_state_id',
+        'venue_country_id',
+        'street_address',
+        'city',
+        'zip_code',
+        'state_id',
+        'country_id',
+    )
+    def _compute_venue_full_address(self):
+        for event in self:
+            address = event.venue_address or event.street_address or ''
+            city = event.venue_city or event.city or ''
+            zip_code = event.venue_zip or event.zip_code or ''
+            state = event.venue_state_id or event.state_id
+            country = event.venue_country_id or event.country_id
+            parts = [event.venue_name or False, address or False]
+            city_state_zip = [p for p in [city, state.name if state else False, zip_code] if p]
+            if city_state_zip:
+                parts.append(', '.join(city_state_zip))
+            if country:
+                parts.append(country.name)
+            event.venue_full_address = ', '.join([p for p in parts if p]) or False
 
 
 class EventSpecialty(models.Model):

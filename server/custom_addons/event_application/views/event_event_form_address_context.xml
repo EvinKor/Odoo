@@ -7,16 +7,7 @@
         <field name="arch" type="xml">
             <xpath expr="//group[@name='right_event_details']/field[@name='company_id']" position="after">
                 <field name="venue_type"/>
-                <field name="address_input"
-                       invisible="venue_type != 'physical'"
-                       colspan="2"
-                       placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."
-                       widget="text"/>
                 <field name="venue_name" invisible="venue_type != 'physical'"/>
-                <field name="street_address" invisible="venue_type != 'physical'"/>
-                <field name="city" invisible="venue_type != 'physical'"/>
-                <field name="state_id" invisible="venue_type != 'physical'"/>
-                <field name="zip_code" invisible="venue_type != 'physical'"/>
                 <field name="country_id" invisible="venue_type != 'physical'"/>
                 <field name="full_address" invisible="venue_type != 'physical'" readonly="1" widget="text"/>
                 <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>

@@ -280,6 +280,9 @@
                     position: relative;
                     z-index: 1;
                 }
+                .o_record_cover_container:has(.o_wevent_card_bg) .o_record_cover_image {
+                    background-image: none !important;
+                }
                 .o_wevent_badge_overlay {
                     position: absolute;
                     top: 12px;

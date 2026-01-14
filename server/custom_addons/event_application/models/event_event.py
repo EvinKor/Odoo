@@ -53,6 +53,7 @@ class EventEvent(models.Model):
     venue_zip = fields.Char(string='Venue ZIP')
     venue_state_id = fields.Many2one('res.country.state', string='Venue State')
     venue_country_id = fields.Many2one('res.country', string='Venue Country')
+    card_bg_image = fields.Binary(string='Card Background')
     
     # Address input field for typing complete address
     address_input = fields.Text(string='Complete Address', 

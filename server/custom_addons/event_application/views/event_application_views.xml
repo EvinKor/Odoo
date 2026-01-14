@@ -180,6 +180,7 @@
                                 <field name="registration_limit"/>
                                 <field name="max_registrations" invisible="not registration_limit"/>
                                 <field name="badge_image" widget="image"/>
+                                <field name="card_bg_image" widget="image"/>
                                 <field name="event_id" readonly="1" invisible="not event_id"/>
                             </group>
                         </group>

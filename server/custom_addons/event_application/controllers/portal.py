@@ -221,6 +221,9 @@ class EventApplicationPortal(CustomerPortal):
         badge_file = request.httprequest.files.get('badge_image')
         if badge_file and badge_file.filename:
             vals['badge_image'] = base64.b64encode(badge_file.read())
+        card_bg_file = request.httprequest.files.get('card_bg_image')
+        if card_bg_file and card_bg_file.filename:
+            vals['card_bg_image'] = base64.b64encode(card_bg_file.read())
         
         request.env['event.application'].create(vals)
         return request.redirect('/my/event/applications')

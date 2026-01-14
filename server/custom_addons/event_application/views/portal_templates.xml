@@ -126,6 +126,10 @@
                                     <label class="form-label" for="badge_image">Badge background</label>
                                     <input type="file" name="badge_image" id="badge_image" class="form-control" accept="image/*"/>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="card_bg_image">Card background</label>
+                                    <input type="file" name="card_bg_image" id="card_bg_image" class="form-control" accept="image/*"/>
+                                </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">

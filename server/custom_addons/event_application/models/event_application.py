@@ -14,6 +14,7 @@ class EventApplication(models.Model):
     registration_limit = fields.Boolean(string='Limit Registrations')
     max_registrations = fields.Integer(string='Maximum Registrations')
     badge_image = fields.Binary(string='Badge Background')
+    card_bg_image = fields.Binary(string='Card Background')
     contact_phone = fields.Char(string='Contact Phone')
     contact_email = fields.Char(string='Contact Email')
     description = fields.Html(string='Description')
@@ -189,6 +190,8 @@ class EventApplication(models.Model):
 
         if self.badge_image:
             event_vals['badge_image'] = self.badge_image
+        if self.card_bg_image:
+            event_vals['card_bg_image'] = self.card_bg_image
 
         if self.registration_start or self.registration_end or (self.registration_limit and self.max_registrations):
             ticket_vals = {

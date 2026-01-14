@@ -6,13 +6,12 @@
         <field name="inherit_id" ref="event.view_event_kanban"/>
         <field name="arch" type="xml">
             <xpath expr="//div[contains(@class, 'o_text_overflow') and contains(@class, 'fw-bold')]" position="replace">
-                <div class="d-flex align-items-start gap-2">
-                    <div class="fw-bold fs-5 o_text_overflow flex-grow-1" t-att-title="record.name.value">
+                <div class="d-flex align-items-start gap-2" style="min-width: 0;">
+                    <div class="fw-bold fs-5 o_text_overflow flex-grow-1"
+                         style="min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                         t-att-title="record.name.value">
                         <field name="name"/>
                     </div>
-                    <button t-if="widget.deletable" type="delete" name="unlink" class="btn btn-sm btn-link text-danger p-0" title="Delete">
-                        <i class="fa fa-trash fs-5" aria-label="Delete"/>
-                    </button>
                 </div>
             </xpath>
         </field>

@@ -82,11 +82,14 @@
                             <form action="/event/apply/submit" method="post" class="o_website_form" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                 
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <section class="event-form-section bg-light-subtle">
+                                            <h5 class="section-title">Event basics</h5>
                                 <div class="mb-3">
                                     <label class="form-label" for="event_name">Event Name *</label>
                                     <input type="text" name="event_name" id="event_name" class="form-control" required="required"/>
                                 </div>
-                                
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label" for="date_begin">Start Date *</label>
@@ -97,7 +100,11 @@
                                         <input type="datetime-local" name="date_end" id="date_end" class="form-control" required="required"/>
                                     </div>
                                 </div>
-                                
+                                        </section>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <section class="event-form-section bg-body-tertiary">
+                                            <h5 class="section-title">Registration</h5>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label" for="registration_start">Registration Opens</label>
@@ -108,7 +115,6 @@
                                         <input type="datetime-local" name="registration_end" id="registration_end" class="form-control"/>
                                     </div>
                                 </div>
-
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="form-check mt-4">
@@ -119,138 +125,176 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label" for="max_registrations">Maximum registrations</label>
                                         <input type="number" name="max_registrations" id="max_registrations" class="form-control" min="1"/>
+                                                </div>
+                                            </div>
+                                        </section>
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label" for="badge_image">Badge background</label>
-                                    <input type="file" name="badge_image" id="badge_image" class="form-control" accept="image/*"/>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label" for="card_bg_image">Card background</label>
-                                    <input type="file" name="card_bg_image" id="card_bg_image" class="form-control" accept="image/*"/>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="contact_phone">Contact Phone (optional)</label>
-                                        <input type="text" name="contact_phone" id="contact_phone" class="form-control"/>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="contact_email">Contact Email (optional)</label>
-                                        <input type="email" name="contact_email" id="contact_email" class="form-control"/>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label" for="venue_type">Venue Type *</label>
-                                    <select name="venue_type" id="venue_type" class="form-control" required="required">
-                                        <option value="physical">Physical Venue</option>
-                                        <option value="online">Online Event</option>
-                                    </select>
-                                </div>
-                                
-                                <!-- Online Venue Fields -->
-                                <div id="online_venue_fields" class="venue-fields" style="display: none;">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="online_platform">Online Platform</label>
-                                        <input type="text" name="online_platform" id="online_platform" class="form-control" placeholder="e.g., Zoom, Microsoft Teams, Google Meet"/>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label" for="online_link">Online Link/Access Instructions</label>
-                                        <input type="text" name="online_link" id="online_link" class="form-control" placeholder="Meeting link or access instructions"/>
-                                    </div>
-                                </div>
-                                
-                                <!-- Physical Venue Fields -->
-                                <div id="physical_venue_fields" class="venue-fields">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="venue_name">Venue Name</label>
-                                        <input type="text" name="venue_name" id="venue_name" class="form-control" placeholder="e.g., Conference Center, Hotel Name"/>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label" for="address_input">Complete Address</label>
-                                        <textarea name="address_input" id="address_input" class="form-control" rows="2" placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label" for="street_address">Street Address</label>
-                                        <input type="text" name="street_address" id="street_address" class="form-control" placeholder="Street name and number"/>
-                                    </div>
+                                <section class="event-form-section bg-light-subtle">
+                                    <h5 class="section-title">Branding &amp; contact</h5>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="city">City</label>
-                                            <input type="text" name="city" id="city" class="form-control"/>
+                                            <label class="form-label" for="badge_image">Badge background</label>
+                                            <input type="file" name="badge_image" id="badge_image" class="form-control" accept="image/*"/>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="zip_code">ZIP Code</label>
-                                            <input type="text" name="zip_code" id="zip_code" class="form-control"/>
+                                            <label class="form-label" for="card_bg_image">Card background</label>
+                                            <input type="file" name="card_bg_image" id="card_bg_image" class="form-control" accept="image/*"/>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="state_id">State/Province</label>
-                                            <select name="state_id" id="state_id" class="form-control">
-                                                <option value="">Select State</option>
-                                                <t t-foreach="states" t-as="state">
-                                                    <option t-att-value="state.id" t-att-data-country="state.country_id.id" style="display: none;">
-                                                        <t t-esc="state.name"/>
-                                                    </option>
-                                                </t>
-                                            </select>
+                                            <label class="form-label" for="contact_phone">Contact Phone (optional)</label>
+                                            <input type="text" name="contact_phone" id="contact_phone" class="form-control"/>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="country_id">Country</label>
-                                            <select name="country_id" id="country_id" class="form-control">
-                                                <t t-foreach="countries" t-as="country">
-                                                    <option t-att-value="country.id" t-att-selected="country.id == (request.env.company.country_id.id if request.env.company.country_id else False)">
-                                                        <t t-esc="country.name"/>
-                                                    </option>
-                                                </t>
-                                            </select>
+                                            <label class="form-label" for="contact_email">Contact Email (optional)</label>
+                                            <input type="email" name="contact_email" id="contact_email" class="form-control"/>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Specialty Selection -->
-                                <div class="mb-3">
-                                    <label class="form-label">Specialties</label>
-                                    <div class="multi-select-container">
-                                        <select class="form-control" id="specialty-select">
-                                            <option value="">Select a specialty...</option>
-                                            <t t-foreach="specialties" t-as="specialty">
-                                            <option t-att-value="specialty.id"><t t-esc="specialty.name"/></option>
-                                            </t>
-                                        </select>
-                                        <div class="selected-tags" id="specialty-tags"></div>
-                                        <input type="hidden" name="specialty_ids" id="specialty-ids-hidden"/>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="event-card-preview">
+                                                <div class="event-card-preview__media" id="event-card-bg-preview"></div>
+                                                <img id="event-card-badge-preview" class="event-card-preview__badge" alt="Badge preview"/>
+                                                <div class="event-card-preview__body">
+                                                    <div class="event-card-preview__title" id="event-card-title-preview">Event name preview</div>
+                                                    <div class="event-card-preview__date" id="event-card-date-preview">Start date preview</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Case Selection -->
-                                <div class="mb-3">
-                                    <label class="form-label">Case Types</label>
-                                    <div class="multi-select-container">
-                                        <select class="form-control" id="case-select">
-                                            <option value="">Select a case type...</option>
-                                            <t t-foreach="cases" t-as="case">
-                                            <option t-att-value="case.id"><t t-esc="case.name"/></option>
-                                            </t>
+                                </section>
+
+                                <section class="event-form-section bg-body-tertiary">
+                                    <h5 class="section-title">Venue</h5>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="venue_type">Venue Type *</label>
+                                        <select name="venue_type" id="venue_type" class="form-control" required="required">
+                                            <option value="physical">Physical Venue</option>
+                                            <option value="online">Online Event</option>
                                         </select>
-                                        <div class="selected-tags" id="case-tags"></div>
-                                        <input type="hidden" name="case_ids" id="case-ids-hidden"/>
                                     </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label" for="description">Description</label>
-                                    <textarea name="description" id="description" class="form-control" rows="5"></textarea>
-                                </div>
+
+                                    <!-- Online Venue Fields -->
+                                    <div id="online_venue_fields" class="venue-fields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="online_platform">Online Platform</label>
+                                            <input type="text" name="online_platform" id="online_platform" class="form-control" placeholder="e.g., Zoom, Microsoft Teams, Google Meet"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label" for="online_link">Online Link/Access Instructions</label>
+                                            <input type="text" name="online_link" id="online_link" class="form-control" placeholder="Meeting link or access instructions"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Physical Venue Fields -->
+                                    <div id="physical_venue_fields" class="venue-fields">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="venue_name">Venue Name</label>
+                                            <input type="text" name="venue_name" id="venue_name" class="form-control" placeholder="e.g., Conference Center, Hotel Name"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label" for="address_input">Complete Address</label>
+                                            <textarea name="address_input" id="address_input" class="form-control" rows="2" placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label" for="street_address">Street Address</label>
+                                            <input type="text" name="street_address" id="street_address" class="form-control" placeholder="Street name and number"/>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="city">City</label>
+                                                <input type="text" name="city" id="city" class="form-control"/>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="zip_code">ZIP Code</label>
+                                                <input type="text" name="zip_code" id="zip_code" class="form-control"/>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="state_id">State/Province</label>
+                                                <select name="state_id" id="state_id" class="form-control">
+                                                    <option value="">Select State</option>
+                                                    <t t-foreach="states" t-as="state">
+                                                        <option t-att-value="state.id" t-att-data-country="state.country_id.id" style="display: none;">
+                                                            <t t-esc="state.name"/>
+                                                        </option>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label" for="country_id">Country</label>
+                                                <select name="country_id" id="country_id" class="form-control">
+                                                    <t t-foreach="countries" t-as="country">
+                                                        <option t-att-value="country.id" t-att-selected="country.id == (request.env.company.country_id.id if request.env.company.country_id else False)">
+                                                            <t t-esc="country.name"/>
+                                                        </option>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="event-form-section bg-light-subtle">
+                                    <h5 class="section-title">Specialties &amp; cases</h5>
+                                    <!-- Specialty Selection -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Specialties</label>
+                                        <div class="multi-select-container">
+                                            <select class="form-control" id="specialty-select">
+                                                <option value="">Select a specialty...</option>
+                                                <t t-foreach="specialties" t-as="specialty">
+                                                <option t-att-value="specialty.id"><t t-esc="specialty.name"/></option>
+                                                </t>
+                                            </select>
+                                            <div class="selected-tags" id="specialty-tags"></div>
+                                            <input type="hidden" name="specialty_ids" id="specialty-ids-hidden"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Case Selection -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Case Types</label>
+                                        <div class="multi-select-container">
+                                            <select class="form-control" id="case-select">
+                                                <option value="">Select a case type...</option>
+                                                <t t-foreach="cases" t-as="case">
+                                                <option t-att-value="case.id"><t t-esc="case.name"/></option>
+                                                </t>
+                                            </select>
+                                            <div class="selected-tags" id="case-tags"></div>
+                                            <input type="hidden" name="case_ids" id="case-ids-hidden"/>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="event-form-section bg-body-tertiary">
+                                    <h5 class="section-title">Description</h5>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="description">Description</label>
+                                        <textarea name="description" id="description" class="form-control" rows="5"></textarea>
+                                    </div>
+                                </section>
                                 
                                 <button type="submit" class="btn btn-primary">Submit Application</button>
                                 <a href="/event" class="btn btn-secondary">Cancel</a>
                             </form>
                             
                             <style>
+                                .event-form-section {
+                                    padding: 16px;
+                                    border-radius: 12px;
+                                    border: 1px solid rgba(0, 0, 0, 0.06);
+                                    margin-bottom: 16px;
+                                }
+                                .event-form-section .section-title {
+                                    font-weight: 600;
+                                    margin-bottom: 12px;
+                                }
                                 .multi-select-container {
                                     position: relative;
                                 }
@@ -284,6 +328,39 @@
                                 .multi-select-container .form-control {
                                     border-radius: 0.375rem 0.375rem 0 0;
                                 }
+                                .event-card-preview {
+                                    position: relative;
+                                    border-radius: 12px;
+                                    overflow: hidden;
+                                    border: 1px solid rgba(0, 0, 0, 0.08);
+                                    background: #fff;
+                                }
+                                .event-card-preview__media {
+                                    height: 140px;
+                                    background: #e9ecef;
+                                    background-size: cover;
+                                    background-position: center;
+                                }
+                                .event-card-preview__badge {
+                                    position: absolute;
+                                    top: 12px;
+                                    left: 12px;
+                                    max-height: 48px;
+                                    width: auto;
+                                    display: none;
+                                    border-radius: 6px;
+                                    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+                                }
+                                .event-card-preview__body {
+                                    padding: 12px 14px;
+                                }
+                                .event-card-preview__title {
+                                    font-weight: 600;
+                                }
+                                .event-card-preview__date {
+                                    color: #6c757d;
+                                    font-size: 0.9rem;
+                                }
                             </style>
                             
                             <script>
@@ -295,6 +372,14 @@
                                     const countrySelect = document.getElementById('country_id');
                                     const stateSelect = document.getElementById('state_id');
                                     const zipCodeInput = document.getElementById('zip_code');
+                                    const eventNameInput = document.getElementById('event_name');
+                                    const dateBeginInput = document.getElementById('date_begin');
+                                    const badgeInput = document.getElementById('badge_image');
+                                    const cardBgInput = document.getElementById('card_bg_image');
+                                    const previewTitle = document.getElementById('event-card-title-preview');
+                                    const previewDate = document.getElementById('event-card-date-preview');
+                                    const previewBg = document.getElementById('event-card-bg-preview');
+                                    const previewBadge = document.getElementById('event-card-badge-preview');
                                     
                                     function toggleVenueFields() {
                                         const selectedType = venueTypeSelect.value;
@@ -377,12 +462,46 @@
                                         }
                                         errorElement.textContent = errorMessage;
                                     }
+
+                                    function updatePreviewText() {
+                                        const nameValue = eventNameInput.value.trim();
+                                        const dateValue = dateBeginInput.value.trim();
+                                        previewTitle.textContent = nameValue || 'Event name preview';
+                                        previewDate.textContent = dateValue ? dateValue.replace('T', ' ') : 'Start date preview';
+                                    }
+
+                                    function updatePreviewImage(input, target, isBackground) {
+                                        const file = input.files && input.files[0];
+                                        if (!file) {
+                                            if (isBackground) {
+                                                target.style.backgroundImage = '';
+                                            } else {
+                                                target.style.display = 'none';
+                                                target.removeAttribute('src');
+                                            }
+                                            return;
+                                        }
+                                        const reader = new FileReader();
+                                        reader.onload = function(evt) {
+                                            if (isBackground) {
+                                                target.style.backgroundImage = `url(${evt.target.result})`;
+                                            } else {
+                                                target.src = evt.target.result;
+                                                target.style.display = 'block';
+                                            }
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
                                     
                                     // Event listeners
                                     venueTypeSelect.addEventListener('change', toggleVenueFields);
                                     countrySelect.addEventListener('change', updateStates);
                                     stateSelect.addEventListener('change', validateZipCode);
                                     zipCodeInput.addEventListener('input', validateZipCode);
+                                    eventNameInput.addEventListener('input', updatePreviewText);
+                                    dateBeginInput.addEventListener('input', updatePreviewText);
+                                    badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false));
+                                    cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
                                     
                                     // Specialty and Case multi-select functionality
                                     const specialtyTags = document.getElementById('specialty-tags');
@@ -463,10 +582,12 @@
                                     
                                     createMultiSelect(specialtyTags, specialtySelect, specialtyIdsHidden, selectedSpecialties);
                                     createMultiSelect(caseTags, caseSelect, caseIdsHidden, selectedCases);
+
                                     
                                     // Initialize
                                     toggleVenueFields();
                                     updateStates();
+                                    updatePreviewText();
                                 });
                                 ]]>
                             </script>

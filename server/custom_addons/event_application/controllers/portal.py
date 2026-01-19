@@ -1,9 +1,11 @@
 import base64
+from datetime import datetime
 
-from odoo import http
+import pytz
+
+from odoo import fields, http
 from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
-from datetime import datetime
 
 class EventApplicationPortal(CustomerPortal):
     
@@ -147,9 +149,21 @@ class EventApplicationPortal(CustomerPortal):
             return False
         try:
             dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M')
-            return dt.strftime('%Y-%m-%d %H:%M:%S')
         except (ValueError, TypeError):
             return False
+        tz_name = (
+            request.env.context.get('tz')
+            or request.env.user.tz
+            or request.env.company.partner_id.tz
+            or 'UTC'
+        )
+        try:
+            tzinfo = pytz.timezone(tz_name)
+        except pytz.UnknownTimeZoneError:
+            tzinfo = pytz.UTC
+        dt_local = tzinfo.localize(dt, is_dst=None)
+        dt_utc = dt_local.astimezone(pytz.UTC)
+        return fields.Datetime.to_string(dt_utc)
     
     @http.route(['/event/apply/submit'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
     def event_application_submit(self, **post):

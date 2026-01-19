@@ -185,7 +185,7 @@ class EventApplication(models.Model):
             'contact_email': self.contact_email,
         }
 
-        if self.registration_limit and self.max_registdirations:
+        if self.registration_limit and self.max_registrations:
             event_vals['seats_max'] = self.max_registrations
 
         if self.badge_image:

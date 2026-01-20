@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_event_application_user,event.application.user,model_event_application,base.group_portal,1,1,1,0
+access_event_application_public,event.application.public,model_event_application,base.group_public,1,0,0,0
+access_event_application_manager,event.application.manager,model_event_application,base.group_system,1,1,1,1
+access_event_specialty_user,event.specialty.user,model_event_specialty,base.group_portal,1,0,0,0
+access_event_specialty_public,event.specialty.public,model_event_specialty,base.group_public,1,0,0,0
+access_event_specialty_manager,event.specialty.manager,model_event_specialty,base.group_system,1,1,1,1
+access_event_case_user,event.case.user,model_event_case,base.group_portal,1,0,0,0
+access_event_case_public,event.case.public,model_event_case,base.group_public,1,0,0,0
+access_event_case_manager,event.case.manager,model_event_case,base.group_system,1,1,1,1
+access_event_event_user_delete,event.event.user.delete,model_event_event,event.group_event_user,1,1,1,1

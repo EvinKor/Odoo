@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="assets_backend" model="ir.asset">
+        <field name="name">event_venue_map.assets_backend</field>
+        <field name="bundle">web.assets_backend</field>
+        <field name="target">web.assets_backend</field>
+        <field name="active">true</field>
+        <field name="content" type="xml">
+            <link rel="stylesheet" href="/event_venue_map/static/src/css/venue_map.css"/>
+            <script src="/event_venue_map/static/src/js/venue_map.js"></script>
+        </field>
+    </record>
+</odoo>

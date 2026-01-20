@@ -1,0 +1,94 @@
+services:
+  db:
+    image: postgres:15
+    ports:
+      - "5433:5432"          # optional: host access to DB on 5433
+    env_file:
+      - .env                 # optional: keeps secrets out of compose
+    environment:
+      POSTGRES_DB: ${DB_NAME:-odoodb}
+      POSTGRES_USER: ${USER:-odoo}
+      POSTGRES_PASSWORD: ${PASSWORD:-odoo}
+    volumes:
+      - odoo_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER:-odoo} -d ${DB_NAME:-odoodb}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks:
+      - my-network
+
+  odoo:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8069:8070"          # choose 8069 OR 8070; 8069 is default
+    environment:
+      # DB connection (keep both styles to be compatible with scripts)
+      HOST: db
+      DB_HOST: db
+      PORT: "5432"
+      DB_PORT: "5432"
+      USER: ${USER:-odoo}
+      DB_USER: ${USER:-odoo}
+      PASSWORD: ${PASSWORD:-odoo}
+      DB_PASSWORD: ${PASSWORD:-odoo}
+      DB_NAME: ${DB_NAME:-odoodb}
+
+      # Locale (avoid warnings)
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      LANGUAGE: C.UTF-8
+
+      # CORS (only matters if your Odoo config/entrypoint reads these)
+      ODOO_HTTP_ENABLE_CORS: "True"
+      ODOO_HTTP_CORS_ORIGIN: "*"
+
+      # Supabase (PLEASE move the key into .env, see note below)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+
+    volumes:
+      # Persist filestore + addons downloaded inside container (prevents missing filestore errors)
+      - odoo_web_data:/var/lib/odoo
+
+      # Your custom addons + config + entrypoint
+      - ./custom_addons:/mnt/extra-addons
+      - ./odoo.conf:/etc/odoo/odoo.conf
+      - ./docker-entrypoint.sh:/docker-entrypoint.sh
+
+    entrypoint: ["/docker-entrypoint.sh"]
+    networks:
+      - my-network
+
+  server:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: ${USER:-odoo}
+      DB_PASSWORD: ${PASSWORD:-odoo}
+      DB_NAME: ${DB_NAME:-odoodb}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
+
+volumes:
+  odoo_db_data:
+  odoo_web_data:

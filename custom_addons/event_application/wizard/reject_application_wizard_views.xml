@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_reject_application_wizard_form" model="ir.ui.view">
+            <field name="name">reject.application.wizard.form</field>
+            <field name="model">reject.application.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Reject Application">
+                    <group>
+                        <field name="application_id" invisible="1"/>
+                        <field name="rejection_reason" placeholder="Please provide a reason for rejection..."/>
+                    </group>
+                    <footer>
+                        <button string="Reject" name="action_reject" type="object" class="btn-danger"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

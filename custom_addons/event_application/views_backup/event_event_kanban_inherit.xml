@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="event_event_kanban_inherit_delete" model="ir.ui.view">
+        <field name="name">event.event.kanban.delete.button</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[contains(@class, 'o_kanban_record_title')]" position="after">
+                <div class="d-flex align-items-start gap-2" style="min-width: 0;">
+                    <div class="fw-bold fs-5 o_text_overflow flex-grow-1"
+                         style="min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                         t-att-title="record.name.value">
+                        <field name="name"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

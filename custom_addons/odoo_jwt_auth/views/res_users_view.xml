@@ -1,0 +1,18 @@
+<!-- File: odoo_jwt_auth/views/res_users_view.xml -->
+<odoo>
+    <data>
+        <!-- Inherit the user form view to add supabase_uid field -->
+        <record id="view_users_form_supabase_uid" model="ir.ui.view">
+            <field name="name">res.users.form.supabase.uid</field>
+            <field name="model">res.users</field>
+            <field name="inherit_id" ref="base.view_users_form"/>
+            <field name="arch" type="xml">
+                <!-- Add the field after the login field -->
+                <field name="login" position="after">
+                    <field name="supabase_uid" readonly="1"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>
+

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="event_event_view_form_address_only" model="ir.ui.view">
+        <field name="name">event.event.form.address.only</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='right_event_details']/field[@name='company_id']" position="after">
+                <field name="venue_type"/>
+                <field name="venue_name" invisible="venue_type != 'physical'"/>
+                <field name="country_id" invisible="venue_type != 'physical'"/>
+                <field name="full_address" invisible="venue_type != 'physical'" readonly="1" widget="text"/>
+                <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
+                <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
+            </xpath>
+            <xpath expr="//field[@name='address_id']" position="attributes">
+                <attribute name="context">{'show_address_only': True, 'show_address': True}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="event_event_view_tree_venue_fields" model="ir.ui.view">
+        <field name="name">event.event.tree.venue.fields</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="venue_type" optional="show"/>
+                <field name="venue_name" optional="show"/>
+                <field name="city" optional="show"/>
+                <field name="address_input" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="event_event_view_quick_create_venue_fields" model="ir.ui.view">
+        <field name="name">event.event.form.quick.create.venue.fields</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.event_event_view_form_quick_create"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date_end']" position="after">
+                <field name="venue_type"/>
+                <field name="address_input"
+                       invisible="venue_type != 'physical'"
+                       colspan="2"
+                       placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."
+                       widget="text"/>
+                <field name="venue_name" invisible="venue_type != 'physical'" placeholder="Venue Name"/>
+                <field name="street_address" invisible="venue_type != 'physical'" placeholder="Street Address"/>
+                <field name="city" invisible="venue_type != 'physical'" placeholder="City"/>
+                <field name="state_id" invisible="venue_type != 'physical'"/>
+                <field name="zip_code" invisible="venue_type != 'physical'" placeholder="ZIP"/>
+                <field name="country_id" invisible="venue_type != 'physical'"/>
+                <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
+                <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="event_event_view_kanban_venue_fields" model="ir.ui.view">
+        <field name="name">event.event.kanban.venue.fields</field>
+        <field name="model">event.event</field>
+        <field name="inherit_id" ref="event.view_event_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[@name='date_end']" position="after">
+                <field name="venue_type"/>
+                <field name="venue_name"/>
+                <field name="city"/>
+            </xpath>
+            <xpath expr="//div[i[contains(@class, 'fa-map-marker')]]" position="replace">
+                <div class="d-flex ps-1">
+                    <i class="fa fa-map-marker mt-1 me-2 text-center ps-1" title="Location"/>
+                    <t t-if="record.venue_type.raw_value == 'physical'">
+                        <span t-if="record.venue_name.raw_value" t-esc="record.venue_name.raw_value" class="ms-1"/>
+                        <span t-if="record.city.raw_value">, <t t-esc="record.city.raw_value"/></span>
+                    </t>
+                    <t t-elif="record.address_id.raw_value">
+                        <field name="address_id" class="ms-1"/>
+                    </t>
+                    <t t-else="">
+                        <span class="ms-1">Online Event</span>
+                    </t>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

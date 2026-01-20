@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="event_index_topbar_custom" inherit_id="website_event.index_topbar">
+        
+        <xpath expr="//aside[contains(@id,'o_wevent_event_main_sidebar')]" position="replace">
+            <div class="o_wevent_index_topbar_filters d-flex flex-wrap align-items-center gap-2">
+                <h2 class="my-0 me-3">Filters</h2>
+                
+                <!-- Date Filter -->
+                <div class="dropdown d-none d-lg-block">
+                    <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                        <t t-if="current_date == 'old'">Past Events</t>
+                        <t t-elif="current_date == 'today'">Today</t>
+                        <t t-elif="current_date == 'week'">This Week</t>
+                        <t t-elif="current_date == 'month'">This Month</t>
+                        <t t-else="">Upcoming Events</t>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='upcoming') }}"
+                           t-attf-class="dropdown-item #{'active' if current_date in ('upcoming', None, False) else ''}">
+                            Upcoming Events
+                        </a>
+                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='today') }}"
+                           t-attf-class="dropdown-item #{'active' if current_date == 'today' else ''}">
+                            Today
+                        </a>
+                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='week') }}"
+                           t-attf-class="dropdown-item #{'active' if current_date == 'week' else ''}">
+                            This Week
+                        </a>
+                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='month') }}"
+                           t-attf-class="dropdown-item #{'active' if current_date == 'month' else ''}">
+                            This Month
+                        </a>
+                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='old') }}"
+                           t-attf-class="dropdown-item #{'active' if current_date == 'old' else ''}">
+                            Past Events
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Type Filter -->
+                <div class="dropdown d-none d-lg-block" t-if="event_types">
+                    <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                        <t t-if="current_type">
+                            <t t-foreach="event_types" t-as="event_type">
+                                <t t-if="current_type == str(event_type.id)">
+                                    <t t-esc="event_type.name"/>
+                                </t>
+                            </t>
+                        </t>
+                        <t t-else="">Type</t>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a t-attf-href="/event?{{ keep_query('date', 'specialty', 'case', 'country') }}"
+                           t-attf-class="dropdown-item #{'active' if not current_type else ''}">
+                            All Types
+                        </a>
+                        <t t-foreach="event_types" t-as="event_type">
+                            <a t-attf-href="/event?{{ keep_query('date', 'specialty', 'case', 'country', type=event_type.id) }}"
+                               t-attf-class="dropdown-item #{'active' if current_type == str(event_type.id) else ''}">
+                                <t t-esc="event_type.name"/>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+                
+                <!-- Specialty Filter -->
+                <div class="dropdown d-none d-lg-block">
+                    <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                        <t t-if="current_specialty">
+                            <t t-esc="current_specialty"/>
+                        </t>
+                        <t t-else="">Specialty</t>
+                    </a>
+                    <div class="dropdown-menu" style="max-height: 400px; overflow-y: auto;">
+                        <a t-attf-href="/event?{{ keep_query('date', 'type', 'case', 'country') }}"
+                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_specialty else ''}">
+                            All Specialties
+                        </a>
+                        <t t-foreach="specialties or []" t-as="specialty">
+                            <a t-attf-href="/event?{{ keep_query('date', 'type', 'case', 'country', specialty=specialty['id']) }}"
+                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_specialty == specialty['name'] else ''}">
+                                <t t-esc="specialty['name']"/>
+                                <span class="badge text-bg-light ms-2">
+                                    <t t-esc="specialty.get('event_count', 0)"/>
+                                </span>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+                
+                <!-- Case Filter -->
+                <div class="dropdown d-none d-lg-block">
+                    <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                        <t t-if="current_case">
+                            <t t-esc="current_case"/>
+                        </t>
+                        <t t-else="">Cases</t>
+                    </a>
+                    <div class="dropdown-menu" style="max-height: 400px; overflow-y: auto;">
+                        <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'country') }}"
+                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_case else ''}">
+                            All Cases
+                        </a>
+                        <t t-foreach="cases or []" t-as="case_item">
+                            <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'country', case=case_item['id']) }}"
+                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_case == case_item['name'] else ''}">
+                                <t t-esc="case_item['name']"/>
+                                <span class="badge text-bg-light ms-2">
+                                    <t t-esc="case_item.get('event_count', 0)"/>
+                                </span>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+                
+                <!-- Country Filter -->
+                <div class="dropdown d-none d-lg-block">
+                    <a href="#" role="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                        <t t-if="current_country_custom">
+                            <t t-esc="current_country_custom"/>
+                        </t>
+                        <t t-else="">Country</t>
+                    </a>
+                    <div class="dropdown-menu" style="max-height: 400px; overflow-y: auto;">
+                        <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'case') }}"
+                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_country_custom else ''}">
+                            All Countries
+                        </a>
+                        <t t-foreach="custom_countries or []" t-as="country">
+                            <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'case', country=country['id']) }}"
+                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_country_custom == country['name'] else ''}">
+                                <t t-esc="country['name']"/>
+                                <span class="badge text-bg-light ms-2">
+                                    <t t-esc="country.get('event_count', 0)"/>
+                                </span>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+                
+                <!-- Active Filters Display & Clear Button -->
+                <t t-if="current_date or current_type or current_specialty or current_case or current_country_custom">
+                    <div class="d-flex align-items-center gap-2 ms-3">
+                        <span class="text-muted small">Active filters:</span>
+                        
+                        <t t-if="current_date and current_date != 'upcoming'">
+                            <span class="badge bg-primary d-flex align-items-center gap-1">
+                                <t t-esc="current_date"/>
+                                <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country') }}" 
+                                   class="text-white text-decoration-none ms-1">×</a>
+                            </span>
+                        </t>
+                        
+                        <t t-if="current_type">
+                            <span class="badge bg-primary d-flex align-items-center gap-1">
+                                Type: <t t-esc="current_type"/>
+                                <a t-attf-href="/event?{{ keep_query('date', 'specialty', 'case', 'country') }}" 
+                                   class="text-white text-decoration-none ms-1">×</a>
+                            </span>
+                        </t>
+                        
+                        <t t-if="current_specialty">
+                            <span class="badge bg-primary d-flex align-items-center gap-1">
+                                <t t-esc="current_specialty"/>
+                                <a t-attf-href="/event?{{ keep_query('date', 'type', 'case', 'country') }}" 
+                                   class="text-white text-decoration-none ms-1">×</a>
+                            </span>
+                        </t>
+                        
+                        <t t-if="current_case">
+                            <span class="badge bg-primary d-flex align-items-center gap-1">
+                                <t t-esc="current_case"/>
+                                <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'country') }}" 
+                                   class="text-white text-decoration-none ms-1">×</a>
+                            </span>
+                        </t>
+                        
+                        <t t-if="current_country_custom">
+                            <span class="badge bg-primary d-flex align-items-center gap-1">
+                                <t t-esc="current_country_custom"/>
+                                <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'case') }}" 
+                                   class="text-white text-decoration-none ms-1">×</a>
+                            </span>
+                        </t>
+                        
+                        <a href="/event" class="btn btn-sm btn-outline-secondary">
+                            Clear All
+                        </a>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+</template>
+
+    <template id="event_page_specialty_case" inherit_id="website_event.event_description_full">
+        <xpath expr="//aside[@id='o_wevent_event_main_sidebar']/div[@class='o_wevent_sidebar_block border-bottom pb-3 mb-4'][1]" position="after">
+            <div t-if="event.specialty_ids or event.case_ids" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
+                <t t-if="event.specialty_ids">
+                    <h6 class="o_wevent_sidebar_title">Specialties</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <t t-foreach="event.specialty_ids" t-as="specialty">
+                            <span class="badge text-bg-light"><t t-esc="specialty.name"/></span>
+                        </t>
+                    </div>
+                </t>
+                <t t-if="event.case_ids">
+                    <h6 class="o_wevent_sidebar_title">Case Types</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <t t-foreach="event.case_ids" t-as="case_item">
+                            <span class="badge text-bg-light"><t t-esc="case_item.name"/></span>
+                        </t>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="event_cards_description_toggle" inherit_id="website_event.events_list">
+        <xpath expr="//div[contains(@class, 'o_wevent_card_description')]" position="replace">
+            <div class="o_wevent_card_description text-muted mb-2" style="font-size: 0.875rem; line-height: 1.4;">
+                <t t-if="event.description or event.subtitle">
+                    <style>
+                        .o_wevent_events_list article {
+                            min-height: 520px;
+                        }
+                        .o_wevent_events_list article main {
+                            min-height: 320px;
+                            justify-content: flex-start !important;
+                        }
+                        .o_wevent_card_desc_preview {
+                            max-height: 3.6em;
+                            overflow: hidden;
+                        }
+                    </style>
+                    <div class="o_wevent_card_desc_preview">
+                        <t t-if="event.description">
+                            <p t-field="event.description" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                        </t>
+                        <t t-if="not event.description">
+                            <p t-field="event.subtitle" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                        </t>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="event_cards_three_per_row" inherit_id="website_event.events_list">
+        <xpath expr="//t[@t-if and @t-set='opt_event_size']" position="replace">
+            <t t-set="opt_event_size" t-value="'col-12 col-md-4 col-lg-4 col-xl-4'"/>
+        </xpath>
+        <xpath expr="//t[@t-else and @t-set='opt_event_size']" position="replace">
+            <t t-set="opt_event_size" t-value="'col-12 col-md-4 col-lg-4 col-xl-4'"/>
+        </xpath>
+    </template>
+
+    <template id="event_cards_badge_overlay" inherit_id="website_event.events_list">
+        <xpath expr="//t[@t-call='website.record_cover']/meta[@itemprop='startDate']" position="after">
+            <t t-if="event.card_bg_image">
+                <div class="o_wevent_card_bg"
+                     t-attf-style="background-image: url(#{image_data_uri(event.card_bg_image)});"/>
+            </t>
+            <t t-if="event.badge_image">
+                <img t-att-src="image_data_uri(event.badge_image)" alt="Badge" class="o_wevent_badge_overlay"/>
+            </t>
+        </xpath>
+        <xpath expr="//t[@t-call='website.record_cover']" position="after">
+            <style>
+                .o_wevent_card_bg {
+                    position: absolute;
+                    inset: 0;
+                    background-size: cover;
+                    background-position: center;
+                    z-index: 0;
+                    pointer-events: none;
+                }
+                .o_wevent_card_bg ~ * {
+                    position: relative;
+                    z-index: 1;
+                }
+                .o_record_cover_container:has(.o_wevent_card_bg) .o_record_cover_image {
+                    background-image: none !important;
+                }
+                .o_wevent_badge_overlay {
+                    position: absolute;
+                    top: 12px;
+                    left: 12px;
+                    max-height: 64px;
+                    width: auto;
+                    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+                    border-radius: 6px;
+                }
+            </style>
+        </xpath>
+    </template>
+
+</odoo>

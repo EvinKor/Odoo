@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Access Rights -->
+        <record id="access_event_application_user" model="ir.model.access">
+            <field name="name">event.application.user</field>
+            <field name="model_id" ref="model_event_application"/>
+            <field name="group_id" ref="base.group_portal"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="access_event_application_public" model="ir.model.access">
+            <field name="name">event.application.public</field>
+            <field name="model_id" ref="model_event_application"/>
+            <field name="group_id" ref="base.group_public"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="access_event_application_manager" model="ir.model.access">
+            <field name="name">event.application.manager</field>
+            <field name="model_id" ref="model_event_application"/>
+            <field name="group_id" ref="base.group_system"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+
+        <!-- Allow portal users to read and write their own events -->
+        <record id="access_event_event_portal" model="ir.model.access">
+            <field name="name">event.event.portal</field>
+            <field name="model_id" ref="event.model_event_event"/>
+            <field name="group_id" ref="base.group_portal"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- Allow portal users to read registrations -->
+        <record id="access_event_registration_portal" model="ir.model.access">
+            <field name="name">event.registration.portal</field>
+            <field name="model_id" ref="event.model_event_registration"/>
+            <field name="group_id" ref="base.group_portal"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- List View -->
+        <record id="view_event_application_tree" model="ir.ui.view">
+            <field name="name">event.application.tree</field>
+            <field name="model">event.application</field>
+            <field name="arch" type="xml">
+                <tree string="Event Applications" 
+                      decoration-info="state=='submitted'" 
+                      decoration-success="state in ('approved','published')" 
+                      decoration-danger="state=='rejected'"
+                      decoration-muted="state=='draft'">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="date_begin"/>
+                    <field name="date_end"/>
+                    <field name="venue_type"/>
+                    <field name="venue_name"/>
+                    <field name="full_address"/>
+                    <field name="address_input" optional="hide"/>
+                    <field name="state" widget="badge"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_event_application_search" model="ir.ui.view">
+            <field name="name">event.application.search</field>
+            <field name="model">event.application</field>
+            <field name="arch" type="xml">
+                <search string="Event Applications">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="venue_name"/>
+                    <field name="city"/>
+                    <field name="location"/>
+                    <separator/>
+                    <filter string="Submitted" name="submitted" domain="[('state','=','submitted')]"/>
+                    <filter string="Approved" name="approved" domain="[('state','=','approved')]"/>
+                    <filter string="Published" name="published" domain="[('state','=','published')]"/>
+                    <filter string="Rejected" name="rejected" domain="[('state','=','rejected')]"/>
+                    <filter string="Physical Events" name="physical" domain="[('venue_type','=','physical')]"/>
+                    <filter string="Online Events" name="online" domain="[('venue_type','=','online')]"/>
+                    <separator/>
+                    <group expand="0" string="Group By">
+                        <filter string="Status" name="group_state" context="{'group_by':'state'}"/>
+                        <filter string="Organizer" name="group_partner" context="{'group_by':'partner_id'}"/>
+                        <filter string="Venue Type" name="group_venue_type" context="{'group_by':'venue_type'}"/>
+                        <filter string="City" name="group_city" context="{'group_by':'city'}"/>
+                        <filter string="Start Date" name="group_date_begin" context="{'group_by':'date_begin'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Form View -->
+        <record id="view_event_application_form" model="ir.ui.view">
+            <field name="name">event.application.form</field>
+            <field name="model">event.application</field>
+            <field name="arch" type="xml">
+                <form string="Event Application">
+                    <header>
+                        <button name="action_submit" string="Submit" type="object" 
+                                invisible="state != 'draft'" 
+                                class="btn-primary"/>
+                        <button name="action_approve" string="Approve" type="object" 
+                                invisible="state != 'submitted'" 
+                                class="btn-success" 
+                                groups="base.group_system"/>
+                        <button name="action_reject" string="Reject" type="object" 
+                                invisible="state != 'submitted'" 
+                                class="btn-danger" 
+                                groups="base.group_system"/>
+                        <button name="action_publish" string="Publish as Event" type="object" 
+                                invisible="state != 'approved'" 
+                                class="btn-primary" 
+                                groups="base.group_system"
+                                confirm="This will create a public event on your website. Continue?"/>
+                        <button name="action_reset_to_draft" string="Reset to Draft" type="object" 
+                                invisible="state not in ('rejected','submitted')" 
+                                groups="base.group_system"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,published"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_open_event" type="object" 
+                                    class="oe_stat_button" icon="fa-calendar" 
+                                    invisible="not event_id">
+                                <div class="o_field_widget o_stat_info">
+                                    <span class="o_stat_text">View Event</span>
+                                </div>
+                            </button>
+                        </div>
+                        <widget name="web_ribbon" title="Submitted" bg_color="text-bg-info" invisible="state != 'submitted'"/>
+                        <widget name="web_ribbon" title="Approved" bg_color="text-bg-success" invisible="state != 'approved'"/>
+                        <widget name="web_ribbon" title="Published" bg_color="text-bg-primary" invisible="state != 'published'"/>
+                        <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger" invisible="state != 'rejected'"/>
+                        
+                        <group>
+                            <group>
+                                <field name="name"/>
+                                <field name="partner_id"/>
+                                <field name="venue_type"/>
+                                
+                                <!-- Address Input Section -->
+                                <field name="address_input" 
+                                       invisible="venue_type != 'physical'"
+                                       colspan="2"
+                                       placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."
+                                       widget="text"/>
+                                
+                                <field name="venue_name" invisible="venue_type != 'physical'"/>
+                                <field name="street_address" invisible="venue_type != 'physical'"/>
+                                <field name="city" invisible="venue_type != 'physical'"/>
+                                <field name="state_id" invisible="venue_type != 'physical'"/>
+                                <field name="zip_code" invisible="venue_type != 'physical'"/>
+                                <field name="country_id" invisible="venue_type != 'physical'"/>
+                                <field name="online_platform" invisible="venue_type != 'online'"/>
+                                <field name="online_link" invisible="venue_type != 'online'"/>
+                            </group>
+                            <group>
+                                <field name="date_begin"/>
+                                <field name="date_end"/>
+                                <field name="registration_start"/>
+                                <field name="registration_end"/>
+                                <field name="registration_limit"/>
+                                <field name="max_registrations" invisible="not registration_limit"/>
+                                <field name="badge_image" widget="image"/>
+                                <field name="card_bg_image" widget="image"/>
+                                <field name="event_id" readonly="1" invisible="not event_id"/>
+                            </group>
+                        </group>
+                        
+                        <notebook>
+                            <page string="Description">
+                                <field name="description" widget="html"/>
+                            </page>
+                            <page string="Admin Notes" groups="base.group_system">
+                                <group>
+                                    <field name="rejection_reason" invisible="state != 'rejected'"/>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Kanban View - Fixed for Odoo 18 -->
+        <record id="view_event_application_kanban" model="ir.ui.view">
+            <field name="name">event.application.kanban</field>
+            <field name="model">event.application</field>
+            <field name="arch" type="xml">
+                <kanban default_group_by="state" class="o_kanban_small_column">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="date_begin"/>
+                    <field name="venue_type"/>
+                    <field name="venue_name"/>
+                    <field name="city"/>
+                    <field name="state"/>
+                    <templates>
+                        <t t-name="card">
+                            <div class="oe_kanban_global_click">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title"><field name="name"/></strong>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <field name="partner_id"/>
+                                    <br/>
+                                    <i class="fa fa-calendar" title="Start Date" aria-label="Start Date"/> <field name="date_begin" widget="date"/>
+                                    <br/>
+                                    <t t-if="record.venue_type.raw_value == 'physical'">
+                                        <i class="fa fa-map-marker" title="Venue" aria-label="Venue"/> <field name="venue_name"/>
+                                        <t t-if="record.city.raw_value">
+                                            , <field name="city"/>
+                                        </t>
+                                    </t>
+                                    <t t-if="record.venue_type.raw_value == 'online'">
+                                        <i class="fa fa-globe" title="Online Event" aria-label="Online Event"/> Online Event
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <!-- Action -->
+        <record id="action_event_application" model="ir.actions.act_window">
+            <field name="name">Event Applications</field>
+            <field name="res_model">event.application</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="context">{'search_default_submitted': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No event applications yet
+                </p>
+                <p>
+                    Event applications submitted by users will appear here.
+                </p>
+            </field>
+        </record>
+
+        <!-- Separate action for submitted applications -->
+        <record id="action_event_application_to_review" model="ir.actions.act_window">
+            <field name="name">To Review</field>
+            <field name="res_model">event.application</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="domain">[('state','=','submitted')]</field>
+            <field name="context">{}</field>
+        </record>
+
+        <!-- Event Review Page Action -->
+        <record id="action_event_review_page" model="ir.actions.act_window">
+            <field name="name">Event Review</field>
+            <field name="res_model">event.application</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('state','in',['submitted','approved','rejected','published'])]</field>
+            <field name="context">{'search_default_submitted': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No event applications to review
+                </p>
+                <p>
+                    Event applications submitted by users will appear here for review.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu - Top Level with explicit groups -->
+        <menuitem id="menu_event_application_root" 
+          name="Applications" 
+          parent="event.event_main_menu" 
+          groups="base.group_user"
+          sequence="20"/>
+        <menuitem id="menu_event_application_to_review" 
+                name="To Review" 
+                parent="menu_event_application_root" 
+                action="action_event_application_to_review" 
+                groups="base.group_user"
+                sequence="5"/>
+        <menuitem id="menu_event_application" 
+                name="All Applications" 
+                parent="menu_event_application_root" 
+                action="action_event_application" 
+                groups="base.group_user"
+                sequence="10"/>
+    </data>
+</odoo>

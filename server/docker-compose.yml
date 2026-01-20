@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:15
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: odoodb
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    volumes:
+      - odoo_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d odoodb"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  odoo:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8069:8069"
+    environment:
+      HOST: db
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: odoo
+      DB_PASSWORD: odoo
+      DB_NAME: odoodb
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      LANGUAGE: C.UTF-8
+    volumes:
+      - odoo_web_data:/var/lib/odoo
+      - ./custom_addons:/mnt/extra-addons
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+      - ./docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
+
+  server:
+    build: .
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    environment:
+      HOST: odoo-db
+      DB_HOST: odoo-db
+      DB_PORT: "5432"
+      DB_USER: odoo
+      DB_PASSWORD: odoo
+      DB_NAME: odoodb
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
+
+volumes:
+  odoo_db_data:
+  odoo_web_data:

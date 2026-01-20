@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Custom Topbar Filters -->
+    <template id="event_index_topbar_custom" inherit_id="website_event.index_topbar">
+        <xpath expr="//div[contains(@class, 'o_wevent_index_topbar_filters')]" position="replace">
+            <div class="o_wevent_index_topbar_filters d-flex flex-wrap align-items-center gap-2">
+                <!-- your existing filter HTML stays here -->
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Specialty & Case Badges on Event Page -->
+    <template id="event_page_specialty_case" inherit_id="website_event.event_description_full">
+        <xpath expr="//aside[contains(@id,'o_wevent_event_main_sidebar')]" position="inside" optional="True">
+            <div t-if="event.specialty_ids or event.case_ids" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
+                <t t-if="event.specialty_ids">
+                    <h6 class="o_wevent_sidebar_title">Specialties</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <t t-foreach="event.specialty_ids" t-as="specialty">
+                            <span class="badge text-bg-light"><t t-esc="specialty.name"/></span>
+                        </t>
+                    </div>
+                </t>
+                <t t-if="event.case_ids">
+                    <h6 class="o_wevent_sidebar_title">Case Types</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <t t-foreach="event.case_ids" t-as="case_item">
+                            <span class="badge text-bg-light"><t t-esc="case_item.name"/></span>
+                        </t>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Card Description Toggle -->
+    <template id="event_cards_description_toggle" inherit_id="website_event.events_list">
+        <xpath expr="//div[contains(@class, 'o_wevent_card_description')]" position="replace">
+            <div class="o_wevent_card_description text-muted mb-2" style="font-size: 0.875rem; line-height: 1.4;">
+                <t t-if="event.description or event.subtitle">
+                    <style>
+                        .o_wevent_events_list article {
+                            min-height: 520px;
+                        }
+                        .o_wevent_events_list article main {
+                            min-height: 320px;
+                            justify-content: flex-start !important;
+                        }
+                        .o_wevent_card_desc_preview {
+                            max-height: 3.6em;
+                            overflow: hidden;
+                        }
+                    </style>
+                    <div class="o_wevent_card_desc_preview">
+                        <t t-if="event.description">
+                            <p t-field="event.description" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                        </t>
+                        <t t-if="not event.description">
+                            <p t-field="event.subtitle" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                        </t>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Cards Layout 3 per row -->
+    <template id="event_cards_three_per_row" inherit_id="website_event.events_list">
+        <xpath expr="//t[@t-set='opt_event_size']" position="replace">
+            <t t-set="opt_event_size" t-value="'col-12 col-md-4 col-lg-4 col-xl-4'"/>
+        </xpath>
+    </template>
+
+    <!-- Badge Overlay for Event Cards -->
+    <template id="event_cards_badge_overlay" inherit_id="website_event.events_list">
+        <xpath expr="//t[@t-call='website.record_cover']/meta[@itemprop='startDate']" position="after">
+            <t t-if="event.card_bg_image">
+                <div class="o_wevent_card_bg" t-attf-style="background-image: url(#{image_data_uri(event.card_bg_image)});"/>
+            </t>
+            <t t-if="event.badge_image">
+                <img t-att-src="image_data_uri(event.badge_image)" alt="Badge" class="o_wevent_badge_overlay"/>
+            </t>
+        </xpath>
+        <xpath expr="//t[@t-call='website.record_cover']" position="after">
+            <style>
+                .o_wevent_card_bg {
+                    position: absolute;
+                    inset: 0;
+                    background-size: cover;
+                    background-position: center;
+                    z-index: 0;
+                    pointer-events: none;
+                }
+                .o_wevent_card_bg ~ * {
+                    position: relative;
+                    z-index: 1;
+                }
+                .o_record_cover_container:has(.o_wevent_card_bg) .o_record_cover_image {
+                    background-image: none !important;
+                }
+                .o_wevent_badge_overlay {
+                    position: absolute;
+                    top: 12px;
+                    left: 12px;
+                    max-height: 64px;
+                    width: auto;
+                    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+                    border-radius: 6px;
+                }
+            </style>
+        </xpath>
+    </template>
+
+</odoo>

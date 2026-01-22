@@ -296,4 +296,14 @@
         </xpath>
     </template>
 
+    <template id="registration_complete_my_registrations" inherit_id="website_event.registration_complete">
+        <xpath expr="//div[contains(@class, 'o_wereg_confirmed')]//div[@class='row mb-3']/div[@class='col-12']" position="inside">
+            <div class="mt-2">
+                <a href="/my/event-registrations" class="btn btn-primary">
+                    <i class="fa fa-qrcode"></i> My Registrations
+                </a>
+            </div>
+        </xpath>
+    </template>
+
 </odoo>

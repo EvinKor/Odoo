@@ -1,6 +1,8 @@
 import base64
 from datetime import datetime
 
+from urllib.parse import quote_plus
+
 import pytz
 
 from odoo import fields, http
@@ -29,6 +31,30 @@ class EventApplicationPortal(CustomerPortal):
         ])
         return request.render('event_application.portal_my_events', {
             'events': events,
+        })
+
+    @http.route(['/my/event-registrations'], type='http', auth='user', website=True)
+    def my_event_registrations_index(self, **kwargs):
+        """List registrations for the current portal user"""
+        registrations = request.env['event.registration'].sudo().search([
+            ('partner_id', '=', request.env.user.partner_id.id)
+        ], order='create_date desc')
+        return request.render('event_application.portal_my_event_registration_index', {
+            'registrations': registrations,
+        })
+
+    @http.route(['/my/event-registration/<int:registration_id>'], type='http', auth='user', website=True)
+    def my_event_registration_detail(self, registration_id, **kwargs):
+        """Show QR for a single registration"""
+        registration = request.env['event.registration'].sudo().browse(registration_id)
+        if not registration or registration.partner_id.id != request.env.user.partner_id.id:
+            return request.redirect('/my/event-registrations')
+        checkin_base = request.httprequest.url_root.rstrip('/')
+        return request.render('event_application.portal_my_event_registration_detail', {
+            'registration': registration,
+            'event': registration.event_id,
+            'checkin_base': checkin_base,
+            'quote_plus': quote_plus,
         })
     
     @http.route(['/my/event/<int:event_id>'], type='http', auth='user', website=True)
@@ -100,22 +126,6 @@ class EventApplicationPortal(CustomerPortal):
         event.write(update_vals)
         
         return request.redirect(f'/my/event/{event_id}?success=1')
-    
-    @http.route(['/my/event/<int:event_id>/registrations'], type='http', auth='user', website=True)
-    def my_event_registrations(self, event_id, **kwargs):
-        """Show event registrations"""
-        event = request.env['event.event'].browse(event_id)
-        # Check if user owns this event
-        if event.organizer_id.id != request.env.user.partner_id.id:
-            return request.redirect('/my')
-        
-        registrations = request.env['event.registration'].search([
-            ('event_id', '=', event_id)
-        ])
-        return request.render('event_application.portal_my_event_registrations', {
-            'event': event,
-            'registrations': registrations,
-        })
     
     @http.route(['/my/event/applications'], type='http', auth='user', website=True)
     def my_applications(self, **kwargs):
@@ -270,6 +280,7 @@ class EventApplicationPortal(CustomerPortal):
         attended_count = len(registrations.filtered(lambda r: r.state == 'done'))
         not_attended_count = len(registrations.filtered(lambda r: r.state in ['open', 'draft']))
         attendance_rate = (attended_count / total_count * 100) if total_count else 0
+        checkin_base = request.httprequest.url_root.rstrip('/')
         
         return request.render('event_application.portal_my_event_registrations', {
             'event': event,
@@ -278,6 +289,8 @@ class EventApplicationPortal(CustomerPortal):
             'attended_count': attended_count,
             'not_attended_count': not_attended_count,
             'attendance_rate': attendance_rate,
+            'checkin_base': checkin_base,
+            'quote_plus': quote_plus,
             'page_name': 'event_registrations',
         })
 

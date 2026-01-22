@@ -1,4 +1,5 @@
 from odoo import api, fields, models, Command
+from odoo.exceptions import ValidationError
 
 class EventApplication(models.Model):
     _name = 'event.application'
@@ -333,19 +334,6 @@ class EventEvent(models.Model):
     location = fields.Char(string='Location')
     badge_image = fields.Binary(string='Badge Background')
     
-    # Specialty - using tags (many2many) for flexibility
-    specialty_ids = fields.Many2many(
-        'event.specialty',
-        string='Specialties',
-        help='Dental specialties covered in this event'
-    )
-    
-    # Cases - using tags (many2many) for flexibility
-    case_ids = fields.Many2many(
-        'event.case',
-        string='Cases',
-        help='Types of cases covered in this event'
-    )
     
     def action_view_registrations_portal(self):
         """Allow organizers to view registrations"""
@@ -402,3 +390,4 @@ class EventRegistration(models.Model):
     def is_attended(self):
         """Check if registration is marked as attended"""
         return self.state == 'done'
+    

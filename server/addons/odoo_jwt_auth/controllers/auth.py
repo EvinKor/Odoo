@@ -1,5 +1,6 @@
 from odoo import http
 from odoo.http import request
+from odoo.exceptions import UserError
 import jwt
 import datetime
 import os
@@ -89,103 +90,70 @@ class AuthJWT(http.Controller):
 
 class AuthSignup(http.Controller):
 
-    @http.route('/api/auth/signup', type='http', auth='none', csrf=False, methods=['POST'])
-    def signup(self, **kwargs):
+    @http.route("/api/auth/signup", type="http", auth="public", csrf=False, methods=["POST"])
+    def post_signup(self, **kwargs):
+        # Always detach from session
         try:
-            body = json.loads(request.httprequest.data or "{}")
+            request.session.logout()
+        except Exception:
+            pass
 
-            db = body.get("db")
-            login = body.get("email")
-            password = body.get("password")
-            full_name = body.get("fullName")
-            job_position = body.get("jobPosition")
-            phone = body.get("phone")
+        payload = request.get_json_data(silent=True) or {}
+        email = (payload.get("email") or "").strip().lower()
+        name = (payload.get("name") or payload.get("fullName") or "").strip() or email.split("@")[0]
 
-            if not all([db, login, password, full_name]):
-                return request.make_response(
-                    json.dumps({"error": "Missing required fields"}),
-                    headers=[('Content-Type', 'application/json')]
-                )
+        if not email or "@" not in email:
+            return request.make_response('{"ok":false,"error":"Invalid email"}', [("Content-Type","application/json")], 400)
 
-            User = request.env['res.users'].sudo()
+        company = request.env["res.company"].sudo().search([], limit=1)
 
-            if User.search([('login', '=', login)], limit=1):
-                return request.make_response(
-                    json.dumps({"error": "User with this email already exists"}),
-                    headers=[('Content-Type', 'application/json')]
-                )
+        # ✅ Use SUPERUSER with forced company for the ENTIRE logic
+        env = request.env(user=1).sudo().with_context(
+            allowed_company_ids=[company.id],
+            force_company=company.id,
+        ).with_company(company)
 
-            company = request.env['res.company'].sudo().search([], limit=1)
-            if not company:
-                return request.make_response(
-                    json.dumps({"error": "No company found"}),
-                    headers=[('Content-Type', 'application/json')]
-                )
+        Users = env["res.users"]
 
-            group_user = request.env['res.groups'].sudo().search(
-                [('name', '=', 'Internal User')],
-                limit=1
-            )
+        if Users.search([("login", "=", email)], limit=1):
+            return request.make_response('{"ok":false,"error":"Email already registered"}', [("Content-Type","application/json")], 409)
 
-            if not group_user:
-                return request.make_response(
-                    json.dumps({"error": "Internal User group not found"}),
-                    headers=[('Content-Type', 'application/json')]
-                )
+        portal_group = env.ref("base.group_portal")
 
-            new_user = User.create({
-                'name': full_name,
-                'login': login,
-                'company_id': company.id,
-                'groups_id': [(6, 0, [group_user.id])],
-                'active': True,
-                'share': False,
-            })
+        # Create user with the properly configured env
+        user = Users.create({
+            "name": name,
+            "login": email,
+            "email": email,
+            "groups_id": [(4, portal_group.id)],
+            "company_id": company.id,
+            "company_ids": [(6, 0, [company.id])],
+            "active": True,
+        })
 
-            # IMPORTANT: hash password
-            new_user._set_password(password)
+        partner = env["res.partner"].browse(user.partner_id.id)
+        partner.signup_prepare()
 
-            new_user.partner_id.sudo().write({
-                'company_id': company.id,
-                'function': job_position,
-                'phone': phone,
-            })
+        base_url = env["ir.config_parameter"].sudo().get_param("web.base.url")
+        verify_url = f"{base_url}/web/signup?token={partner.signup_token}"
 
-            payload = {
-                "uid": new_user.id,
-                "db": db,
-                "iat": datetime.datetime.utcnow(),
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=TOKEN_EXP_MINUTES)
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+        # ✅ Get template from the same env
+        template = env.ref("auth_signup.mail_template_user_signup_account_created", raise_if_not_found=False) \
+               or env.ref("auth_signup.reset_password_email", raise_if_not_found=False)
+        
+        # ✅ Send mail using the same env context (no need to re-add context)
+        if template:
+         template.send_mail(
+             user.id,
+             force_send=True,
+             email_values={"email_to": email},
+         )
 
-            response = request.make_response(
-                json.dumps({
-                    "success": True,
-                    "uid": new_user.id,
-                    "name": new_user.name,
-                    "email": new_user.login
-                }),
-                headers=[('Content-Type', 'application/json')]
-            )
-
-            response.set_cookie(
-                key="access_token",
-                value=token,
-                httponly=True,
-                secure=False,
-                max_age=TOKEN_EXP_MINUTES * 60,
-                path="/"
-            )
-
-            return response
-
-        except Exception as e:
-            return request.make_response(
-                json.dumps({"error": str(e)}),
-                headers=[('Content-Type', 'application/json')]
-            )
-
+        # Return OK (don’t touch request.env anymore)
+        resp = request.make_response(json.dumps({"ok": True}), headers=[("Content-Type","application/json")], status=200)
+        resp.headers["X-SNABBB-SIGNUP"] = "v2"
+        return resp
+    
 def verify_jwt(token):
     """Verify JWT token and return payload or error."""
     try:

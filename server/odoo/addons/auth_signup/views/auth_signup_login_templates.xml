@@ -55,7 +55,7 @@
                     <div class="text-center oe_login_buttons d-grid pt-3">
                         <button type="submit" class="btn btn-primary"> Sign up</button>
                         <a t-attf-href="/web/login?{{ keep_query() }}" class="btn btn-link btn-sm" role="button">Already have an account?</a>
-                        <div class="o_login_auth"/>
+                        <!-- <div class="o_login_auth"/> -->
                     </div>
                 </form>
             </t>

@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_oidc_auth_code,access_oidc_auth_code,model_oidc_auth_code,base.group_system,1,1,1,1
+access_oidc_access_token,access_oidc_access_token,model_oidc_access_token,base.group_system,1,1,1,1

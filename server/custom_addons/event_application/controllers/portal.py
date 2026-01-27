@@ -36,11 +36,53 @@ class EventApplicationPortal(CustomerPortal):
     @http.route(['/my/event-registrations'], type='http', auth='user', website=True)
     def my_event_registrations_index(self, **kwargs):
         """List registrations for the current portal user"""
-        registrations = request.env['event.registration'].sudo().search([
-            ('partner_id', '=', request.env.user.partner_id.id)
-        ], order='create_date desc')
+        search = (kwargs.get('search') or '').strip()
+        event_id = kwargs.get('event_id') or ''
+
+        domain = [('partner_id', '=', request.env.user.partner_id.id)]
+        if event_id and str(event_id).isdigit():
+            domain.append(('event_id', '=', int(event_id)))
+        if search:
+            domain += ['|', '|', ('name', 'ilike', search), ('email', 'ilike', search), ('event_id.name', 'ilike', search)]
+
+        registrations = request.env['event.registration'].sudo().search(domain, order='create_date desc')
+
+        # Events for filter dropdown (based on user's registrations)
+        event_ids = registrations.mapped('event_id').ids
+        events = request.env['event.event'].sudo().browse(event_ids).sorted(lambda e: e.name)
+        batches_map = {}
+        for reg in registrations:
+            batch_id = reg.x_register_batch_id or f"single-{reg.id}"
+            batches_map.setdefault(batch_id, request.env['event.registration'].sudo().browse())
+            batches_map[batch_id] |= reg
+
+        registration_batches = []
+        for batch_id, regs in batches_map.items():
+            first = regs[0]
+            download_url = (
+                f"/my/event-registrations/batch/{batch_id}/ticket"
+                if not batch_id.startswith("single-")
+                else f"/my/event-registration/{first.id}/ticket"
+            )
+            registration_batches.append({
+                "batch_id": batch_id,
+                "event": first.event_id,
+                "count": len(regs),
+                "buyer_name": first.partner_id.name,
+                "buyer_email": first.email,
+                "buyer_phone": first.phone,
+                "ticket_names": [r.name for r in regs],
+                "download_url": download_url,
+                "create_date": first.create_date,
+            })
+
+        registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
+
         return request.render('event_application.portal_my_event_registration_index', {
-            'registrations': registrations,
+            'registration_batches': registration_batches,
+            'events': events,
+            'search': search,
+            'event_id': str(event_id) if event_id else '',
         })
 
     @http.route(['/my/event-registration/<int:registration_id>'], type='http', auth='user', website=True)

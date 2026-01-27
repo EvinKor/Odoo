@@ -1,0 +1,11 @@
+2026-01-26 08:07:35.593 +08 [3852] LOG:  database system was interrupted; last known up at 2026-01-23 17:01:01 +08
+2026-01-26 08:07:37.470 +08 [3852] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-01-26 08:07:37.475 +08 [3852] LOG:  redo starts at 0/300A2350
+2026-01-26 08:07:37.476 +08 [3852] LOG:  invalid record length at 0/300A2438: wanted 24, got 0
+2026-01-26 08:07:37.476 +08 [3852] LOG:  redo done at 0/300A2400
+2026-01-26 08:07:37.498 +08 [7292] LOG:  database system is ready to accept connections
+2026-01-26 08:08:20.249 +08 [7292] LOG:  received fast shutdown request
+2026-01-26 08:08:20.252 +08 [7292] LOG:  aborting any active transactions
+2026-01-26 08:08:20.256 +08 [7292] LOG:  background worker "logical replication launcher" (PID 10604) exited with exit code 1
+2026-01-26 08:08:20.263 +08 [10528] LOG:  shutting down
+2026-01-26 08:08:20.283 +08 [7292] LOG:  database system is shut down

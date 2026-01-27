@@ -1,8 +1,13 @@
+import secrets
+
 from odoo import http
 from odoo.http import request
 from odoo.osv import expression 
 from odoo.addons.website_event.controllers.main import WebsiteEventController
+import base64
 from werkzeug.urls import url_encode
+from collections import Counter
+from odoo.exceptions import UserError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -284,5 +289,79 @@ class CustomWebsiteEventController(WebsiteEventController):
 
         
         return request.render('website_event.index', values)
+
+    @http.route(['''/event/<model("event.event"):event>/registration/confirm'''], type='http', auth="public", methods=['POST'], website=True)
+    def registration_confirm(self, event, **post):
+        if not request.env['ir.http']._verify_request_recaptcha_token('website_event_registration'):
+            raise UserError('Suspicious activity detected by Google reCaptcha.')
+
+        buyer_name = (post.get('buyer_name') or '').strip()
+        buyer_email = (post.get('buyer_email') or '').strip()
+        buyer_phone = (post.get('buyer_phone') or '').strip()
+        if not buyer_name or not buyer_email:
+            raise UserError('Buyer name and email are required.')
+
+        ticket_names = {}
+        ticket_ids = {}
+        for key, value in post.items():
+            if key.startswith('ticket_name-'):
+                idx = key.split('ticket_name-')[1]
+                ticket_names[idx] = (value or '').strip()
+            elif key.endswith('-event_ticket_id'):
+                parts = key.split('-')
+                if len(parts) == 2 and parts[0].isdigit():
+                    ticket_ids[parts[0]] = int(value) if value else 0
+
+        if not ticket_names:
+            raise UserError('At least one ticket name is required.')
+
+        batch_id = secrets.token_urlsafe(12)
+        registration_data = []
+        for idx, name in ticket_names.items():
+            if not name:
+                raise UserError('Each ticket requires a name.')
+            vals = {
+                'name': name,
+                'email': buyer_email,
+                'phone': buyer_phone,
+                'x_register_batch_id': batch_id,
+            }
+            if idx in ticket_ids:
+                vals['event_ticket_id'] = ticket_ids[idx]
+            registration_data.append(vals)
+
+        registration_tickets = Counter(registration.get('event_ticket_id') for registration in registration_data if registration.get('event_ticket_id'))
+        event_tickets = request.env['event.event.ticket'].browse(list(registration_tickets.keys()))
+        if any(event_ticket.seats_limited and event_ticket.seats_available < registration_tickets.get(event_ticket.id) for event_ticket in event_tickets):
+            return request.redirect('/event/%s/register?registration_error_code=insufficient_seats' % event.id)
+
+        if not request.env.user._is_public():
+            request.env.user.partner_id.sudo().write({
+                'name': buyer_name,
+                'email': buyer_email,
+                'phone': buyer_phone,
+            })
+
+        attendees_sudo = self._create_attendees_from_registration_post(event, registration_data)
+        if not request.env.user._is_public():
+            report = request.env.ref(
+                "event.action_report_event_registration_full_page_ticket",
+                raise_if_not_found=False,
+            )
+            if report:
+                pdf_bytes, _ = report.sudo()._render_qweb_pdf(
+                    report.report_name,
+                    res_ids=attendees_sudo.ids,
+                )
+                filename = f"tickets_{batch_id}.pdf"
+                request.env["ir.attachment"].sudo().create({
+                    "name": filename,
+                    "type": "binary",
+                    "datas": base64.b64encode(pdf_bytes),
+                    "mimetype": "application/pdf",
+                    "res_model": "res.partner",
+                    "res_id": request.env.user.partner_id.id,
+                })
+        return request.redirect(('/event/%s/registration/success?' % event.id) + url_encode({'registration_ids': ",".join([str(rid) for rid in attendees_sudo.ids])}))
 
         

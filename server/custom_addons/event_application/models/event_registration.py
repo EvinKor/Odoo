@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields
+from odoo import fields, models
 import secrets
 
 class EventRegistration(models.Model):
     _inherit = "event.registration"
+
+    x_register_batch_id = fields.Char(
+        string="Registration Batch ID",
+        index=True,
+        copy=False,
+        readonly=True,
+    )
 
     x_ticket_token = fields.Char(
         string="External Ticket Token",

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import base64
+import secrets
+
 from odoo import http
 from odoo.http import request
 
@@ -11,84 +14,47 @@ class EventExternalRegisterController(http.Controller):
 
     @http.route("/api/event/register", type="json", auth="public", website=True, csrf=False)
     def api_event_register(self, **payload):
-
-        event_id = payload.get("event_id")
-        attendees = payload.get("attendees") or []
-        ticket_id = payload.get("ticket_id")
-        tickets_qty = int(payload.get("tickets_qty") or len(attendees) or 0)
-
-        if not event_id:
-            return {"ok": False, "error": "Missing event_id"}
-        if tickets_qty <= 0:
-            return {"ok": False, "error": "tickets_qty must be > 0"}
-        if len(attendees) != tickets_qty:
-            return {"ok": False, "error": "attendees length must match tickets_qty"}
-
-        event = request.env["event.event"].sudo().browse(int(event_id))
-        if not event.exists():
-            return {"ok": False, "error": "Event not found"}
-
-        created = request.env["event.registration"]
-        for a in attendees:
-            name = (a.get("name") or "").strip()
-            email = (a.get("email") or "").strip()
-            phone = (a.get("phone") or "").strip()
-
-            if not name or not email:
-                return {"ok": False, "error": "Each attendee requires name and email"}
-
-            vals = {"event_id": event.id, "name": name, "email": email, "phone": phone}
-            if ticket_id:
-                vals["event_ticket_id"] = int(ticket_id)
-
-            created += request.env["event.registration"].sudo().create(vals)
-
-        base = request.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
-
-        tickets = []
-        for reg in created:
-            # ensure token exists
-            if not reg.x_ticket_token:
-                reg.sudo().write({"x_ticket_token": reg.x_ticket_token})
-
-            tickets.append({
-                "id": reg.id,
-                "pdf_url": f"{base}/api/event/ticket/{reg.id}?token={reg.x_ticket_token}",
-            })
-
-        return {
-            "ok": True,
-            "registration_ids": created.ids,
-            "tickets": tickets,
-        }
-
-    @http.route("/api/event/register", type="json", auth="public", website=True, csrf=False)
-    def api_event_register(self, **payload):
         """
         Expected JSON payload:
         {
           "event_id": 12,
           "ticket_id": 3,     # optional
-          "tickets_qty": 2,
-          "attendees": [
-            {"name":"A", "email":"a@x.com", "phone":"+60..."},
-            {"name":"B", "email":"b@x.com", "phone":"+60..."}
-          ]
+          "tickets_qty": 4,
+          "buyer": {
+            "name": "Buyer Name",
+            "email": "buyer@example.com",
+            "phone": "+60..."
+          },
+          "ticket_names": ["A", "B", "C", "D"]
         }
         """
+        if not payload:
+            try:
+                payload = request.httprequest.get_json(silent=True) or {}
+            except Exception:
+                payload = {}
 
         # --- Basic validation ---
         event_id = payload.get("event_id")
-        attendees = payload.get("attendees") or []
+        tickets_qty = int(payload.get("tickets_qty") or 0)
+        buyer = payload.get("buyer") or {}
+        ticket_names = payload.get("ticket_names") or []
         ticket_id = payload.get("ticket_id")
-        tickets_qty = int(payload.get("tickets_qty") or len(attendees) or 0)
 
         if not event_id:
             return {"ok": False, "error": "Missing event_id"}
-        if tickets_qty <= 0:
-            return {"ok": False, "error": "tickets_qty must be > 0"}
-        if len(attendees) != tickets_qty:
-            return {"ok": False, "error": "attendees length must match tickets_qty"}
+        if not tickets_qty:
+            return {"ok": False, "error": "Missing tickets_qty"}
+        if not ticket_names:
+            return {"ok": False, "error": "ticket_names is required"}
+        if len(ticket_names) != tickets_qty:
+            return {"ok": False, "error": "ticket_names must match tickets_qty"}
+
+        buyer_name = (buyer.get("name") or "").strip()
+        buyer_email = (buyer.get("email") or "").strip()
+        buyer_phone = (buyer.get("phone") or "").strip()
+        if not buyer_name or not buyer_email:
+            return {"ok": False, "error": "buyer name and email are required"}
 
         # --- Fetch event ---
         event = request.env["event.event"].sudo().browse(int(event_id))
@@ -99,54 +65,94 @@ class EventExternalRegisterController(http.Controller):
         if hasattr(event, "website_published") and not event.website_published:
             return {"ok": False, "error": "Event is not published"}
 
-        # --- Create registrations ---
-        created_ids = []
-        for a in attendees:
-            name = (a.get("name") or "").strip()
-            email = (a.get("email") or "").strip()
-            phone = (a.get("phone") or "").strip()
+        # --- Validate ticket_id belongs to this event ---
+        if ticket_id:
+            ticket = request.env["event.event.ticket"].sudo().browse(int(ticket_id))
+            if not ticket.exists() or ticket.event_id.id != event.id:
+                return {"ok": False, "error": "Invalid ticket_id for this event"}
 
-            if not name or not email:
-                return {"ok": False, "error": "Each attendee requires name and email"}
+        # --- Resolve buyer partner (by email) ---
+        user = request.env.user
+        partner = request.env["res.partner"].sudo().search([
+            ("email", "=", buyer_email)
+        ], limit=1)
+        if not partner:
+            partner = request.env["res.partner"].sudo().create({
+                "name": buyer_name,
+                "email": buyer_email,
+                "phone": buyer_phone,
+            })
+        else:
+            partner.write({
+                "name": buyer_name or partner.name,
+                "phone": buyer_phone or partner.phone,
+            })
 
+        # --- Create registrations (one per ticket name) ---
+        batch_id = secrets.token_urlsafe(12)
+        EventRegistration = request.env["event.registration"].sudo()
+        created = EventRegistration.browse()
+        has_batch_id = "x_register_batch_id" in EventRegistration._fields
+        has_token = "x_ticket_token" in EventRegistration._fields
+        for ticket_name in ticket_names:
+            name = (ticket_name or "").strip()
+            if not name:
+                return {"ok": False, "error": "Each ticket name is required"}
             vals = {
                 "event_id": event.id,
                 "name": name,
-                "email": email,
-                "phone": phone,
+                "email": buyer_email,
+                "phone": buyer_phone,
             }
-
+            if has_batch_id:
+                vals["x_register_batch_id"] = batch_id
             if ticket_id:
                 vals["event_ticket_id"] = int(ticket_id)
+            vals["partner_id"] = partner.id
 
-            reg = request.env["event.registration"].sudo().create(vals)
-            created_ids.append(reg.id)
+            created |= EventRegistration.create(vals)
 
-        # --- Build tickets_url AFTER creation ---
-        tickets_url = False
-        if created_ids:
-            base = request.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
-            ids_str = "[" + ",".join(str(i) for i in created_ids) + "]"
+        base = request.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
+        tokens = []
+        if has_token:
+            for reg in created:
+                if not reg.x_ticket_token:
+                    reg.sudo().write({"x_ticket_token": secrets.token_urlsafe(24)})
+                tokens.append(reg.x_ticket_token or "")
 
-            reg0 = request.env["event.registration"].sudo().browse(created_ids[0])
-
-            # Try common token/hash field names
-            tickets_hash = (
-                getattr(reg0, "tickets_hash", False)
-                or getattr(reg0, "access_token", False)
-                or getattr(reg0, "ticket_hash", False)
-                or getattr(reg0, "website_ticket_hash", False)
-                or False
+        combined_url = ""
+        if created.ids:
+            ids_param = ",".join(map(str, created.ids))
+            tokens_param = ",".join(tokens) if tokens else ""
+            combined_url = f"{base}/api/event/tickets?ids={ids_param}"
+            if tokens_param:
+                combined_url += f"&tokens={tokens_param}"
+            report = request.env.ref(
+                "event.action_report_event_registration_full_page_ticket",
+                raise_if_not_found=False,
             )
-
-            if tickets_hash:
-                tickets_url = f"{base}/event/{event.id}/my_tickets?registration_ids={ids_str}&tickets_hash={tickets_hash}"
+            if report:
+                report = report.sudo()
+                pdf_bytes, _ = report._render_qweb_pdf(
+                    report.report_name,
+                    res_ids=created.ids,
+                )
+                filename = f"tickets_{batch_id}.pdf"
+                request.env["ir.attachment"].sudo().create({
+                    "name": filename,
+                    "type": "binary",
+                    "datas": base64.b64encode(pdf_bytes),
+                    "mimetype": "application/pdf",
+                    "res_model": "res.partner",
+                    "res_id": partner.id,
+                })
 
         return {
             "ok": True,
-            "registration_ids": created_ids,
-            "tickets_url": tickets_url,
+            "registration_ids": created.ids,
+            "pdf_url_combined": combined_url,
         }
+        
 
     @http.route("/api/debug/reg/<int:rid>", type="json", auth="public", csrf=False)
     def debug_reg(self, rid, **kw):

@@ -14,6 +14,11 @@ class EventApplication(models.Model):
     registration_end = fields.Datetime(string='Registration Closes')
     registration_limit = fields.Boolean(string='Limit Registrations')
     max_registrations = fields.Integer(string='Maximum Registrations')
+    ticket_line_ids = fields.One2many(
+        'event.application.ticket',
+        'application_id',
+        string='Tickets'
+    )
     badge_image = fields.Binary(string='Badge Background')
     card_bg_image = fields.Binary(string='Card Background')
     contact_phone = fields.Char(string='Contact Phone')
@@ -178,6 +183,7 @@ class EventApplication(models.Model):
             'description': self.description,
             'organizer_id': self.partner_id.id,
             'is_published': True,
+            'website_published': True,
             'user_id': self.env.user.id,
             'application_id': self.id,
             'specialty_ids': [(6, 0, self.specialty_ids.ids)],  # Transfer specialty tags
@@ -194,13 +200,35 @@ class EventApplication(models.Model):
         if self.card_bg_image:
             event_vals['card_bg_image'] = self.card_bg_image
 
-        if self.registration_start or self.registration_end or (self.registration_limit and self.max_registrations):
-            ticket_vals = {
-                'name': 'Registration',
-                'start_sale_datetime': self.registration_start,
-                'end_sale_datetime': self.registration_end,
-            }
-            if self.registration_limit and self.max_registrations:
+        ticket_model_fields = self.env['event.event.ticket']._fields
+        ticket_commands = []
+        for line in self.ticket_line_ids.sorted(lambda l: (l.sequence, l.id)):
+            if not line.name:
+                continue
+            ticket_vals = {'name': line.name}
+            if 'start_sale_datetime' in ticket_model_fields:
+                ticket_vals['start_sale_datetime'] = line.start_sale_datetime
+            if 'end_sale_datetime' in ticket_model_fields:
+                ticket_vals['end_sale_datetime'] = line.end_sale_datetime
+            if 'seats_limited' in ticket_model_fields:
+                ticket_vals['seats_limited'] = bool(line.seats_limited)
+            if line.seats_limited and line.seats_max and 'seats_max' in ticket_model_fields:
+                ticket_vals['seats_max'] = line.seats_max
+            if line.point_cost and 'point_cost' in ticket_model_fields:
+                ticket_vals['point_cost'] = line.point_cost
+            ticket_commands.append(Command.create(ticket_vals))
+
+        if ticket_commands:
+            event_vals['event_ticket_ids'] = ticket_commands
+        elif self.registration_start or self.registration_end or (self.registration_limit and self.max_registrations):
+            ticket_vals = {'name': 'Registration'}
+            if 'start_sale_datetime' in ticket_model_fields:
+                ticket_vals['start_sale_datetime'] = self.registration_start
+            if 'end_sale_datetime' in ticket_model_fields:
+                ticket_vals['end_sale_datetime'] = self.registration_end
+            if 'seats_limited' in ticket_model_fields:
+                ticket_vals['seats_limited'] = bool(self.registration_limit)
+            if self.registration_limit and self.max_registrations and 'seats_max' in ticket_model_fields:
                 ticket_vals['seats_max'] = self.max_registrations
             event_vals['event_ticket_ids'] = [Command.create(ticket_vals)]
         
@@ -346,6 +374,33 @@ class EventEvent(models.Model):
             'domain': [('event_id', '=', self.id)],
             'context': {'default_event_id': self.id}
         }
+
+
+class EventApplicationTicket(models.Model):
+    _name = 'event.application.ticket'
+    _description = 'Event Application Ticket'
+    _order = 'sequence, id'
+
+    application_id = fields.Many2one('event.application', required=True, ondelete='cascade')
+    sequence = fields.Integer(default=10)
+    name = fields.Char(string='Ticket Name', required=True)
+    start_sale_datetime = fields.Datetime(string='Sales Start')
+    end_sale_datetime = fields.Datetime(string='Sales End')
+    seats_limited = fields.Boolean(string='Limit Quantity')
+    seats_max = fields.Integer(string='Maximum Quantity')
+    point_cost = fields.Integer(string='Point Cost')
+
+    @api.constrains('start_sale_datetime', 'end_sale_datetime')
+    def _check_sale_dates(self):
+        for line in self:
+            if line.start_sale_datetime and line.end_sale_datetime and line.start_sale_datetime > line.end_sale_datetime:
+                raise ValidationError('Ticket sales start date must be before end date.')
+
+    @api.constrains('seats_limited', 'seats_max')
+    def _check_seats_max(self):
+        for line in self:
+            if line.seats_limited and line.seats_max <= 0:
+                raise ValidationError('Maximum quantity must be greater than 0 for limited tickets.')
 
 
 class EventSpecialty(models.Model):

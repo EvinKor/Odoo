@@ -9,9 +9,6 @@
                         <button type="button" class="btn btn-primary o-kanban-button-new" accesskey="c" t-on-click="() => this.createRecord()" data-bounce-button="">
                             New
                         </button>
-                        <a href="/my/event-review" class="btn btn-secondary ms-2">
-                            <i class="fa fa-eye"></i> Event Review
-                        </a>
                     </t>
                 </t>
                 <t t-set-slot="layout-buttons">

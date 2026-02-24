@@ -1,0 +1,311 @@
+<odoo>
+    <template id="portal_my_home_dental" inherit_id="portal.portal_my_home" priority="40">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Dental Events</t>
+                <t t-set="url" t-value="'/my/dental/events'"/>
+                <t t-set="placeholder_count" t-value="'dental_submission_count'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Dental Points</t>
+                <t t-set="url" t-value="'/my/dental/points'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Notifications</t>
+                <t t-set="url" t-value="'/my/dental/notifications'"/>
+                <t t-set="placeholder_count" t-value="'dental_notification_count'"/>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="portal_my_dental_events" name="Portal Dental Events">
+        <t t-call="portal.portal_layout">
+            <div class="container mt-4 mb-5">
+                <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+                    <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="delta" value="-1"/>
+                        <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                        <button type="submit" class="btn btn-sm btn-outline-light">-</button>
+                    </form>
+                    <span class="badge bg-primary fs-6">Points: <t t-esc="point_balance"/></span>
+                    <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="delta" value="1"/>
+                        <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                        <button type="submit" class="btn btn-sm btn-outline-light">+</button>
+                    </form>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>My Dental Event Submissions</h3>
+                    <div class="d-flex gap-2">
+                        <a href="/my" class="btn btn-outline-secondary">Back to Portal Home</a>
+                        <a href="/dental/event/submit" class="btn btn-primary">Submit New Dental Event</a>
+                    </div>
+                </div>
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <a href="/my/dental/events" class="btn btn-sm btn-outline-primary">Events</a>
+                    <a href="/dental/events" class="btn btn-sm btn-outline-primary">Browse Events</a>
+                    <a href="/my/dental/points" class="btn btn-sm btn-outline-primary">Points</a>
+                    <a href="/my/dental/notifications" class="btn btn-sm btn-outline-primary">Notifications</a>
+                </div>
+                <t t-if="not submissions">
+                    <div class="alert alert-info">No submissions yet.</div>
+                </t>
+                <t t-else="">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Category</th>
+                                    <th>Start</th>
+                                    <th>Status</th>
+                                    <th>Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="submissions" t-as="s">
+                                    <td><t t-esc="s.name"/></td>
+                                    <td><t t-esc="dict(s._get_category_selection()).get(s.category, s.category)"/></td>
+                                    <td><t t-esc="s.date_begin" t-options="{'widget':'datetime'}"/></td>
+                                    <td><span class="badge bg-primary"><t t-esc="dict(s._fields['status'].selection).get(s.status, s.status)"/></span></td>
+                                    <td><t t-esc="s.submission_point_cost"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+
+                <hr class="my-4"/>
+                <h4 class="mb-3">Published Events</h4>
+                <t t-if="not published_events">
+                    <div class="alert alert-info">No published events yet.</div>
+                </t>
+                <t t-else="">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Registrations</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="published_events" t-as="event">
+                                    <td><t t-esc="event.name"/></td>
+                                    <td><t t-esc="event.date_begin" t-options="{'widget':'datetime'}"/></td>
+                                    <td><t t-esc="event.date_end" t-options="{'widget':'datetime'}"/></td>
+                                    <td><t t-esc="event.seats_used"/> / <t t-esc="event.seats_max or 'Unlimited'"/></td>
+                                    <td>
+                                        <span t-if="event.website_published" class="badge bg-success">Published</span>
+                                        <span t-else="" class="badge bg-secondary">Hidden</span>
+                                    </td>
+                                    <td>
+                                        <a t-attf-href="/my/dental/event/#{event.id}" class="btn btn-sm btn-primary">
+                                            Manage Media
+                                        </a>
+                                        <a t-attf-href="/event/#{event.id}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                            View Public Page
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_dental_event_detail" name="Portal Dental Event Detail">
+        <t t-call="portal.portal_layout">
+            <div class="container mt-4 mb-5">
+                <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary fs-6">Points: <t t-esc="point_balance"/></span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0"><t t-esc="event.name"/> - Media</h3>
+                    <a href="/my/dental/events" class="btn btn-outline-secondary">Back to My Events</a>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form t-attf-action="/my/dental/event/#{event.id}/upload-media" method="post" enctype="multipart/form-data" class="row g-3">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <div class="col-md-6">
+                                <label class="form-label">Update Badge Image</label>
+                                <input type="file" name="badge_image" class="form-control" accept="image/*"/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Upload Gallery Images (Multiple)</label>
+                                <input type="file" name="gallery_images" class="form-control" accept="image/*" multiple="multiple"/>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary" type="submit">Upload</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header"><strong>Current Header Image</strong></div>
+                            <div class="card-body">
+                                <t t-set="event_header_image" t-value="('image_1920' in event._fields and event.image_1920) or ('image_1024' in event._fields and event.image_1024) or ('image_512' in event._fields and event.image_512) or ('image_256' in event._fields and event.image_256) or ('image' in event._fields and event.image)"/>
+                                <t t-if="event_header_image">
+                                    <img t-att-src="image_data_uri(event_header_image)" class="img-fluid rounded" alt="Header image"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="text-muted">No header image selected.</div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header"><strong>Badge</strong></div>
+                            <div class="card-body">
+                                <t t-if="event.badge_image">
+                                    <img t-att-src="image_data_uri(event.badge_image)" class="img-thumbnail" alt="Badge image" style="max-height: 140px; width: auto;"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="text-muted">No badge uploaded.</div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header"><strong>Gallery</strong></div>
+                    <div class="card-body">
+                        <t t-if="not event.media_ids">
+                            <div class="text-muted">No gallery images uploaded yet.</div>
+                        </t>
+                        <t t-else="">
+                            <div class="row g-3">
+                                <div class="col-md-4" t-foreach="event.media_ids" t-as="media">
+                                    <div class="border rounded p-2 h-100">
+                                        <img t-att-src="image_data_uri(media.image)" class="img-fluid rounded mb-2" t-att-alt="media.name"/>
+                                        <div class="small text-muted mb-2"><t t-esc="media.name"/></div>
+                                        <span t-if="media.is_header" class="badge bg-success mb-2">Current Header</span>
+                                        <form t-if="not media.is_header" t-attf-action="/my/dental/event/media/#{media.id}/set-header" method="post">
+                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                            <button class="btn btn-sm btn-outline-primary" type="submit">Set as Header</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_my_dental_points" name="Portal Dental Points">
+        <t t-call="portal.portal_layout">
+            <div class="container mt-4 mb-5">
+                <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+                    <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="delta" value="-1"/>
+                        <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                        <button type="submit" class="btn btn-sm btn-outline-light">-</button>
+                    </form>
+                    <span class="badge bg-primary fs-6">Points: <t t-esc="point_balance"/></span>
+                    <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="delta" value="1"/>
+                        <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                        <button type="submit" class="btn btn-sm btn-outline-light">+</button>
+                    </form>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">My Points Wallet</h3>
+                    <a href="/my/dental/events" class="btn btn-outline-secondary">Back to Events</a>
+                </div>
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <a href="/my/dental/events" class="btn btn-sm btn-outline-primary">Events</a>
+                    <a href="/dental/events" class="btn btn-sm btn-outline-primary">Browse Events</a>
+                    <a href="/my/dental/points" class="btn btn-sm btn-outline-primary">Points</a>
+                    <a href="/my/dental/notifications" class="btn btn-sm btn-outline-primary">Notifications</a>
+                    <a href="/my" class="btn btn-sm btn-outline-secondary">Portal Home</a>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-0">Current Balance: <strong><t t-esc="wallet.balance"/></strong> points</h5>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr><th>Date</th><th>Amount</th><th>Reason</th><th>Reference</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="transactions" t-as="tx">
+                                <td><t t-esc="tx.create_date" t-options="{'widget':'datetime'}"/></td>
+                                <td><t t-esc="tx.amount"/></td>
+                                <td><t t-esc="tx.reason"/></td>
+                                <td><t t-esc="tx.reference or '-'"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_my_dental_notifications" name="Portal Dental Notifications">
+        <t t-call="portal.portal_layout">
+            <div class="container mt-4 mb-5">
+                <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+                    <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="delta" value="-1"/>
+                        <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                        <button type="submit" class="btn btn-sm btn-outline-light">-</button>
+                    </form>
+                    <span class="badge bg-primary fs-6">Points: <t t-esc="point_balance"/></span>
+                    <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="delta" value="1"/>
+                        <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                        <button type="submit" class="btn btn-sm btn-outline-light">+</button>
+                    </form>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">My Notifications</h3>
+                    <a href="/my/dental/events" class="btn btn-outline-secondary">Back to Events</a>
+                </div>
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <a href="/my/dental/events" class="btn btn-sm btn-outline-primary">Events</a>
+                    <a href="/dental/events" class="btn btn-sm btn-outline-primary">Browse Events</a>
+                    <a href="/my/dental/points" class="btn btn-sm btn-outline-primary">Points</a>
+                    <a href="/my/dental/notifications" class="btn btn-sm btn-outline-primary">Notifications</a>
+                    <a href="/my" class="btn btn-sm btn-outline-secondary">Portal Home</a>
+                </div>
+                <t t-if="not notifications">
+                    <div class="alert alert-info">No notifications.</div>
+                </t>
+                <t t-else="">
+                    <div class="list-group">
+                        <a t-foreach="notifications" t-as="n" t-attf-href="/my/dental/notifications/read/#{n.id}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between">
+                                <strong><t t-esc="n.title"/></strong>
+                                <small><t t-esc="n.create_date" t-options="{'widget':'datetime'}"/></small>
+                            </div>
+                            <div class="small"><t t-esc="n.message"/></div>
+                        </a>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </template>
+</odoo>

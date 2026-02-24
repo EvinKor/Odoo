@@ -40,15 +40,10 @@ class EventExternalRegisterController(http.Controller):
         buyer = payload.get("buyer") or {}
         ticket_names = payload.get("ticket_names") or []
         ticket_id = payload.get("ticket_id")
+        ticket_lines = payload.get("ticket_lines") or []
 
         if not event_id:
             return {"ok": False, "error": "Missing event_id"}
-        if not tickets_qty:
-            return {"ok": False, "error": "Missing tickets_qty"}
-        if not ticket_names:
-            return {"ok": False, "error": "ticket_names is required"}
-        if len(ticket_names) != tickets_qty:
-            return {"ok": False, "error": "ticket_names must match tickets_qty"}
 
         buyer_name = (buyer.get("name") or "").strip()
         buyer_email = (buyer.get("email") or "").strip()
@@ -65,11 +60,42 @@ class EventExternalRegisterController(http.Controller):
         if hasattr(event, "website_published") and not event.website_published:
             return {"ok": False, "error": "Event is not published"}
 
-        # --- Validate ticket_id belongs to this event ---
-        if ticket_id:
-            ticket = request.env["event.event.ticket"].sudo().browse(int(ticket_id))
-            if not ticket.exists() or ticket.event_id.id != event.id:
-                return {"ok": False, "error": "Invalid ticket_id for this event"}
+        # --- Build registration entries, supporting multiple ticket lines ---
+        registration_entries = []  # [{"ticket_id": int or 0, "name": "Attendee Name"}]
+        if ticket_lines:
+            for line in ticket_lines:
+                line_ticket_id = int(line.get("ticket_id") or 0)
+                line_qty = int(line.get("qty") or 0)
+                line_names = line.get("ticket_names") or []
+                if not line_ticket_id or not line_qty:
+                    return {"ok": False, "error": "Each ticket line requires ticket_id and qty"}
+                if len(line_names) != line_qty:
+                    return {"ok": False, "error": "ticket_names must match qty for each ticket line"}
+                ticket = request.env["event.event.ticket"].sudo().browse(line_ticket_id)
+                if not ticket.exists() or ticket.event_id.id != event.id:
+                    return {"ok": False, "error": "Invalid ticket_id in ticket_lines"}
+                for tname in line_names:
+                    name = (tname or "").strip()
+                    if not name:
+                        return {"ok": False, "error": "Each ticket name is required"}
+                    registration_entries.append({"ticket_id": line_ticket_id, "name": name})
+        else:
+            # Backward compatibility: single ticket_id + tickets_qty + ticket_names
+            if not tickets_qty:
+                return {"ok": False, "error": "Missing tickets_qty"}
+            if not ticket_names:
+                return {"ok": False, "error": "ticket_names is required"}
+            if len(ticket_names) != tickets_qty:
+                return {"ok": False, "error": "ticket_names must match tickets_qty"}
+            if ticket_id:
+                ticket = request.env["event.event.ticket"].sudo().browse(int(ticket_id))
+                if not ticket.exists() or ticket.event_id.id != event.id:
+                    return {"ok": False, "error": "Invalid ticket_id for this event"}
+            for tname in ticket_names:
+                name = (tname or "").strip()
+                if not name:
+                    return {"ok": False, "error": "Each ticket name is required"}
+                registration_entries.append({"ticket_id": int(ticket_id) if ticket_id else 0, "name": name})
 
         # --- Resolve buyer partner (by email) ---
         user = request.env.user
@@ -88,27 +114,40 @@ class EventExternalRegisterController(http.Controller):
                 "phone": buyer_phone or partner.phone,
             })
 
-        # --- Create registrations (one per ticket name) ---
+        # --- Seat availability + point deduction for selected tickets ---
+        registration_tickets = Counter(entry["ticket_id"] for entry in registration_entries if entry["ticket_id"])
+        event_tickets = request.env["event.event.ticket"].sudo().browse(list(registration_tickets.keys()))
+        if any(t.seats_limited and t.seats_available < registration_tickets.get(t.id, 0) for t in event_tickets):
+            return {"ok": False, "error": "Insufficient seats for selected ticket(s)"}
+
+        points_by_ticket = {}
+        if "point_cost" in request.env["event.event.ticket"]._fields:
+            points_by_ticket = {t.id: int(t.point_cost or 0) for t in event_tickets}
+            total_points = sum(points_by_ticket.get(tid, 0) * qty for tid, qty in registration_tickets.items())
+            if total_points > 0 and not request.env.user._is_public():
+                wallet = request.env["dental.points.wallet"].get_or_create_wallet(request.env.user.partner_id)
+                wallet.spend_points(total_points, "API event registration purchase", reference=event.name)
+
+        # --- Create registrations (one per ticket entry) ---
         batch_id = secrets.token_urlsafe(12)
         EventRegistration = request.env["event.registration"].sudo()
         created = EventRegistration.browse()
         has_batch_id = "x_register_batch_id" in EventRegistration._fields
         has_token = "x_ticket_token" in EventRegistration._fields
-        for ticket_name in ticket_names:
-            name = (ticket_name or "").strip()
-            if not name:
-                return {"ok": False, "error": "Each ticket name is required"}
+        for entry in registration_entries:
             vals = {
                 "event_id": event.id,
-                "name": name,
+                "name": entry["name"],
                 "email": buyer_email,
                 "phone": buyer_phone,
             }
             if has_batch_id:
                 vals["x_register_batch_id"] = batch_id
-            if ticket_id:
-                vals["event_ticket_id"] = int(ticket_id)
+            if entry["ticket_id"]:
+                vals["event_ticket_id"] = entry["ticket_id"]
             vals["partner_id"] = partner.id
+            if "points_spent" in EventRegistration._fields and entry["ticket_id"]:
+                vals["points_spent"] = points_by_ticket.get(entry["ticket_id"], 0)
 
             created |= EventRegistration.create(vals)
 

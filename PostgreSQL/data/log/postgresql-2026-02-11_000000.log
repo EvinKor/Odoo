@@ -1,0 +1,20 @@
+2026-02-12 13:38:07.879 +08 [39468] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-02-12 13:38:07.879 +08 [39468] DETAIL:  Key (id)=(5) is still referenced from table "event_registration".
+2026-02-12 13:38:07.879 +08 [39468] STATEMENT:  DELETE FROM "event_event" WHERE id IN (5)
+2026-02-12 13:38:13.702 +08 [39468] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-02-12 13:38:13.702 +08 [39468] DETAIL:  Key (id)=(10) is still referenced from table "event_registration".
+2026-02-12 13:38:13.702 +08 [39468] STATEMENT:  DELETE FROM "event_event" WHERE id IN (10)
+2026-02-12 13:38:22.135 +08 [39468] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-02-12 13:38:22.135 +08 [39468] DETAIL:  Key (id)=(13) is still referenced from table "event_registration".
+2026-02-12 13:38:22.135 +08 [39468] STATEMENT:  DELETE FROM "event_event" WHERE id IN (13)
+2026-02-12 13:38:52.896 +08 [39468] ERROR:  update or delete on table "event_stage" violates foreign key constraint "event_event_stage_id_fkey" on table "event_event"
+2026-02-12 13:38:52.896 +08 [39468] DETAIL:  Key (id)=(4) is still referenced from table "event_event".
+2026-02-12 13:38:52.896 +08 [39468] STATEMENT:  DELETE FROM "event_stage" WHERE id IN (4)
+2026-02-12 14:22:07.125 +08 [39468] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-12 14:22:07.137 +08 [15320] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-12 14:22:07.139 +08 [6808] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-12 14:22:07.139 +08 [19380] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

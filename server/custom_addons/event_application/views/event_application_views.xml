@@ -32,6 +32,37 @@
             <field name="perm_unlink">1</field>
         </record>
 
+        <!-- Ticket line access (use model search to avoid xmlid lookup timing issues on upgrade) -->
+        <record id="access_event_application_ticket_user" model="ir.model.access">
+            <field name="name">event.application.ticket.user</field>
+            <field name="model_id" search="[('model', '=', 'event.application.ticket')]"/>
+            <field name="group_id" ref="base.group_portal"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="access_event_application_ticket_public" model="ir.model.access">
+            <field name="name">event.application.ticket.public</field>
+            <field name="model_id" search="[('model', '=', 'event.application.ticket')]"/>
+            <field name="group_id" ref="base.group_public"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="access_event_application_ticket_manager" model="ir.model.access">
+            <field name="name">event.application.ticket.manager</field>
+            <field name="model_id" search="[('model', '=', 'event.application.ticket')]"/>
+            <field name="group_id" ref="base.group_system"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+
         <!-- Allow portal users to read and write their own events -->
         <record id="access_event_event_portal" model="ir.model.access">
             <field name="name">event.event.portal</field>
@@ -73,6 +104,8 @@
                     <field name="full_address"/>
                     <field name="address_input" optional="hide"/>
                     <field name="state" widget="badge"/>
+                    <field name="rejection_reason" optional="hide"/>
+                    <field name="event_id" optional="hide"/>
                 </list>
             </field>
         </record>
@@ -189,6 +222,19 @@
                             <page string="Description">
                                 <field name="description" widget="html"/>
                             </page>
+                            <page string="Tickets">
+                                <field name="ticket_line_ids">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="name"/>
+                                        <field name="start_sale_datetime"/>
+                                        <field name="end_sale_datetime"/>
+                                        <field name="seats_limited"/>
+                                        <field name="seats_max" invisible="not seats_limited"/>
+                                        <field name="point_cost"/>
+                                    </list>
+                                </field>
+                            </page>
                             <page string="Admin Notes" groups="base.group_system">
                                 <group>
                                     <field name="rejection_reason" invisible="state != 'rejected'"/>
@@ -259,44 +305,12 @@
             </field>
         </record>
 
-        <!-- Separate action for submitted applications -->
-        <record id="action_event_application_to_review" model="ir.actions.act_window">
-            <field name="name">To Review</field>
-            <field name="res_model">event.application</field>
-            <field name="view_mode">kanban,list,form</field>
-            <field name="domain">[('state','=','submitted')]</field>
-            <field name="context">{}</field>
-        </record>
-
-        <!-- Event Review Page Action -->
-        <record id="action_event_review_page" model="ir.actions.act_window">
-            <field name="name">Event Review</field>
-            <field name="res_model">event.application</field>
-            <field name="view_mode">list,form</field>
-            <field name="domain">[('state','in',['submitted','approved','rejected','published'])]</field>
-            <field name="context">{'search_default_submitted': 1}</field>
-            <field name="help" type="html">
-                <p class="o_view_nocontent_smiling_face">
-                    No event applications to review
-                </p>
-                <p>
-                    Event applications submitted by users will appear here for review.
-                </p>
-            </field>
-        </record>
-
         <!-- Menu - Top Level with explicit groups -->
         <menuitem id="menu_event_application_root" 
           name="Applications" 
           parent="event.event_main_menu" 
           groups="base.group_user"
           sequence="20"/>
-        <menuitem id="menu_event_application_to_review" 
-                name="To Review" 
-                parent="menu_event_application_root" 
-                action="action_event_application_to_review" 
-                groups="base.group_user"
-                sequence="5"/>
         <menuitem id="menu_event_application" 
                 name="All Applications" 
                 parent="menu_event_application_root" 

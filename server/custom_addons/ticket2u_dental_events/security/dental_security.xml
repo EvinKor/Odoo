@@ -1,0 +1,57 @@
+﻿<odoo>
+    <record id="rule_dental_submission_own" model="ir.rule">
+        <field name="name">Dental submissions own</field>
+        <field name="model_id" ref="model_dental_event_submission"/>
+        <field name="domain_force">['|',('organizer_partner_id','=',user.partner_id.id),('create_uid','=',user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dental_wallet_own" model="ir.rule">
+        <field name="name">Dental wallet own</field>
+        <field name="model_id" ref="model_dental_points_wallet"/>
+        <field name="domain_force">[('partner_id','=',user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dental_wallet_admin_all" model="ir.rule">
+        <field name="name">Dental wallet admin all</field>
+        <field name="model_id" ref="model_dental_points_wallet"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+
+    <record id="rule_dental_tx_own" model="ir.rule">
+        <field name="name">Dental points transaction own</field>
+        <field name="model_id" ref="model_dental_points_transaction"/>
+        <field name="domain_force">[('partner_id','=',user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dental_tx_admin_all" model="ir.rule">
+        <field name="name">Dental points transaction admin all</field>
+        <field name="model_id" ref="model_dental_points_transaction"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+
+    <record id="rule_dental_notification_own" model="ir.rule">
+        <field name="name">Dental notification own</field>
+        <field name="model_id" ref="model_dental_notification"/>
+        <field name="domain_force">[('partner_id','=',user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dental_ticket_config_own" model="ir.rule">
+        <field name="name">Dental ticket config own</field>
+        <field name="model_id" ref="model_dental_event_ticket_config"/>
+        <field name="domain_force">[('submission_id.organizer_partner_id','=',user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="rule_dental_event_media_own" model="ir.rule">
+        <field name="name">Dental event media own</field>
+        <field name="model_id" ref="model_dental_event_media"/>
+        <field name="domain_force">['|', ('submission_id.organizer_partner_id', '=', user.partner_id.id), ('event_id.dental_submission_id.organizer_partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal')), (4, ref('base.group_user'))]"/>
+    </record>
+</odoo>

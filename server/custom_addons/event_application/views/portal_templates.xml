@@ -11,65 +11,206 @@
                 </t>
                 
                 <div class="container">
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <a href="/event/apply" class="btn btn-primary">
-                                <i class="fa fa-plus"></i> Submit New Event Application
+                    <style>
+                        .ea-ticket-card {
+                            border-width: 1px;
+                        }
+                        .ea-event-card--past {
+                            transition: background-color 0.2s ease, border-color 0.2s ease;
+                        }
+                        .ea-ticket-card--upcoming {
+                            background-color: rgba(25, 135, 84, 0.16) !important;
+                            border-color: rgba(25, 135, 84, 0.45) !important;
+                        }
+                        .ea-ticket-card--present {
+                            background-color: rgba(255, 193, 7, 0.24) !important;
+                            border-color: rgba(255, 193, 7, 0.58) !important;
+                        }
+                        .ea-ticket-card--past {
+                            background-color: rgba(220, 53, 69, 0.16) !important;
+                            border-color: rgba(220, 53, 69, 0.45) !important;
+                        }
+                    </style>
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a t-attf-class="nav-link #{'active' if (current_tab or 'events') == 'events' else ''}" href="/my/events?tab=events">
+                                Events
                             </a>
-                            <a href="/my/event-registrations" class="btn btn-outline-secondary">
-                                <i class="fa fa-qrcode"></i> Registrations &amp; QR
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a t-attf-class="nav-link #{'active' if (current_tab or 'events') == 'registrations' else ''}" href="/my/events/registrations">
+                                Registered Tickets
                             </a>
-                            <a href="/my/event/applications" class="btn btn-outline-primary">
-                                <i class="fa fa-list"></i> Application History
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <t t-if="not events">
-                        <div class="alert alert-info">
-                            You don't have any published events yet.
-                        </div>
-                    </t>
-                    
-                    <t t-if="events">
-                        <div class="row">
-                            <t t-foreach="events" t-as="event">
-                                <div class="col-md-6 mb-4">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <h5 class="card-title mb-0"><t t-esc="event.name"/></h5>
-                                                <!-- Status Badge -->
-                                                <t t-if="event.application_id">
-                                                    <span t-att-class="'badge bg-secondary' if event.application_id.state == 'draft' else 'badge bg-info' if event.application_id.state == 'submitted' else 'badge bg-success' if event.application_id.state == 'approved' else 'badge bg-danger' if event.application_id.state == 'rejected' else 'badge bg-primary'">
-                                                        <t t-esc="dict(event.application_id._fields['state'].selection).get(event.application_id.state)"/>
-                                                    </span>
-                                                </t>
-                                                <t t-else="">
-                                                    <span class="badge bg-primary">Published</span>
-                                                </t>
-                                            </div>
-                                            <p class="card-text">
-                                                <i class="fa fa-calendar"></i> <t t-esc="event.date_begin" t-options="{'widget': 'datetime'}"/><br/>
-                                                <i class="fa fa-map-marker"></i> <t t-esc="event.location or event.address_id.name or 'No location'"/><br/>
-                                                <i class="fa fa-users"></i> <t t-esc="event.seats_used"/> / <t t-esc="event.seats_max or 'Unlimited'"/> registrations
-                                            </p>
-                                        </div>
-                                        <div class="card-footer">
-                                            <a t-attf-href="/my/event/#{event.id}" class="btn btn-sm btn-primary">
-                                                <i class="fa fa-edit"></i> Edit Event
-                                            </a>
-                                            <a t-attf-href="/my/event/#{event.id}/registrations" class="btn btn-sm btn-secondary">
-                                                <i class="fa fa-users"></i> Registrations
-                                            </a>
-                                            <a t-attf-href="/event/#{event.id}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                <i class="fa fa-external-link"></i> Public Page
-                                            </a>
-                                        </div>
-                                    </div>
+                        </li>
+                    </ul>
+
+                    <t t-if="(current_tab or 'events') == 'events'">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">
+                                    <t t-if="(events_view or 'upcoming') == 'past'">Showing past events</t>
+                                    <t t-else="">Showing upcoming/active events</t>
+                                </small>
+                                <a t-if="(events_view or 'upcoming') != 'past'" href="/my/events?tab=events&amp;events_view=past" class="btn btn-sm btn-outline-secondary">
+                                    View Past Events
+                                </a>
+                                <a t-else="" href="/my/events?tab=events&amp;events_view=upcoming" class="btn btn-sm btn-outline-secondary">
+                                    Show Upcoming Only
+                                </a>
+                            </div>
+                            <form method="get" action="/my/events" class="row g-2 mb-3">
+                                <input type="hidden" name="tab" value="events"/>
+                                <input type="hidden" name="events_view" t-att-value="events_view or 'upcoming'"/>
+                                <div class="col-md-10">
+                                    <input type="text" name="events_search" class="form-control"
+                                           t-att-value="events_search"
+                                           placeholder="Filter events by name or location"/>
+                                </div>
+                                <div class="col-md-2 d-grid">
+                                    <button type="submit" class="btn btn-primary">Filter</button>
+                                </div>
+                            </form>
+                            <t t-if="not events">
+                                <div class="alert alert-info">
+                                    You don't have any published events yet.
                                 </div>
                             </t>
-                        </div>
+                            <t t-if="events">
+                                <div class="row">
+                                    <t t-foreach="events" t-as="event">
+                                        <div class="col-md-6 mb-4">
+                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past ea-event-card--past' if current_datetime and event.date_end and event.date_end &lt; current_datetime else 'ea-ticket-card--upcoming' if current_datetime and event.date_begin and event.date_begin &gt; current_datetime else 'ea-ticket-card--present'}">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h5 class="card-title mb-0"><t t-esc="event.name"/></h5>
+                                                        <t t-if="event.application_id">
+                                                            <span t-att-class="'badge bg-secondary' if event.application_id.state == 'draft' else 'badge bg-info' if event.application_id.state == 'submitted' else 'badge bg-success' if event.application_id.state == 'approved' else 'badge bg-danger' if event.application_id.state == 'rejected' else 'badge bg-primary'">
+                                                                <t t-esc="dict(event.application_id._fields['state'].selection).get(event.application_id.state)"/>
+                                                            </span>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <span class="badge bg-primary">Published</span>
+                                                        </t>
+                                                    </div>
+                                                    <p class="card-text">
+                                                        <i class="fa fa-calendar"></i> <t t-esc="event.date_begin" t-options="{'widget': 'datetime'}"/><br/>
+                                                        <i class="fa fa-map-marker"></i> <t t-esc="event.location or event.address_id.name or 'No location'"/><br/>
+                                                        <i class="fa fa-users"></i> <t t-esc="event.seats_used"/> / <t t-esc="event.seats_max or 'Unlimited'"/> registrations
+                                                    </p>
+                                                </div>
+                                                <div class="card-footer">
+                                                    <a t-attf-href="/my/event/#{event.id}" class="btn btn-sm btn-primary">
+                                                        <i class="fa fa-edit"></i> Edit Event
+                                                    </a>
+                                                    <a t-attf-href="/my/event/#{event.id}/registrations" class="btn btn-sm btn-secondary">
+                                                        <i class="fa fa-users"></i> Registrations
+                                                    </a>
+                                                    <a t-attf-href="/event/#{event.id}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                        <i class="fa fa-external-link"></i> Public Page
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+                    </t>
+
+                    <t t-if="(current_tab or 'events') == 'registrations'">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">
+                                    <t t-if="registrations_history">Showing all tickets (including passed events)</t>
+                                    <t t-else="">Showing upcoming/active tickets only</t>
+                                </small>
+                                <a t-if="not registrations_history" href="/my/events/registrations?registrations_history=1" class="btn btn-sm btn-outline-secondary">
+                                    View History
+                                </a>
+                                <a t-else="" href="/my/events/registrations" class="btn btn-sm btn-outline-secondary">
+                                    Show Upcoming Only
+                                </a>
+                            </div>
+                            <form method="get" action="/my/events/registrations" class="row g-2 mb-3">
+                                <input t-if="registrations_history" type="hidden" name="registrations_history" value="1"/>
+                                <div class="col-md-6">
+                                    <input type="text" name="registrations_search" class="form-control"
+                                           t-att-value="registrations_search"
+                                           placeholder="Filter by attendee, email, or event"/>
+                                </div>
+                                <div class="col-md-4">
+                                    <select name="registrations_event_id" class="form-select">
+                                        <option value="">All Events</option>
+                                        <t t-foreach="registration_filter_events" t-as="ev">
+                                            <option t-att-value="ev.id"
+                                                    t-att-selected="registrations_event_id and str(ev.id) == str(registrations_event_id)">
+                                                <t t-esc="ev.name"/>
+                                            </option>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-grid">
+                                    <button type="submit" class="btn btn-primary">Filter</button>
+                                </div>
+                            </form>
+                            <t t-if="not registration_batches">
+                                <div class="alert alert-info">
+                                    You don't have any registrations yet.
+                                </div>
+                            </t>
+                            <t t-if="registration_batches">
+                                <div class="row">
+                                    <t t-foreach="registration_batches" t-as="batch">
+                                        <div class="col-md-6 mb-4">
+                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
+                                                <div class="card-body">
+                                                    <h5 class="card-title mb-2">
+                                                        <t t-esc="batch['event'].name"/>
+                                                    </h5>
+                                                    <p class="mb-2">
+                                                        <span t-att-class="'badge ' + (batch.get('status_badge') or 'bg-secondary')">
+                                                            <t t-esc="batch.get('status_label') or 'Unknown'"/>
+                                                        </span>
+                                                    </p>
+                                                    <p class="card-text mb-0">
+                                                        <i class="fa fa-calendar"></i>
+                                                        Event Date:
+                                                        <t t-esc="batch['event'].date_begin" t-options="{'widget': 'datetime'}"/>
+                                                    </p>
+                                                    <p class="card-text mb-0">
+                                                        <i class="fa fa-user"></i>
+                                                        <t t-esc="batch['buyer_name']"/>
+                                                    </p>
+                                                    <p class="card-text mb-0">
+                                                        <i class="fa fa-envelope"></i>
+                                                        <t t-esc="batch['buyer_email']"/>
+                                                    </p>
+                                                    <p class="card-text mb-0">
+                                                        <i class="fa fa-phone"></i>
+                                                        <t t-esc="batch['buyer_phone']"/>
+                                                    </p>
+                                                    <p class="card-text mt-2">
+                                                        <i class="fa fa-ticket"></i>
+                                                        Tickets: <t t-esc="batch['count']"/>
+                                                    </p>
+                                                    <div class="d-flex justify-content-between align-items-center text-muted mb-0">
+                                                        <small>
+                                                            <t t-foreach="batch['ticket_names']" t-as="tname">
+                                                                <t t-esc="tname"/><t t-if="not tname_last">, </t>
+                                                            </t>
+                                                        </small>
+                                                        <small>
+                                                            <t t-esc="batch['create_date']" t-options="{'widget': 'datetime'}"/>
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="card-footer bg-transparent">
+                                                    <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fa fa-download"></i> Download Tickets
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
                     </t>
                 </div>
             </t>
@@ -120,11 +261,16 @@
                         <div class="row">
                             <t t-foreach="registration_batches" t-as="batch">
                                 <div class="col-md-6 mb-4">
-                                    <div class="card h-100">
+                                    <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
                                         <div class="card-body">
                                             <h5 class="card-title mb-2">
                                                 <t t-esc="batch['event'].name"/>
                                             </h5>
+                                            <p class="mb-2">
+                                                <span t-att-class="'badge ' + (batch.get('status_badge') or 'bg-secondary')">
+                                                    <t t-esc="batch.get('status_label') or 'Unknown'"/>
+                                                </span>
+                                            </p>
                                             <p class="card-text mb-0">
                                                 <i class="fa fa-calendar"></i>
                                                 Event Date:
@@ -157,7 +303,7 @@
                                                 </small>
                                             </div>
                                         </div>
-                                        <div class="card-footer">
+                                        <div class="card-footer bg-transparent">
                                             <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                 <i class="fa fa-download"></i> Download Tickets
                                             </a>
@@ -206,58 +352,149 @@
         <!-- Event Application Form -->
         <template id="event_application_form" name="Event Application Form">
             <t t-call="website.layout">
-                <div class="container mt-5 mb-5">
+                <div class="ea-apply-page py-5">
+                <div class="container mt-4 mb-5">
                     <div class="row">
                         <div class="col-lg-8 offset-lg-2">
-                            <h1 class="mb-4">Submit Event Application</h1>
+                            <div class="ea-apply-hero p-4 mb-4">
+                                <h1 class="mb-1 text-white">Submit Event Application</h1>
+                                <p class="mb-0 text-white-50">Create your event with MR.BUR.</p>
+                            </div>
+                            <div class="ea-apply-shell p-4 p-md-4">
+                            <t t-if="form_error">
+                                <div class="alert alert-danger">
+                                    <t t-if="form_error == 'invalid_dates'">Please provide valid start and end dates.</t>
+                                    <t t-elif="form_error == 'invalid_date_range'">Start date must be before end date.</t>
+                                    <t t-elif="form_error == 'invalid_registration_dates'">Registration open date must be before close date.</t>
+                                    <t t-elif="form_error == 'ticket_name_required'">Each ticket row must include a ticket name.</t>
+                                    <t t-elif="form_error == 'invalid_ticket_dates'">One or more ticket dates are invalid.</t>
+                                    <t t-elif="form_error == 'invalid_ticket_date_range'">Ticket sales start date must be before end date.</t>
+                                    <t t-elif="form_error == 'invalid_ticket_max'">Limited tickets require a maximum quantity greater than 0.</t>
+                                    <t t-elif="form_error == 'invalid_ticket_points'">Point cost cannot be negative.</t>
+                                    <t t-else="">Please fix the highlighted data and submit again.</t>
+                                </div>
+                            </t>
                             <form action="/event/apply/submit" method="post" class="o_website_form" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                 
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-12 mb-3">
                                         <section class="event-form-section bg-light-subtle">
                                             <h5 class="section-title">Event basics</h5>
-                                <div class="mb-3">
-                                    <label class="form-label" for="event_name">Event Name *</label>
-                                    <input type="text" name="event_name" id="event_name" class="form-control" required="required"/>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="date_begin">Start Date *</label>
-                                        <input type="datetime-local" name="date_begin" id="date_begin" class="form-control" required="required"/>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="date_end">End Date *</label>
-                                        <input type="datetime-local" name="date_end" id="date_end" class="form-control" required="required"/>
-                                    </div>
-                                </div>
-                                        </section>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <section class="event-form-section bg-body-tertiary">
-                                            <h5 class="section-title">Registration</h5>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="registration_start">Registration Opens</label>
-                                        <input type="datetime-local" name="registration_start" id="registration_start" class="form-control"/>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="registration_end">Registration Closes</label>
-                                        <input type="datetime-local" name="registration_end" id="registration_end" class="form-control"/>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <div class="form-check mt-4">
-                                            <input class="form-check-input" type="checkbox" name="registration_limit" id="registration_limit" value="1"/>
-                                            <label class="form-check-label" for="registration_limit">Limit registrations</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" for="max_registrations">Maximum registrations</label>
-                                        <input type="number" name="max_registrations" id="max_registrations" class="form-control" min="1"/>
+                                            <div class="mb-3">
+                                                <label class="form-label" for="event_name">Event Name *</label>
+                                                <input type="text" name="event_name" id="event_name" class="form-control" required="required"/>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label" for="date_begin">Start Date *</label>
+                                                    <input type="datetime-local" name="date_begin" id="date_begin" class="form-control" required="required"/>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label" for="date_end">End Date *</label>
+                                                    <input type="datetime-local" name="date_end" id="date_end" class="form-control" required="required"/>
                                                 </div>
                                             </div>
+                                        </section>
+                                    </div>
+                                    <div class="col-12">
+                                        <section class="event-form-section bg-body-tertiary ea-ticket-section">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <h5 class="section-title mb-0">Tickets</h5>
+                                                <button type="button" class="btn btn-sm btn-outline-primary ea-ticket-add-btn" id="add-ticket-line">
+                                                    <i class="fa fa-plus"></i> Add Ticket
+                                                </button>
+                                            </div>
+                                            <p class="text-muted mb-3">Create one or more ticket types for this event.</p>
+
+                                            <div id="ticket-lines-container">
+                                                <div class="ticket-line card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label">Ticket Name</label>
+                                                                <input type="text" name="ticket_name[]" class="form-control" placeholder="General Admission"/>
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label">Sales Start</label>
+                                                                <input type="datetime-local" name="ticket_start[]" class="form-control"/>
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label">Sales End</label>
+                                                                <input type="datetime-local" name="ticket_end[]" class="form-control"/>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row align-items-end">
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Limit Quantity</label>
+                                                                <select name="ticket_limit[]" class="form-control ticket-limit-select">
+                                                                    <option value="0" selected="selected">No</option>
+                                                                    <option value="1">Yes</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Max Quantity</label>
+                                                                <input type="number" name="ticket_max[]" class="form-control ticket-max-input" min="1" disabled="disabled"/>
+                                                            </div>
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Point Cost</label>
+                                                                <input type="number" name="ticket_points[]" class="form-control" min="0" value="0"/>
+                                                            </div>
+                                                            <div class="col-md-3 mb-3 text-md-end">
+                                                                <button type="button" class="btn btn-outline-danger remove-ticket-line ea-ticket-remove-btn">
+                                                                    <i class="fa fa-trash"></i> Remove
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="ticket-line-template" class="d-none">
+                                                <div class="ticket-line card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label">Ticket Name</label>
+                                                                <input type="text" name="ticket_name[]" class="form-control" placeholder="VIP / Early Bird / Student"/>
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label">Sales Start</label>
+                                                                <input type="datetime-local" name="ticket_start[]" class="form-control"/>
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label">Sales End</label>
+                                                                <input type="datetime-local" name="ticket_end[]" class="form-control"/>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row align-items-end">
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Limit Quantity</label>
+                                                                <select name="ticket_limit[]" class="form-control ticket-limit-select">
+                                                                    <option value="0" selected="selected">No</option>
+                                                                    <option value="1">Yes</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Max Quantity</label>
+                                                                <input type="number" name="ticket_max[]" class="form-control ticket-max-input" min="1" disabled="disabled"/>
+                                                            </div>
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Point Cost</label>
+                                                                <input type="number" name="ticket_points[]" class="form-control" min="0" value="0"/>
+                                                            </div>
+                                                            <div class="col-md-3 mb-3 text-md-end">
+                                                                <button type="button" class="btn btn-outline-danger remove-ticket-line ea-ticket-remove-btn">
+                                                                    <i class="fa fa-trash"></i> Remove
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <input type="hidden" name="registration_limit" value="0"/>
+                                            <input type="hidden" name="max_registrations" value="0"/>
                                         </section>
                                     </div>
                                 </div>
@@ -298,11 +535,11 @@
                                     </div>
                                 </section>
 
-                                <section class="event-form-section bg-body-tertiary">
+                                <section class="event-form-section bg-body-tertiary ea-venue-section">
                                     <h5 class="section-title">Venue</h5>
                                     <div class="mb-3">
                                         <label class="form-label" for="venue_type">Venue Type *</label>
-                                        <select name="venue_type" id="venue_type" class="form-control" required="required">
+                                        <select name="venue_type" id="venue_type" class="form-select" required="required">
                                             <option value="physical">Physical Venue</option>
                                             <option value="online">Online Event</option>
                                         </select>
@@ -376,14 +613,19 @@
                                     <div class="mb-3">
                                         <label class="form-label">Specialties</label>
                                         <div class="multi-select-container">
-                                            <select class="form-control" id="specialty-select">
+                                            <select class="form-control" id="specialty-select" data-placeholder="Select a specialty...">
                                                 <option value="">Select a specialty...</option>
                                                 <t t-foreach="specialties" t-as="specialty">
                                                 <option t-att-value="specialty.id"><t t-esc="specialty.name"/></option>
                                                 </t>
+                                                <option value="__other__">Other...</option>
                                             </select>
                                             <div class="selected-tags" id="specialty-tags"></div>
                                             <input type="hidden" name="specialty_ids" id="specialty-ids-hidden"/>
+                                            <div class="mt-2 d-none" id="specialty-other-wrapper">
+                                                <label class="form-label mb-1" for="specialty-other-input">Other Specialty</label>
+                                                <input type="text" class="form-control" id="specialty-other-input" name="specialty_other_names" placeholder="Enter other specialties, separated by commas"/>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -391,14 +633,19 @@
                                     <div class="mb-3">
                                         <label class="form-label">Case Types</label>
                                         <div class="multi-select-container">
-                                            <select class="form-control" id="case-select">
+                                            <select class="form-control" id="case-select" data-placeholder="Select a case type...">
                                                 <option value="">Select a case type...</option>
                                                 <t t-foreach="cases" t-as="case">
                                                 <option t-att-value="case.id"><t t-esc="case.name"/></option>
                                                 </t>
+                                                <option value="__other__">Other...</option>
                                             </select>
                                             <div class="selected-tags" id="case-tags"></div>
                                             <input type="hidden" name="case_ids" id="case-ids-hidden"/>
+                                            <div class="mt-2 d-none" id="case-other-wrapper">
+                                                <label class="form-label mb-1" for="case-other-input">Other Case Type</label>
+                                                <input type="text" class="form-control" id="case-other-input" name="case_other_names" placeholder="Enter other case types, separated by commas"/>
+                                            </div>
                                         </div>
                                     </div>
                                 </section>
@@ -414,17 +661,46 @@
                                 <button type="submit" class="btn btn-primary">Submit Application</button>
                                 <a href="/event" class="btn btn-secondary">Cancel</a>
                             </form>
+                            </div>
                             
                             <style>
+                                :root {
+                                    --mrbur-blue-950: #2353A3;
+                                    --mrbur-blue-900: #2353A3;
+                                    --mrbur-blue-800: #718FC2;
+                                    --mrbur-blue-700: #8CA4CC;
+                                    --mrbur-ice-100: #E2E8F3;
+                                    --mrbur-ice-200: #E2E8F3;
+                                    --mrbur-surface: #E2E8F3;
+                                }
+                                .ea-apply-page {
+                                    background: radial-gradient(circle at top right, #E2E8F3 0%, #f6f8fc 50%, #ffffff 100%);
+                                    min-height: 100vh;
+                                }
+                                .ea-apply-hero {
+                                    border-radius: 14px;
+                                    background: linear-gradient(140deg, var(--mrbur-blue-900) 0%, var(--mrbur-blue-800) 70%, var(--mrbur-blue-700) 100%);
+                                    border: 1px solid rgba(21, 56, 120, 0.2);
+                                    box-shadow: 0 8px 24px rgba(21, 56, 120, 0.16);
+                                }
+                                .ea-apply-shell {
+                                    background: #ffffff;
+                                    border: 1px solid #c4d1e6;
+                                    border-radius: 14px;
+                                    box-shadow: 0 8px 20px rgba(35, 83, 163, 0.10);
+                                }
                                 .event-form-section {
                                     padding: 16px;
                                     border-radius: 12px;
-                                    border: 1px solid rgba(0, 0, 0, 0.06);
+                                    border: 1px solid #c4d1e6;
                                     margin-bottom: 16px;
+                                    background: #ffffff;
+                                    box-shadow: 0 8px 20px rgba(35, 83, 163, 0.10);
                                 }
                                 .event-form-section .section-title {
                                     font-weight: 600;
                                     margin-bottom: 12px;
+                                    color: var(--mrbur-blue-900);
                                 }
                                 .multi-select-container {
                                     position: relative;
@@ -435,14 +711,14 @@
                                     gap: 5px;
                                     min-height: 38px;
                                     padding: 5px;
-                                    border: 1px solid #ced4da;
+                                    border: 1px solid #c0cfe5;
                                     border-radius: 0 0 0.375rem 0.375rem;
-                                    background-color: #fff;
+                                    background-color: var(--mrbur-surface);
                                 }
                                 .selected-tags .tag {
                                     display: inline-flex;
                                     align-items: center;
-                                    background-color: #007bff;
+                                    background-color: var(--mrbur-blue-800);
                                     color: white;
                                     padding: 2px 8px;
                                     border-radius: 4px;
@@ -459,11 +735,40 @@
                                 .multi-select-container .form-control {
                                     border-radius: 0.375rem 0.375rem 0 0;
                                 }
+                                .o_website_form .form-control,
+                                .o_website_form .form-select {
+                                    border-color: #c0cfe5;
+                                }
+                                .o_website_form .form-control:focus,
+                                .o_website_form .form-select:focus {
+                                    border-color: var(--mrbur-blue-700);
+                                    box-shadow: 0 0 0 0.2rem rgba(45, 90, 167, 0.2);
+                                }
+                                .o_website_form .btn-primary {
+                                    background-color: var(--mrbur-blue-800);
+                                    border-color: var(--mrbur-blue-800);
+                                }
+                                .o_website_form .btn-primary:hover,
+                                .o_website_form .btn-primary:focus {
+                                    background-color: var(--mrbur-blue-900);
+                                    border-color: var(--mrbur-blue-900);
+                                }
+                                .o_website_form .btn-secondary {
+                                    background-color: var(--mrbur-ice-100);
+                                    border-color: #c0cfe5;
+                                    color: var(--mrbur-blue-900);
+                                }
+                                .o_website_form .btn-secondary:hover,
+                                .o_website_form .btn-secondary:focus {
+                                    background-color: #d5dfef;
+                                    border-color: #b1c3df;
+                                    color: var(--mrbur-blue-900);
+                                }
                                 .event-card-preview {
                                     position: relative;
                                     border-radius: 12px;
                                     overflow: hidden;
-                                    border: 1px solid rgba(0, 0, 0, 0.08);
+                                    border: 1px solid #c4d1e6;
                                     background: #fff;
                                 }
                                 .event-card-preview__media {
@@ -492,6 +797,79 @@
                                     color: #6c757d;
                                     font-size: 0.9rem;
                                 }
+                                .ea-ticket-section {
+                                    background: linear-gradient(180deg, #ffffff 0%, var(--mrbur-surface) 100%) !important;
+                                }
+                                .ea-ticket-section .text-muted {
+                                    color: #5d6f92 !important;
+                                }
+                                #ticket-lines-container .ticket-line {
+                                    border: 1px solid #c4d1e6;
+                                    border-radius: 12px;
+                                    box-shadow: 0 6px 16px rgba(35, 83, 163, 0.10);
+                                    background: #ffffff;
+                                }
+                                #ticket-lines-container .ticket-line .card-body {
+                                    background: #ffffff;
+                                    border-radius: 12px;
+                                }
+                                .ea-ticket-add-btn {
+                                    border-color: #b1c3df !important;
+                                    color: var(--mrbur-blue-900) !important;
+                                    background: #ffffff !important;
+                                }
+                                .ea-ticket-add-btn:hover,
+                                .ea-ticket-add-btn:focus {
+                                    border-color: var(--mrbur-blue-700) !important;
+                                    color: #ffffff !important;
+                                    background: var(--mrbur-blue-800) !important;
+                                }
+                                .ea-ticket-remove-btn {
+                                    border-color: #dc3545 !important;
+                                    color: #ffffff !important;
+                                    background: #dc3545 !important;
+                                }
+                                .ea-ticket-remove-btn:hover,
+                                .ea-ticket-remove-btn:focus {
+                                    border-color: #bb2d3b !important;
+                                    color: #ffffff !important;
+                                    background: #bb2d3b !important;
+                                }
+                                .ea-venue-section {
+                                    background: linear-gradient(180deg, #ffffff 0%, var(--mrbur-surface) 100%) !important;
+                                }
+                                .ea-venue-section .section-title {
+                                    color: var(--mrbur-blue-900);
+                                }
+                                .ea-venue-section .venue-fields {
+                                    background: #ffffff;
+                                    border: 1px solid #c4d1e6;
+                                    border-radius: 10px;
+                                    padding: 12px;
+                                    box-shadow: 0 4px 12px rgba(35, 83, 163, 0.08);
+                                }
+                                .ea-venue-section .form-control,
+                                .ea-venue-section .form-select,
+                                .ea-venue-section textarea {
+                                    border-color: #c0cfe5;
+                                    background-color: #ffffff;
+                                }
+                                .ea-venue-section .form-control:focus,
+                                .ea-venue-section .form-select:focus,
+                                .ea-venue-section textarea:focus {
+                                    border-color: var(--mrbur-blue-700);
+                                    box-shadow: 0 0 0 0.2rem rgba(140, 164, 204, 0.25);
+                                }
+                                .ea-venue-section #venue_type {
+                                    background-color: var(--mrbur-ice-100);
+                                    color: var(--mrbur-blue-900);
+                                    border-color: #b1c3df;
+                                    font-weight: 600;
+                                }
+                                .ea-venue-section label.form-label {
+                                    color: #2f4f84;
+                                    font-weight: 600;
+                                }
                             </style>
                             
                             <script>
@@ -511,6 +889,9 @@
                                     const previewDate = document.getElementById('event-card-date-preview');
                                     const previewBg = document.getElementById('event-card-bg-preview');
                                     const previewBadge = document.getElementById('event-card-badge-preview');
+                                    const ticketLinesContainer = document.getElementById('ticket-lines-container');
+                                    const ticketLineTemplate = document.getElementById('ticket-line-template');
+                                    const addTicketLineBtn = document.getElementById('add-ticket-line');
                                     
                                     function toggleVenueFields() {
                                         const selectedType = venueTypeSelect.value;
@@ -623,6 +1004,48 @@
                                         };
                                         reader.readAsDataURL(file);
                                     }
+
+                                    function bindTicketRow(row) {
+                                        const limitSelect = row.querySelector('.ticket-limit-select');
+                                        const maxInput = row.querySelector('.ticket-max-input');
+                                        const removeBtn = row.querySelector('.remove-ticket-line');
+
+                                        function syncLimitState() {
+                                            const limited = limitSelect && limitSelect.value === '1';
+                                            if (maxInput) {
+                                                maxInput.disabled = !limited;
+                                                if (!limited) {
+                                                    maxInput.value = '';
+                                                }
+                                            }
+                                        }
+
+                                        if (limitSelect) {
+                                            limitSelect.addEventListener('change', syncLimitState);
+                                            syncLimitState();
+                                        }
+
+                                        if (removeBtn) {
+                                            removeBtn.addEventListener('click', function() {
+                                                const rows = ticketLinesContainer.querySelectorAll('.ticket-line');
+                                                if (rows.length <= 1) {
+                                                    row.querySelectorAll('input').forEach(function(input) {
+                                                        if (input.type === 'number') {
+                                                            input.value = input.name === 'ticket_points[]' ? '0' : '';
+                                                        } else {
+                                                            input.value = '';
+                                                        }
+                                                    });
+                                                    if (limitSelect) {
+                                                        limitSelect.value = '0';
+                                                    }
+                                                    syncLimitState();
+                                                    return;
+                                                }
+                                                row.remove();
+                                            });
+                                        }
+                                    }
                                     
                                     // Event listeners
                                     venueTypeSelect.addEventListener('change', toggleVenueFields);
@@ -633,29 +1056,49 @@
                                     dateBeginInput.addEventListener('input', updatePreviewText);
                                     badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false));
                                     cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
+                                    if (addTicketLineBtn && ticketLineTemplate && ticketLinesContainer) {
+                                        addTicketLineBtn.addEventListener('click', function() {
+                                            const templateRow = ticketLineTemplate.querySelector('.ticket-line');
+                                            if (!templateRow) {
+                                                return;
+                                            }
+                                            const newRow = templateRow.cloneNode(true);
+                                            ticketLinesContainer.appendChild(newRow);
+                                            bindTicketRow(newRow);
+                                        });
+                                        ticketLinesContainer.querySelectorAll('.ticket-line').forEach(bindTicketRow);
+                                    }
                                     
                                     // Specialty and Case multi-select functionality
                                     const specialtyTags = document.getElementById('specialty-tags');
                                     const specialtySelect = document.getElementById('specialty-select');
                                     const specialtyIdsHidden = document.getElementById('specialty-ids-hidden');
+                                    const specialtyOtherWrapper = document.getElementById('specialty-other-wrapper');
+                                    const specialtyOtherInput = document.getElementById('specialty-other-input');
                                     
                                     const caseTags = document.getElementById('case-tags');
                                     const caseSelect = document.getElementById('case-select');
                                     const caseIdsHidden = document.getElementById('case-ids-hidden');
+                                    const caseOtherWrapper = document.getElementById('case-other-wrapper');
+                                    const caseOtherInput = document.getElementById('case-other-input');
                                     
                                     let selectedSpecialties = [];
                                     let selectedCases = [];
                                     
                                     function createMultiSelect(tagsContainer, select, hiddenInput, selectedItems) {
                                         // Get all available options from the select element
-                                        const allOptions = Array.from(select.querySelectorAll('option')).filter(opt => opt.value).map(opt => ({
-                                            id: parseInt(opt.value),
-                                            name: opt.textContent
-                                        }));
+                                        const allOptions = Array.from(select.querySelectorAll('option'))
+                                            .map(opt => ({ rawId: opt.value, name: opt.textContent }))
+                                            .filter(opt => /^\d+$/.test(opt.rawId))
+                                            .map(opt => ({
+                                                id: parseInt(opt.rawId, 10),
+                                                name: opt.name
+                                            }));
+                                        const placeholder = select.dataset.placeholder || 'Select...';
                                         
                                         function updateSelectOptions() {
                                             // Clear current options except the placeholder
-                                            select.innerHTML = '<option value="">Select a specialty...</option>';
+                                            select.innerHTML = `<option value="">${placeholder}</option>`;
                                             
                                             // Add available options (not selected)
                                             allOptions.forEach(option => {
@@ -666,6 +1109,10 @@
                                                     select.appendChild(opt);
                                                 }
                                             });
+                                            const otherOpt = document.createElement('option');
+                                            otherOpt.value = '__other__';
+                                            otherOpt.textContent = 'Other...';
+                                            select.appendChild(otherOpt);
                                         }
                                         
                                         function updateTags() {
@@ -685,6 +1132,18 @@
                                         
                                         // Handle select change
                                         select.addEventListener('change', () => {
+                                            if (select.value === '__other__') {
+                                                if (select.id === 'specialty-select' && specialtyOtherWrapper) {
+                                                    specialtyOtherWrapper.classList.remove('d-none');
+                                                    specialtyOtherInput && specialtyOtherInput.focus();
+                                                }
+                                                if (select.id === 'case-select' && caseOtherWrapper) {
+                                                    caseOtherWrapper.classList.remove('d-none');
+                                                    caseOtherInput && caseOtherInput.focus();
+                                                }
+                                                select.value = '';
+                                                return;
+                                            }
                                             const selectedId = parseInt(select.value);
                                             if (selectedId) {
                                                 const selectedOption = allOptions.find(opt => opt.id === selectedId);
@@ -724,6 +1183,7 @@
                             </script>
                         </div>
                     </div>
+                </div>
                 </div>
             </t>
         </template>
@@ -1069,6 +1529,12 @@
                     <t t-set="url" t-value="'/my/events'"/>
                     <t t-set="placeholder_count" t-value="'my_events_count'"/>
                 </t>
+                <div class="o_portal_doc_item mt-2">
+                    <a href="/my/events" class="d-flex justify-content-between align-items-center text-decoration-none">
+                        <span>My Points</span>
+                        <span class="badge bg-primary"><t t-esc="event_point_balance or 0"/></span>
+                    </a>
+                </div>
             </xpath>
         </template>
 

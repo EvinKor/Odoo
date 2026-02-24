@@ -1,0 +1,100 @@
+2026-02-12 17:01:03.352 +08 [38480] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-12 17:01:03.353 +08 [13736] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-12 17:01:03.354 +08 [28264] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.780 +08 [21400] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.781 +08 [39516] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.781 +08 [34092] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.781 +08 [41312] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.781 +08 [10360] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.781 +08 [15776] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 11:30:07.782 +08 [32220] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:27:14.672 +08 [40804] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:27:14.675 +08 [31300] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:27:14.675 +08 [37200] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:27:14.675 +08 [33684] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:27:14.675 +08 [30324] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:27:14.676 +08 [20660] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.603 +08 [20376] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.603 +08 [5564] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.603 +08 [34280] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.604 +08 [12200] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.604 +08 [39104] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.605 +08 [13912] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 13:50:31.606 +08 [25560] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.668 +08 [31716] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.668 +08 [28092] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.668 +08 [41960] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.668 +08 [41792] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.668 +08 [32160] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.668 +08 [37096] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.669 +08 [7052] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.669 +08 [33428] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:46:00.669 +08 [24160] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:55:12.405 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:55:12.405 +08 [38120] DETAIL:  Failing row contains (582, null, 1, 1, 1, dental.event.media.user, t, t, t, t, f, 2026-02-13 06:55:10.015206, 2026-02-13 06:55:10.015206).
+2026-02-13 14:55:12.405 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:55:10.015206', 1, 1, 'dental.event.media.user', true, true, false, true, '2026-02-13 06:55:10.015206', 1), (true, '2026-02-13 06:55:10.015206', 1, 10, 'dental.event.media.portal', true, true, false, true, '2026-02-13 06:55:10.015206', 1), (true, '2026-02-13 06:55:10.015206', 1, 4, 'dental.event.media.admin', true, true, true, true, '2026-02-13 06:55:10.015206', 1) RETURNING "id"
+2026-02-13 14:55:12.476 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:55:12.476 +08 [38120] DETAIL:  Failing row contains (583, null, 1, 1, 1, dental.event.media.user, t, t, t, t, f, 2026-02-13 06:55:10.015206, 2026-02-13 06:55:10.015206).
+2026-02-13 14:55:12.476 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:55:10.015206', 1, 1, 'dental.event.media.user', true, true, false, true, '2026-02-13 06:55:10.015206', 1) RETURNING "id"
+2026-02-13 14:55:12.484 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:55:12.484 +08 [38120] DETAIL:  Failing row contains (584, null, 10, 1, 1, dental.event.media.portal, t, t, t, t, f, 2026-02-13 06:55:10.015206, 2026-02-13 06:55:10.015206).
+2026-02-13 14:55:12.484 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:55:10.015206', 1, 10, 'dental.event.media.portal', true, true, false, true, '2026-02-13 06:55:10.015206', 1) RETURNING "id"
+2026-02-13 14:55:12.493 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:55:12.493 +08 [38120] DETAIL:  Failing row contains (585, null, 4, 1, 1, dental.event.media.admin, t, t, t, t, t, 2026-02-13 06:55:10.015206, 2026-02-13 06:55:10.015206).
+2026-02-13 14:55:12.493 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:55:10.015206', 1, 4, 'dental.event.media.admin', true, true, true, true, '2026-02-13 06:55:10.015206', 1) RETURNING "id"
+2026-02-13 14:56:25.764 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:56:25.764 +08 [38120] DETAIL:  Failing row contains (586, null, 1, 1, 1, dental.event.media.user, t, t, t, t, f, 2026-02-13 06:56:23.518219, 2026-02-13 06:56:23.518219).
+2026-02-13 14:56:25.764 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:56:23.518219', 1, 1, 'dental.event.media.user', true, true, false, true, '2026-02-13 06:56:23.518219', 1), (true, '2026-02-13 06:56:23.518219', 1, 10, 'dental.event.media.portal', true, true, false, true, '2026-02-13 06:56:23.518219', 1), (true, '2026-02-13 06:56:23.518219', 1, 4, 'dental.event.media.admin', true, true, true, true, '2026-02-13 06:56:23.518219', 1) RETURNING "id"
+2026-02-13 14:56:25.832 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:56:25.832 +08 [38120] DETAIL:  Failing row contains (587, null, 1, 1, 1, dental.event.media.user, t, t, t, t, f, 2026-02-13 06:56:23.518219, 2026-02-13 06:56:23.518219).
+2026-02-13 14:56:25.832 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:56:23.518219', 1, 1, 'dental.event.media.user', true, true, false, true, '2026-02-13 06:56:23.518219', 1) RETURNING "id"
+2026-02-13 14:56:25.843 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:56:25.843 +08 [38120] DETAIL:  Failing row contains (588, null, 10, 1, 1, dental.event.media.portal, t, t, t, t, f, 2026-02-13 06:56:23.518219, 2026-02-13 06:56:23.518219).
+2026-02-13 14:56:25.843 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:56:23.518219', 1, 10, 'dental.event.media.portal', true, true, false, true, '2026-02-13 06:56:23.518219', 1) RETURNING "id"
+2026-02-13 14:56:25.855 +08 [38120] ERROR:  null value in column "model_id" violates not-null constraint
+2026-02-13 14:56:25.855 +08 [38120] DETAIL:  Failing row contains (589, null, 4, 1, 1, dental.event.media.admin, t, t, t, t, t, 2026-02-13 06:56:23.518219, 2026-02-13 06:56:23.518219).
+2026-02-13 14:56:25.855 +08 [38120] STATEMENT:  INSERT INTO "ir_model_access" ("active", "create_date", "create_uid", "group_id", "name", "perm_create", "perm_read", "perm_unlink", "perm_write", "write_date", "write_uid") VALUES (true, '2026-02-13 06:56:23.518219', 1, 4, 'dental.event.media.admin', true, true, true, true, '2026-02-13 06:56:23.518219', 1) RETURNING "id"
+2026-02-13 14:56:30.437 +08 [38120] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:56:30.454 +08 [16012] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:56:30.455 +08 [28684] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:56:30.456 +08 [18700] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:56:30.458 +08 [21552] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-02-13 14:56:30.460 +08 [37688] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

@@ -10,9 +10,64 @@ from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
 
 class EventApplicationPortal(CustomerPortal):
-    
+    def _registration_owner_domain(self):
+        partner = request.env.user.partner_id
+        user_email = (request.env.user.email or partner.email or '').strip()
+        domain = [('partner_id', '=', partner.id)]
+        if user_email:
+            domain = ['|', ('partner_id', '=', partner.id), ('email', '=ilike', user_email)]
+        return domain
+
+    def _can_access_registration(self, registration):
+        if not registration:
+            return False
+        partner = request.env.user.partner_id
+        user_email = (request.env.user.email or partner.email or '').strip().lower()
+        reg_email = (registration.email or '').strip().lower()
+        return registration.partner_id.id == partner.id or (user_email and reg_email == user_email)
+
+    def _get_event_time_status(self, event, now_dt=None):
+        now_dt = now_dt or fields.Datetime.now()
+        date_begin = event.date_begin
+        date_end = event.date_end
+
+        if date_end and date_end < now_dt:
+            return ('past', 'Past', 'bg-danger')
+        if date_begin and date_begin > now_dt:
+            return ('upcoming', 'Upcoming', 'bg-success')
+        return ('present', 'Present', 'bg-warning text-dark')
+
+    def _get_point_balance(self):
+        try:
+            wallet = request.env['dental.points.wallet'].get_or_create_wallet(request.env.user.partner_id)
+            return int(wallet.balance or 0)
+        except Exception:
+            return 0
+
+    def _parse_csv_int_ids(self, csv_value):
+        ids = []
+        for part in (csv_value or '').split(','):
+            value = (part or '').strip()
+            if value.isdigit():
+                ids.append(int(value))
+        return ids
+
+    def _get_or_create_names(self, model_name, names_text):
+        model = request.env[model_name].sudo()
+        ids = []
+        raw_parts = (names_text or '').replace('\n', ',').split(',')
+        for raw_name in raw_parts:
+            name = (raw_name or '').strip()
+            if not name:
+                continue
+            existing = model.search([('name', '=ilike', name)], limit=1)
+            record = existing or model.create({'name': name})
+            ids.append(record.id)
+        return ids
+
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
+        values['event_point_balance'] = self._get_point_balance()
         if 'event_application_count' in counters:
             values['event_application_count'] = request.env['event.application'].search_count([
                 ('partner_id', '=', request.env.user.partner_id.id)
@@ -23,33 +78,53 @@ class EventApplicationPortal(CustomerPortal):
             ])
         return values
     
-    @http.route(['/my/events'], type='http', auth='user', website=True)
+    @http.route(['/my/events', '/my/events/registrations'], type='http', auth='user', website=True)
     def my_events(self, **kwargs):
         """Show user's published events"""
-        events = request.env['event.event'].search([
-            ('organizer_id', '=', request.env.user.partner_id.id)
-        ])
-        return request.render('event_application.portal_my_events', {
-            'events': events,
-        })
+        partner = request.env.user.partner_id
+        path = request.httprequest.path or ''
+        forced_tab = 'registrations' if path.rstrip('/').endswith('/my/events/registrations') else ''
+        current_tab = (forced_tab or kwargs.get('tab') or 'events').strip().lower()
+        if current_tab not in ('events', 'registrations'):
+            current_tab = 'events'
+        events_search = (kwargs.get('events_search') or '').strip()
+        events_view = (kwargs.get('events_view') or 'upcoming').strip().lower()
+        if events_view not in ('upcoming', 'past'):
+            events_view = 'upcoming'
+        registrations_search = (kwargs.get('registrations_search') or '').strip()
+        registrations_event_id = (kwargs.get('registrations_event_id') or '').strip()
+        registrations_history = str(kwargs.get('registrations_history') or '').strip().lower() in ('1', 'true', 'yes', 'on')
 
-    @http.route(['/my/event-registrations'], type='http', auth='user', website=True)
-    def my_event_registrations_index(self, **kwargs):
-        """List registrations for the current portal user"""
-        search = (kwargs.get('search') or '').strip()
-        event_id = kwargs.get('event_id') or ''
+        events_domain = [
+            '|',
+            ('organizer_id', '=', partner.id),
+            ('application_id.partner_id', '=', partner.id),
+        ]
+        now_dt = fields.Datetime.now()
+        if events_view == 'past':
+            events_domain.append(('date_end', '<', now_dt))
+        else:
+            events_domain += ['|', ('date_end', '>=', now_dt), ('date_begin', '>=', now_dt)]
+        if events_search:
+            events_domain += ['|', '|', ('name', 'ilike', events_search), ('location', 'ilike', events_search), ('address_id.name', 'ilike', events_search)]
 
-        domain = [('partner_id', '=', request.env.user.partner_id.id)]
-        if event_id and str(event_id).isdigit():
-            domain.append(('event_id', '=', int(event_id)))
-        if search:
-            domain += ['|', '|', ('name', 'ilike', search), ('email', 'ilike', search), ('event_id.name', 'ilike', search)]
+        events = request.env['event.event'].sudo().search(events_domain, order='date_begin desc')
 
-        registrations = request.env['event.registration'].sudo().search(domain, order='create_date desc')
+        registrations_domain = list(self._registration_owner_domain())
+        if not registrations_history:
+            now_dt = fields.Datetime.now()
+            registrations_domain += ['|', ('event_id.date_end', '>=', now_dt), ('event_id.date_begin', '>=', now_dt)]
+        if registrations_event_id.isdigit():
+            registrations_domain.append(('event_id', '=', int(registrations_event_id)))
+        if registrations_search:
+            registrations_domain += ['|', '|', ('name', 'ilike', registrations_search), ('email', 'ilike', registrations_search), ('event_id.name', 'ilike', registrations_search)]
 
-        # Events for filter dropdown (based on user's registrations)
-        event_ids = registrations.mapped('event_id').ids
-        events = request.env['event.event'].sudo().browse(event_ids).sorted(lambda e: e.name)
+        registrations = request.env['event.registration'].sudo().search(
+            registrations_domain,
+            order='create_date desc'
+        )
+        now_dt = fields.Datetime.now()
+        registration_filter_events = registrations.mapped('event_id').sorted(lambda e: e.name or '')
         batches_map = {}
         for reg in registrations:
             batch_id = reg.x_register_batch_id or f"single-{reg.id}"
@@ -59,6 +134,7 @@ class EventApplicationPortal(CustomerPortal):
         registration_batches = []
         for batch_id, regs in batches_map.items():
             first = regs[0]
+            status_code, status_label, status_badge = self._get_event_time_status(first.event_id, now_dt)
             download_url = (
                 f"/my/event-registrations/batch/{batch_id}/ticket"
                 if not batch_id.startswith("single-")
@@ -74,6 +150,71 @@ class EventApplicationPortal(CustomerPortal):
                 "ticket_names": [r.name for r in regs],
                 "download_url": download_url,
                 "create_date": first.create_date,
+                "status_code": status_code,
+                "status_label": status_label,
+                "status_badge": status_badge,
+            })
+
+        registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
+        return request.render('event_application.portal_my_events', {
+            'events': events,
+            'registration_batches': registration_batches,
+            'current_tab': current_tab,
+            'current_datetime': now_dt,
+            'events_search': events_search,
+            'events_view': events_view,
+            'registrations_search': registrations_search,
+            'registrations_event_id': registrations_event_id,
+            'registrations_history': registrations_history,
+            'registration_filter_events': registration_filter_events,
+        })
+
+    @http.route(['/my/event-registrations'], type='http', auth='user', website=True)
+    def my_event_registrations_index(self, **kwargs):
+        """List registrations for the current portal user"""
+        search = (kwargs.get('search') or '').strip()
+        event_id = kwargs.get('event_id') or ''
+
+        domain = list(self._registration_owner_domain())
+        if event_id and str(event_id).isdigit():
+            domain.append(('event_id', '=', int(event_id)))
+        if search:
+            domain += ['|', '|', ('name', 'ilike', search), ('email', 'ilike', search), ('event_id.name', 'ilike', search)]
+
+        registrations = request.env['event.registration'].sudo().search(domain, order='create_date desc')
+        now_dt = fields.Datetime.now()
+
+        # Events for filter dropdown (based on user's registrations)
+        event_ids = registrations.mapped('event_id').ids
+        events = request.env['event.event'].sudo().browse(event_ids).sorted(lambda e: e.name)
+        batches_map = {}
+        for reg in registrations:
+            batch_id = reg.x_register_batch_id or f"single-{reg.id}"
+            batches_map.setdefault(batch_id, request.env['event.registration'].sudo().browse())
+            batches_map[batch_id] |= reg
+
+        registration_batches = []
+        for batch_id, regs in batches_map.items():
+            first = regs[0]
+            status_code, status_label, status_badge = self._get_event_time_status(first.event_id, now_dt)
+            download_url = (
+                f"/my/event-registrations/batch/{batch_id}/ticket"
+                if not batch_id.startswith("single-")
+                else f"/my/event-registration/{first.id}/ticket"
+            )
+            registration_batches.append({
+                "batch_id": batch_id,
+                "event": first.event_id,
+                "count": len(regs),
+                "buyer_name": first.partner_id.name,
+                "buyer_email": first.email,
+                "buyer_phone": first.phone,
+                "ticket_names": [r.name for r in regs],
+                "download_url": download_url,
+                "create_date": first.create_date,
+                "status_code": status_code,
+                "status_label": status_label,
+                "status_badge": status_badge,
             })
 
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
@@ -89,7 +230,7 @@ class EventApplicationPortal(CustomerPortal):
     def my_event_registration_detail(self, registration_id, **kwargs):
         """Show QR for a single registration"""
         registration = request.env['event.registration'].sudo().browse(registration_id)
-        if not registration or registration.partner_id.id != request.env.user.partner_id.id:
+        if not registration or not self._can_access_registration(registration):
             return request.redirect('/my/event-registrations')
         checkin_base = request.httprequest.url_root.rstrip('/')
         return request.render('event_application.portal_my_event_registration_detail', {
@@ -193,6 +334,7 @@ class EventApplicationPortal(CustomerPortal):
             'cases': cases,
             'countries': countries,
             'states': states,
+            'form_error': kwargs.get('error'),
         })
     
     def _convert_datetime(self, date_str):
@@ -232,15 +374,79 @@ class EventApplicationPortal(CustomerPortal):
             return request.redirect('/event/apply?error=invalid_date_range')
         if registration_start and registration_end and registration_start > registration_end:
             return request.redirect('/event/apply?error=invalid_registration_dates')
+
+        # Parse dynamic ticket rows
+        form_data = request.httprequest.form
+        ticket_names = form_data.getlist('ticket_name[]')
+        ticket_starts = form_data.getlist('ticket_start[]')
+        ticket_ends = form_data.getlist('ticket_end[]')
+        ticket_limits = form_data.getlist('ticket_limit[]')
+        ticket_maxes = form_data.getlist('ticket_max[]')
+        ticket_points = form_data.getlist('ticket_points[]')
+
+        row_count = max(
+            len(ticket_names),
+            len(ticket_starts),
+            len(ticket_ends),
+            len(ticket_limits),
+            len(ticket_maxes),
+            len(ticket_points),
+        )
+        ticket_line_commands = []
+        for idx in range(row_count):
+            raw_name = (ticket_names[idx] if idx < len(ticket_names) else '').strip()
+            raw_start = ticket_starts[idx] if idx < len(ticket_starts) else ''
+            raw_end = ticket_ends[idx] if idx < len(ticket_ends) else ''
+            raw_limit = ticket_limits[idx] if idx < len(ticket_limits) else '0'
+            raw_max = ticket_maxes[idx] if idx < len(ticket_maxes) else ''
+            raw_points = (ticket_points[idx] if idx < len(ticket_points) else '').strip()
+
+            has_points = bool(raw_points) and raw_points != '0'
+            if not any([raw_name, raw_start, raw_end, raw_max, has_points]):
+                continue
+            if not raw_name:
+                return request.redirect('/event/apply?error=ticket_name_required')
+
+            start_dt = self._convert_datetime(raw_start)
+            end_dt = self._convert_datetime(raw_end)
+            if raw_start and not start_dt:
+                return request.redirect('/event/apply?error=invalid_ticket_dates')
+            if raw_end and not end_dt:
+                return request.redirect('/event/apply?error=invalid_ticket_dates')
+            if start_dt and end_dt and start_dt > end_dt:
+                return request.redirect('/event/apply?error=invalid_ticket_date_range')
+
+            seats_limited = str(raw_limit) == '1'
+            seats_max = int(raw_max) if raw_max else 0
+            if seats_limited and seats_max <= 0:
+                return request.redirect('/event/apply?error=invalid_ticket_max')
+
+            point_cost = int(raw_points) if raw_points else 0
+            if point_cost < 0:
+                return request.redirect('/event/apply?error=invalid_ticket_points')
+
+            ticket_line_commands.append((0, 0, {
+                'name': raw_name,
+                'start_sale_datetime': start_dt,
+                'end_sale_datetime': end_dt,
+                'seats_limited': seats_limited,
+                'seats_max': seats_max if seats_limited else 0,
+                'point_cost': point_cost,
+                'sequence': (idx + 1) * 10,
+            }))
         
         # Handle specialty tags (many2many)
         specialty_ids_str = post.get('specialty_ids', '')
-        specialty_ids = [int(sid) for sid in specialty_ids_str.split(',') if sid.strip()]
+        specialty_ids = self._parse_csv_int_ids(specialty_ids_str)
+        specialty_ids.extend(self._get_or_create_names('event.specialty', post.get('specialty_other_names')))
+        specialty_ids = list(dict.fromkeys(specialty_ids))
         specialty_ids_vals = [(6, 0, specialty_ids)] if specialty_ids else False
         
         # Handle case tags (many2many)
         case_ids_str = post.get('case_ids', '')
-        case_ids = [int(cid) for cid in case_ids_str.split(',') if cid.strip()]
+        case_ids = self._parse_csv_int_ids(case_ids_str)
+        case_ids.extend(self._get_or_create_names('event.case', post.get('case_other_names')))
+        case_ids = list(dict.fromkeys(case_ids))
         case_ids_vals = [(6, 0, case_ids)] if case_ids else False
         
         # Create the application with all fields
@@ -283,6 +489,8 @@ class EventApplicationPortal(CustomerPortal):
             vals['specialty_ids'] = specialty_ids_vals
         if case_ids_vals:
             vals['case_ids'] = case_ids_vals
+        if ticket_line_commands:
+            vals['ticket_line_ids'] = ticket_line_commands
 
         badge_file = request.httprequest.files.get('badge_image')
         if badge_file and badge_file.filename:
@@ -370,7 +578,6 @@ class EventApplicationPortal(CustomerPortal):
 
     @http.route(['/my/event-review'], type='http', auth='user', website=True)
     def event_review(self, **kwargs):
-        """Redirect to the event review backend view"""
-        # Redirect to the backend event review action
-        action = request.env.ref('event_application.action_event_review')
+        """Backward-compatible route: redirect to unified Applications backend view"""
+        action = request.env.ref('event_application.action_event_application')
         return request.redirect(f'/web#action={action.id}')

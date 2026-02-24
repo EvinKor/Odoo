@@ -1,0 +1,23 @@
+<odoo>
+    <record id="view_dental_notification_tree" model="ir.ui.view">
+        <field name="name">dental.notification.tree</field>
+        <field name="model">dental.notification</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="partner_id"/>
+                <field name="title"/>
+                <field name="notification_type"/>
+                <field name="is_read"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_dental_notification" model="ir.actions.act_window">
+        <field name="name">Notifications</field>
+        <field name="res_model">dental.notification</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <menuitem id="menu_ticket2u_dental_notifications" name="Notifications" parent="menu_ticket2u_dental_root" action="action_dental_notification" sequence="40" groups="base.group_user"/>
+</odoo>

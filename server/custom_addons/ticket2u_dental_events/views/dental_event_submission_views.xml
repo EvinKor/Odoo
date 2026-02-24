@@ -1,0 +1,122 @@
+<odoo>
+    <record id="view_dental_event_submission_tree" model="ir.ui.view">
+        <field name="name">dental.event.submission.tree</field>
+        <field name="model">dental.event.submission</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="organizer_partner_id"/>
+                <field name="category"/>
+                <field name="date_begin"/>
+                <field name="ce_credits"/>
+                <field name="submission_point_cost"/>
+                <field name="status" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_dental_event_submission_form" model="ir.ui.view">
+        <field name="name">dental.event.submission.form</field>
+        <field name="model">dental.event.submission</field>
+        <field name="arch" type="xml">
+            <form string="Dental Event Submission">
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="btn-primary" invisible="status not in ('draft','modification_requested')"/>
+                    <button name="action_admin_approve" string="Approve" type="object" class="btn-success" invisible="status != 'pending_review'" groups="base.group_system"/>
+                    <button name="action_request_modification" string="Request Modification" type="object" invisible="status != 'pending_review'" groups="base.group_system"/>
+                    <button name="action_reject" string="Reject" type="object" class="btn-danger" invisible="status != 'pending_review'" groups="base.group_system"/>
+                    <button name="action_confirm_payment" string="Confirm Payment &amp; Publish" type="object" class="btn-primary" invisible="status != 'approved_awaiting_payment'"/>
+                    <field name="status" widget="statusbar" statusbar_visible="draft,pending_review,modification_requested,approved_awaiting_payment,published,rejected"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="organizer_partner_id"/>
+                            <field name="category"/>
+                            <field name="date_begin"/>
+                            <field name="date_end"/>
+                            <field name="ce_credits"/>
+                        </group>
+                        <group>
+                            <field name="submission_point_cost"/>
+                            <field name="payment_confirmed"/>
+                            <field name="event_id" readonly="1"/>
+                            <field name="spent_tx_id" readonly="1"/>
+                            <field name="refund_tx_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Details">
+                            <group>
+                                <field name="description" widget="html"/>
+                                <field name="image" widget="image"/>
+                                <field name="badge_image" widget="image"/>
+                                <field name="venue_name"/>
+                                <field name="venue_address"/>
+                                <field name="city"/>
+                                <field name="state"/>
+                                <field name="country"/>
+                                <field name="speaker_name"/>
+                                <field name="speaker_credentials"/>
+                                <field name="speaker_topics"/>
+                                <field name="admin_note"/>
+                                <field name="rejection_reason"/>
+                            </group>
+                            <field name="media_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="image" widget="image"/>
+                                    <field name="is_header"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Tickets">
+                            <field name="ticket_line_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="price"/>
+                                    <field name="point_cost"/>
+                                    <field name="quantity"/>
+                                    <field name="sale_start"/>
+                                    <field name="sale_end"/>
+                                    <field name="ce_credit_hours"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dental_event_submission_search" model="ir.ui.view">
+        <field name="name">dental.event.submission.search</field>
+        <field name="model">dental.event.submission</field>
+        <field name="arch" type="xml">
+            <search string="Search Dental Submissions">
+                <field name="name"/>
+                <field name="organizer_partner_id"/>
+                <field name="category"/>
+                <filter name="pending" string="Pending Review" domain="[('status','=','pending_review')]"/>
+                <filter name="awaiting_payment" string="Awaiting Payment" domain="[('status','=','approved_awaiting_payment')]"/>
+                <filter name="published" string="Published" domain="[('status','=','published')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_by_category" string="Category" context="{'group_by': 'category'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dental_event_submissions" model="ir.actions.act_window">
+        <field name="name">Dental Event Submissions</field>
+        <field name="res_model">dental.event.submission</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_ticket2u_dental_root" name="Ticket2U Dental" sequence="35" groups="base.group_user"/>
+    <menuitem id="menu_ticket2u_dental_submissions" name="Event Submissions" parent="menu_ticket2u_dental_root" action="action_dental_event_submissions" sequence="10" groups="base.group_user"/>
+</odoo>
+
+

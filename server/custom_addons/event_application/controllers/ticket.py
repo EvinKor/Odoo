@@ -4,6 +4,21 @@ from odoo.http import request
 
 
 class EventTicketController(http.Controller):
+    def _registration_owner_domain(self):
+        partner = request.env.user.partner_id
+        user_email = (request.env.user.email or partner.email or '').strip()
+        domain = [('partner_id', '=', partner.id)]
+        if user_email:
+            domain = ['|', ('partner_id', '=', partner.id), ('email', '=ilike', user_email)]
+        return domain
+
+    def _can_access_registration(self, registration):
+        if not registration:
+            return False
+        partner = request.env.user.partner_id
+        user_email = (request.env.user.email or partner.email or '').strip().lower()
+        reg_email = (registration.email or '').strip().lower()
+        return registration.partner_id.id == partner.id or (user_email and reg_email == user_email)
 
     @http.route(
         "/api/event/tickets",
@@ -110,7 +125,7 @@ class EventTicketController(http.Controller):
     )
     def download_ticket_pdf_portal(self, registration_id, **kw):
         reg = request.env["event.registration"].sudo().browse(registration_id)
-        if not reg.exists() or reg.partner_id.id != request.env.user.partner_id.id:
+        if not reg.exists() or not self._can_access_registration(reg):
             return request.redirect("/my/event-registrations")
 
         report = request.env.ref(
@@ -141,10 +156,9 @@ class EventTicketController(http.Controller):
         website=True,
     )
     def download_ticket_pdf_batch_portal(self, batch_id, **kw):
-        regs = request.env["event.registration"].sudo().search([
-            ("x_register_batch_id", "=", batch_id),
-            ("partner_id", "=", request.env.user.partner_id.id),
-        ])
+        regs = request.env["event.registration"].sudo().search(
+            [("x_register_batch_id", "=", batch_id)] + self._registration_owner_domain()
+        )
         if not regs:
             return request.redirect("/my/event-registrations")
 

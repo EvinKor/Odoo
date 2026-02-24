@@ -1,0 +1,6 @@
+2026-02-17 09:27:15.140 +08 [10864] LOG:  received fast shutdown request
+2026-02-17 09:27:15.142 +08 [10864] LOG:  aborting any active transactions
+2026-02-17 09:27:15.145 +08 [30112] ERROR:  canceling statement due to user request
+2026-02-17 09:27:15.150 +08 [10864] LOG:  background worker "logical replication launcher" (PID 30112) exited with exit code 1
+2026-02-17 09:27:15.153 +08 [25520] LOG:  shutting down
+2026-02-17 09:27:15.180 +08 [10864] LOG:  database system is shut down

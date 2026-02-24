@@ -1,0 +1,276 @@
+<odoo>
+    <template id="ticket2u_top_menu_item" inherit_id="website.navbar_nav" name="Ticket2U Top Menu Item">
+        <xpath expr="//ul" position="inside">
+            <li role="presentation" class="nav-item">
+                <a role="menuitem" href="/dental/events" class="nav-link">
+                    <span>Ticket2U Events</span>
+                </a>
+            </li>
+        </xpath>
+    </template>
+
+    <template id="website_dental_browse_events" name="Ticket2U Browse Events">
+        <t t-call="website.layout">
+            <style>
+                :root {
+                    --ticket2u-blue-900: #153878;
+                    --ticket2u-blue-800: #1f4f9f;
+                    --ticket2u-blue-700: #2d5aa7;
+                    --ticket2u-ice-100: #eef4ff;
+                }
+                .ticket2u-dental-page {
+                    background: radial-gradient(circle at top right, #dfe9ff 0%, #f2f6ff 45%, #ffffff 100%);
+                    min-height: 100vh;
+                }
+                .ticket2u-hero {
+                    border-radius: 18px;
+                    color: #fff;
+                    background: linear-gradient(145deg, var(--ticket2u-blue-900), var(--ticket2u-blue-700));
+                    box-shadow: 0 14px 30px rgba(21, 56, 120, 0.22);
+                }
+                .ticket2u-card {
+                    background: #fff;
+                    border: 1px solid #d3e1ff;
+                    border-radius: 18px;
+                    box-shadow: 0 10px 24px rgba(21, 56, 120, 0.12);
+                }
+            </style>
+            <div class="ticket2u-dental-page py-5">
+                <div class="container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">Browse Ticket2U Dental Events</h2>
+                        <div class="d-flex gap-2 align-items-center">
+                            <t t-if="not is_public_user">
+                                <span class="badge bg-primary fs-6">Points: <t t-esc="point_balance"/></span>
+                                <a href="/my/dental/events" class="btn btn-outline-primary">My Ticket2U</a>
+                            </t>
+                            <t t-else="">
+                                <a href="/web/login?redirect=/dental/events" class="btn btn-primary">Login to Use Points</a>
+                            </t>
+                        </div>
+                    </div>
+
+                    <div class="ticket2u-hero p-4 mb-4">
+                        <h1 class="h3 mb-2">Published Dental CE, Workshops, and Conferences</h1>
+                        <p class="mb-0">Register directly with points on eligible tickets.</p>
+                    </div>
+
+                    <t t-if="not events">
+                        <div class="alert alert-info">No Ticket2U events are published yet.</div>
+                    </t>
+
+                    <t t-else="">
+                        <div class="row g-4">
+                            <t t-foreach="events" t-as="event">
+                                <div class="col-lg-6">
+                                    <div class="ticket2u-card p-4 h-100">
+                                        <t t-set="event_header_image" t-value="('image_1920' in event._fields and event.image_1920) or ('image_1024' in event._fields and event.image_1024) or ('image_512' in event._fields and event.image_512) or ('image_256' in event._fields and event.image_256) or ('image' in event._fields and event.image)"/>
+                                        <t t-if="event_header_image">
+                                            <img t-att-src="image_data_uri(event_header_image)" alt="Header image" class="img-fluid rounded mb-3" style="max-height:220px; width:100%; object-fit:cover;"/>
+                                        </t>
+                                        <t t-if="event.badge_image">
+                                            <img t-att-src="image_data_uri(event.badge_image)" alt="Badge image" class="img-thumbnail mb-2" style="max-height:70px; width:auto;"/>
+                                        </t>
+                                        <h4 class="mb-2"><t t-esc="event.name"/></h4>
+                                        <div class="text-muted mb-3">
+                                            <div><i class="fa fa-calendar me-1"/> <t t-esc="event.date_begin" t-options="{'widget':'datetime'}"/></div>
+                                            <div><i class="fa fa-map-marker me-1"/> <t t-esc="event.address_id.name or event.location or 'TBA'"/></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <a t-attf-href="/event/#{event.id}" class="btn btn-sm btn-outline-primary" target="_blank">Open Public Event Page</a>
+                                        </div>
+
+                                        <t t-if="event.event_ticket_ids">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Ticket</th>
+                                                            <th>Points</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr t-foreach="event.event_ticket_ids" t-as="ticket">
+                                                            <td><t t-esc="ticket.name"/></td>
+                                                            <td><t t-esc="ticket.point_cost or 0"/></td>
+                                                            <td>
+                                                                <t t-if="not is_public_user">
+                                                                    <form t-attf-action="/dental/event/#{event.id}/points-register" method="post" class="d-flex gap-2">
+                                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                                        <input type="hidden" name="ticket_id" t-att-value="ticket.id"/>
+                                                                        <input type="number" name="qty" min="1" value="1" class="form-control form-control-sm" style="max-width: 84px;"/>
+                                                                        <button type="submit" class="btn btn-sm btn-primary">Register</button>
+                                                                    </form>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <a href="/web/login?redirect=/dental/events" class="btn btn-sm btn-outline-primary">Login</a>
+                                                                </t>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="badge bg-secondary">No tickets configured yet</span>
+                                        </t>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="website_dental_submit_form" name="Website Dental Submit Form">
+        <t t-call="website.layout">
+            <style>
+                :root {
+                    --ticket2u-blue-900: #153878;
+                    --ticket2u-blue-800: #1f4f9f;
+                    --ticket2u-blue-700: #2d5aa7;
+                    --ticket2u-ice-100: #eef4ff;
+                }
+                .ticket2u-dental-page {
+                    background: radial-gradient(circle at top right, #dfe9ff 0%, #f2f6ff 45%, #ffffff 100%);
+                    min-height: 100vh;
+                }
+                .ticket2u-hero {
+                    border-radius: 18px;
+                    color: #fff;
+                    background: linear-gradient(145deg, var(--ticket2u-blue-900), var(--ticket2u-blue-700));
+                    box-shadow: 0 14px 30px rgba(21, 56, 120, 0.22);
+                }
+                .ticket2u-card {
+                    background: #fff;
+                    border: 1px solid #d3e1ff;
+                    border-radius: 18px;
+                    box-shadow: 0 10px 24px rgba(21, 56, 120, 0.12);
+                }
+                .ticket2u-card .form-control,
+                .ticket2u-card .form-select {
+                    border-color: #c8d9ff;
+                }
+                .ticket2u-card .form-control:focus,
+                .ticket2u-card .form-select:focus {
+                    border-color: var(--ticket2u-blue-700);
+                    box-shadow: 0 0 0 0.2rem rgba(45, 90, 167, 0.2);
+                }
+                .ticket2u-btn-primary,
+                .ticket2u-dental-page .btn-primary {
+                    background: var(--ticket2u-blue-800);
+                    border-color: var(--ticket2u-blue-800);
+                    color: #fff;
+                }
+                .ticket2u-btn-primary:hover,
+                .ticket2u-dental-page .btn-primary:hover {
+                    background: var(--ticket2u-blue-900);
+                    border-color: var(--ticket2u-blue-900);
+                }
+                .ticket2u-dental-page .badge {
+                    background: var(--ticket2u-ice-100);
+                    color: var(--ticket2u-blue-900);
+                }
+            </style>
+            <div class="ticket2u-dental-page py-5">
+                <div class="container">
+                    <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+                        <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="delta" value="-1"/>
+                            <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                            <button type="submit" class="btn btn-sm btn-outline-light">-</button>
+                        </form>
+                        <span class="badge bg-light text-dark fs-6">Points: <t t-esc="point_balance"/></span>
+                        <form action="/my/dental/points/adjust" method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="delta" value="1"/>
+                            <input type="hidden" name="redirect_url" t-att-value="request.httprequest.path"/>
+                            <button type="submit" class="btn btn-sm btn-outline-light">+</button>
+                        </form>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <a href="/my/dental/events" class="btn btn-outline-light">Back to My Events</a>
+                        <a href="/dental/events" class="btn btn-outline-light">Browse Events</a>
+                        <a href="/my/dental/points" class="btn btn-outline-light">My Points</a>
+                        <a href="/my/dental/notifications" class="btn btn-outline-light">Notifications</a>
+                        <a href="/my" class="btn btn-outline-light">Portal Home</a>
+                    </div>
+                    <div class="ticket2u-hero p-4 p-md-5 mb-4">
+                        <h1 class="mb-2">Ticket2U Dental Event Submission</h1>
+                        <p class="mb-0">Built for CE courses, workshops, and conferences.</p>
+                    </div>
+
+                    <div class="ticket2u-card p-4 p-md-5">
+                        <form action="/dental/event/submit/post" method="post" enctype="multipart/form-data" class="row g-3">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <div class="col-md-8">
+                                <label class="form-label">Event Name</label>
+                                <input name="name" class="form-control" required="required"/>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-select" required="required">
+                                    <option value="">Select category</option>
+                                    <t t-foreach="categories" t-as="c">
+                                        <option t-att-value="c[0]"><t t-esc="c[1]"/></option>
+                                    </t>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Start</label>
+                                <input type="datetime-local" name="date_begin" class="form-control" required="required"/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End</label>
+                                <input type="datetime-local" name="date_end" class="form-control" required="required"/>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea name="description" class="form-control" rows="4"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Main Event Image</label>
+                                <input type="file" name="event_image" class="form-control" accept="image/*"/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Badge Image</label>
+                                <input type="file" name="badge_image" class="form-control" accept="image/*"/>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Gallery Images (Multiple)</label>
+                                <input type="file" name="gallery_images" class="form-control" accept="image/*" multiple="multiple"/>
+                                <small class="text-muted">First image will be used as header by default.</small>
+                            </div>
+
+                            <div class="col-md-4"><label class="form-label">Venue</label><input name="venue_name" class="form-control"/></div>
+                            <div class="col-md-4"><label class="form-label">City</label><input name="city" class="form-control"/></div>
+                            <div class="col-md-4"><label class="form-label">Country</label><input name="country" class="form-control"/></div>
+                            <div class="col-12"><label class="form-label">Address</label><input name="venue_address" class="form-control"/></div>
+
+                            <div class="col-md-4"><label class="form-label">Speaker</label><input name="speaker_name" class="form-control"/></div>
+                            <div class="col-md-4"><label class="form-label">CE Credits</label><input type="number" step="0.5" name="ce_credits" class="form-control"/></div>
+                            <div class="col-md-4"><label class="form-label">State</label><input name="state" class="form-control"/></div>
+                            <div class="col-md-6"><label class="form-label">Speaker Credentials</label><textarea name="speaker_credentials" class="form-control" rows="3"></textarea></div>
+                            <div class="col-md-6"><label class="form-label">Speaker Topics</label><textarea name="speaker_topics" class="form-control" rows="3"></textarea></div>
+
+                            <div class="col-12"><hr/><h5>Ticket Configuration</h5></div>
+                            <div class="col-md-4"><label class="form-label">Ticket Name</label><input name="ticket_name" class="form-control" value="General Dentist Admission"/></div>
+                            <div class="col-md-2"><label class="form-label">Price ($)</label><input type="number" step="0.01" name="ticket_price" class="form-control" value="0"/></div>
+                            <div class="col-md-2"><label class="form-label">Points</label><input type="number" name="ticket_point_cost" class="form-control" value="15" required="required"/></div>
+                            <div class="col-md-2"><label class="form-label">Quantity</label><input type="number" name="ticket_quantity" class="form-control" value="30"/></div>
+                            <div class="col-md-2"><label class="form-label">CE Hours</label><input type="number" step="0.5" name="ticket_ce" class="form-control" value="0"/></div>
+
+                            <div class="col-12 text-end">
+                                <button class="btn ticket2u-btn-primary" type="submit">Submit (Spend Points)</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

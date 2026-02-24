@@ -1,28 +1,22 @@
 <odoo>
+  <data>
+    <!-- Backward compatibility action now points to unified Applications -->
+    <record id="action_event_review" model="ir.actions.act_window">
+      <field name="name">Event Applications</field>
+      <field name="res_model">event.application</field>
+      <field name="view_mode">kanban,list,form</field>
+      <field name="context">{'search_default_submitted': 1}</field>
+    </record>
 
-  <!-- Action -->
-  <record id="action_event_review" model="ir.actions.act_window">
-    <field name="name">Review Event Submissions</field>
-    <field name="res_model">event.application</field>
-    <field name="view_mode">list,form</field>
-    <field name="domain">[('state','in',['submitted','approved','rejected','published'])]</field>
-    <field name="context">{'search_default_submitted': 1}</field>
-    <field name="help" type="html">
-      <p class="o_view_nocontent_smiling_face">
-        No event applications to review
-      </p>
-      <p>
-        Event applications submitted by users will appear here for review.
-      </p>
-    </field>
-  </record>
-
-  <!-- Menu -->
-  <menuitem id="menu_event_review"
-            name="Event Reviews"
-            parent="menu_event_application_root"
-            action="action_event_review"
-            groups="base.group_user"
-            sequence="15"/>
+    <!-- Hide legacy Event Reviews menu (merged into Applications) -->
+    <record id="menu_event_review" model="ir.ui.menu">
+      <field name="name">Event Reviews</field>
+      <field name="parent_id" ref="menu_event_application_root"/>
+      <field name="action" ref="action_event_application"/>
+      <field name="active" eval="False"/>
+      <field name="sequence">15</field>
+      <field name="groups_id" eval="[(6, 0, [ref('base.group_user')])]"/>
+    </record>
+  </data>
 
 </odoo>

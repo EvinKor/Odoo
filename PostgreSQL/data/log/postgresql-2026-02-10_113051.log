@@ -1,0 +1,6 @@
+2026-02-10 11:30:51.980 +08 [3160] LOG:  database system was interrupted; last known up at 2026-01-27 13:42:00 +08
+2026-02-10 11:31:05.261 +08 [3160] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-02-10 11:31:05.264 +08 [3160] FATAL:  could not open directory "pg_stat": No such file or directory
+2026-02-10 11:31:05.271 +08 [20776] LOG:  startup process (PID 3160) exited with exit code 1
+2026-02-10 11:31:05.271 +08 [20776] LOG:  aborting startup due to startup process failure
+2026-02-10 11:31:05.275 +08 [20776] LOG:  database system is shut down

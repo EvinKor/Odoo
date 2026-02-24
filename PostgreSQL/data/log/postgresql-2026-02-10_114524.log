@@ -1,0 +1,7 @@
+2026-02-10 11:45:24.775 +08 [21156] LOG:  database system was interrupted while in recovery at 2026-02-10 11:31:05 +08
+2026-02-10 11:45:24.775 +08 [21156] HINT:  This probably means that some data is corrupted and you will have to use the last backup for recovery.
+2026-02-10 11:45:25.920 +08 [21156] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-02-10 11:45:25.930 +08 [21156] LOG:  redo starts at 0/31E2E240
+2026-02-10 11:45:25.930 +08 [21156] LOG:  invalid record length at 0/31E2E328: wanted 24, got 0
+2026-02-10 11:45:25.931 +08 [21156] LOG:  redo done at 0/31E2E2F0
+2026-02-10 11:45:26.024 +08 [10864] LOG:  database system is ready to accept connections

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 import secrets
+from collections import Counter
 
 from odoo import http
 from odoo.http import request
@@ -11,6 +12,15 @@ from odoo import http
 from odoo.http import request
 
 class EventExternalRegisterController(http.Controller):
+    def _get_points_wallet(self):
+        if request.env.user._is_public():
+            return False
+        if "event.points.wallet" not in request.env:
+            return False
+        try:
+            return request.env["event.points.wallet"].get_or_create_wallet(request.env.user.partner_id)
+        except Exception:
+            return False
 
     @http.route("/api/event/register", type="json", auth="public", website=True, csrf=False)
     def api_event_register(self, **payload):
@@ -124,8 +134,8 @@ class EventExternalRegisterController(http.Controller):
         if "point_cost" in request.env["event.event.ticket"]._fields:
             points_by_ticket = {t.id: int(t.point_cost or 0) for t in event_tickets}
             total_points = sum(points_by_ticket.get(tid, 0) * qty for tid, qty in registration_tickets.items())
-            if total_points > 0 and not request.env.user._is_public():
-                wallet = request.env["dental.points.wallet"].get_or_create_wallet(request.env.user.partner_id)
+            wallet = self._get_points_wallet()
+            if total_points > 0 and wallet:
                 wallet.spend_points(total_points, "API event registration purchase", reference=event.name)
 
         # --- Create registrations (one per ticket entry) ---

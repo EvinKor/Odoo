@@ -91,9 +91,9 @@
             <field name="model">event.application</field>
             <field name="arch" type="xml">
                 <list string="Event Applications" 
-                      decoration-info="state=='submitted'" 
+                      decoration-danger="state=='submitted' and not submission_alert_seen" 
                       decoration-success="state in ('approved','published')" 
-                      decoration-danger="state=='rejected'"
+                      decoration-warning="state=='rejected'"
                       decoration-muted="state=='draft'">
                     <field name="name"/>
                     <field name="partner_id"/>
@@ -103,6 +103,9 @@
                     <field name="venue_name"/>
                     <field name="full_address"/>
                     <field name="address_input" optional="hide"/>
+                    <field name="submission_alert_seen" optional="hide"/>
+                    <field name="submission_point_cost" optional="hide"/>
+                    <field name="submission_points_deducted" widget="boolean_toggle" optional="hide"/>
                     <field name="state" widget="badge"/>
                     <field name="rejection_reason" optional="hide"/>
                     <field name="event_id" optional="hide"/>
@@ -178,7 +181,8 @@
                                 </div>
                             </button>
                         </div>
-                        <widget name="web_ribbon" title="Submitted" bg_color="text-bg-info" invisible="state != 'submitted'"/>
+                        <field name="submission_alert_seen" invisible="1"/>
+                        <widget name="web_ribbon" title="NEW SUBMISSION" bg_color="text-bg-danger" invisible="state != 'submitted' or submission_alert_seen"/>
                         <widget name="web_ribbon" title="Approved" bg_color="text-bg-success" invisible="state != 'approved'"/>
                         <widget name="web_ribbon" title="Published" bg_color="text-bg-primary" invisible="state != 'published'"/>
                         <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger" invisible="state != 'rejected'"/>
@@ -237,6 +241,8 @@
                             </page>
                             <page string="Admin Notes" groups="base.group_system">
                                 <group>
+                                    <field name="submission_point_cost" readonly="1"/>
+                                    <field name="submission_points_deducted" readonly="1"/>
                                     <field name="rejection_reason" invisible="state != 'rejected'"/>
                                 </group>
                             </page>
@@ -255,32 +261,28 @@
                     <field name="name"/>
                     <field name="partner_id"/>
                     <field name="date_begin"/>
-                    <field name="venue_type"/>
                     <field name="venue_name"/>
                     <field name="city"/>
                     <field name="state"/>
                     <templates>
                         <t t-name="card">
                             <div class="oe_kanban_global_click">
-                                <div class="o_kanban_record_top">
-                                    <div class="o_kanban_record_headings">
-                                        <strong class="o_kanban_record_title"><field name="name"/></strong>
-                                    </div>
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
                                 </div>
                                 <div class="o_kanban_record_body">
                                     <field name="partner_id"/>
-                                    <br/>
-                                    <i class="fa fa-calendar" title="Start Date" aria-label="Start Date"/> <field name="date_begin" widget="date"/>
-                                    <br/>
-                                    <t t-if="record.venue_type.raw_value == 'physical'">
-                                        <i class="fa fa-map-marker" title="Venue" aria-label="Venue"/> <field name="venue_name"/>
-                                        <t t-if="record.city.raw_value">
-                                            , <field name="city"/>
-                                        </t>
-                                    </t>
-                                    <t t-if="record.venue_type.raw_value == 'online'">
-                                        <i class="fa fa-globe" title="Online Event" aria-label="Online Event"/> Online Event
-                                    </t>
+                                    <div>
+                                        <field name="date_begin" widget="date"/>
+                                    </div>
+                                    <div>
+                                        <field name="venue_name"/>
+                                    </div>
+                                    <div>
+                                        <field name="city"/>
+                                    </div>
                                 </div>
                             </div>
                         </t>
@@ -293,7 +295,7 @@
         <record id="action_event_application" model="ir.actions.act_window">
             <field name="name">Event Applications</field>
             <field name="res_model">event.application</field>
-            <field name="view_mode">kanban,list,form</field>
+            <field name="view_mode">list,form</field>
             <field name="context">{'search_default_submitted': 1}</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">

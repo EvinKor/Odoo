@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="rule_event_application_notification_portal_own" model="ir.rule">
+            <field name="name">Event Application Notification: portal own</field>
+            <field name="model_id" ref="model_event_application_notification"/>
+            <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+            <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        </record>
+    </data>
+</odoo>

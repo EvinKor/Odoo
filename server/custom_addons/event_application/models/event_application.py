@@ -1,4 +1,4 @@
-from odoo import api, fields, models, Command
+from odoo import _, api, fields, models, Command
 from odoo.exceptions import ValidationError
 
 class EventApplication(models.Model):
@@ -76,14 +76,88 @@ class EventApplication(models.Model):
     
     rejection_reason = fields.Text(string='Rejection Reason')
     event_id = fields.Many2one('event.event', string='Published Event', readonly=True)
+    submission_point_cost = fields.Integer(
+        string='Submission Point Cost',
+        default=lambda self: self._default_submission_point_cost(),
+    )
+    submission_points_deducted = fields.Boolean(string='Submission Points Deducted', default=False, readonly=True)
+    submission_alert_seen = fields.Boolean(string='Submission Alert Seen', default=False)
     
     # Portal access fields
     access_url = fields.Char('Portal Access URL', compute='_compute_access_url')
+
+    # Compatibility shim: some older loaded code paths may call message_notify
+    # on this model even though it does not inherit mail.thread.
+    def message_notify(self, **kwargs):
+        return True
+
+    def message_subscribe(self, partner_ids=None, subtype_ids=None):
+        return True
+
+    def message_unsubscribe(self, partner_ids=None):
+        return True
+
+    def message_post(self, **kwargs):
+        return self
     
     def _compute_access_url(self):
         """Generate portal URL"""
         for application in self:
             application.access_url = f'/my/event/application/{application.id}'
+
+    def _default_submission_point_cost(self):
+        raw_value = self.env['ir.config_parameter'].sudo().get_param(
+            'event_application.submission_point_cost',
+            default='75',
+        )
+        try:
+            return int(raw_value or 0)
+        except (TypeError, ValueError):
+            return 75
+
+    def _create_portal_notification(self, title, message, notification_type='system'):
+        self.ensure_one()
+        self.env['event.application.notification'].sudo().create({
+            'partner_id': self.partner_id.id,
+            'application_id': self.id,
+            'title': title,
+            'message': message,
+            'notification_type': notification_type,
+            'action_url': self.access_url,
+        })
+
+    def _create_admin_submission_notifications(self):
+        todo_activity_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        if not todo_activity_type:
+            return
+        admin_users = self.env.ref('base.group_system').sudo().users.filtered(lambda u: u.active)
+        if not admin_users:
+            return
+        model_id = self.env['ir.model']._get_id('event.application')
+        Activity = self.env['mail.activity'].sudo()
+        for application in self:
+            for admin in admin_users:
+                exists = Activity.search_count([
+                    ('res_model_id', '=', model_id),
+                    ('res_id', '=', application.id),
+                    ('user_id', '=', admin.id),
+                    ('activity_type_id', '=', todo_activity_type.id),
+                    ('summary', '=', _('New Event Application Submitted')),
+                ])
+                if exists:
+                    continue
+                Activity.create({
+                    'res_model_id': model_id,
+                    'res_id': application.id,
+                    'user_id': admin.id,
+                    'activity_type_id': todo_activity_type.id,
+                    'summary': _('New Event Application Submitted'),
+                    'note': _("A new event application '%s' was submitted by %s.") % (
+                        application.name,
+                        application.partner_id.name,
+                    ),
+                    'date_deadline': fields.Date.context_today(self),
+                })
     
     @api.depends('venue_type', 'venue_name', 'online_platform', 'street_address', 'city', 'state_id', 'country_id')
     def _compute_location(self):
@@ -148,10 +222,82 @@ class EventApplication(models.Model):
                         raise ValidationError("Canadian postal codes must be in format A1A 1A1 or A1A1A1")
     
     def action_submit(self):
-        self.state = 'submitted'
+        for application in self:
+            values = {'state': 'submitted', 'submission_alert_seen': False}
+            if (
+                not application.submission_points_deducted
+                and application.submission_point_cost > 0
+                and 'event.points.wallet' in self.env
+            ):
+                wallet = self.env['event.points.wallet'].get_or_create_wallet(application.partner_id)
+                wallet.spend_points(
+                    application.submission_point_cost,
+                    _('Event application submission'),
+                    reference=application.name,
+                )
+                values['submission_points_deducted'] = True
+            application.write(values)
+
+    def _ensure_submission_points_deducted(self):
+        for application in self:
+            if application.submission_points_deducted:
+                continue
+            if application.submission_point_cost <= 0:
+                continue
+            wallet = self.env['event.points.wallet'].get_or_create_wallet(application.partner_id)
+            wallet.spend_points(
+                application.submission_point_cost,
+                _('Event application submission'),
+                reference=application.name,
+            )
+            application.with_context(skip_submission_point_sync=True).write({
+                'submission_points_deducted': True,
+            })
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        submitted_records = records.filtered(lambda r: r.state == 'submitted')
+        if submitted_records:
+            submitted_records._ensure_submission_points_deducted()
+            submitted_records._create_admin_submission_notifications()
+        return records
+
+    def write(self, vals):
+        vals = dict(vals or {})
+        if (
+            vals.get('state') == 'submitted'
+            and 'submission_alert_seen' not in vals
+            and not self.env.context.get('skip_submission_alert_reset')
+        ):
+            vals['submission_alert_seen'] = False
+        to_notify = self.env['event.application']
+        if vals.get('state') == 'submitted':
+            to_notify = self.filtered(lambda r: r.state != 'submitted')
+        res = super().write(vals)
+        if self.env.context.get('skip_submission_point_sync'):
+            return res
+        if vals.get('state') == 'submitted':
+            self.filtered(lambda r: not r.submission_points_deducted)._ensure_submission_points_deducted()
+            to_notify._create_admin_submission_notifications()
+        return res
+
+    def read(self, fields=None, load='_classic_read'):
+        result = super().read(fields=fields, load=load)
+        if self.env.user.has_group('base.group_system'):
+            unseen = self.filtered(lambda rec: rec.state == 'submitted' and not rec.submission_alert_seen)
+            if unseen:
+                unseen.with_context(skip_submission_alert_reset=True).sudo().write({'submission_alert_seen': True})
+        return result
         
     def action_approve(self):
         self.state = 'approved'
+        for application in self:
+            application._create_portal_notification(
+                _('Application Approved'),
+                _("Your event '%s' has been approved.") % (application.name,),
+                notification_type='approval',
+            )
         
     def action_reject(self):
         """Open wizard for rejection reason"""
@@ -170,6 +316,21 @@ class EventApplication(models.Model):
             'state': 'draft',
             'rejection_reason': False
         })
+
+    def action_reject_with_reason(self, reason=False):
+        self.write({
+            'state': 'rejected',
+            'rejection_reason': reason or False,
+        })
+        for application in self:
+            message = _("Your event '%s' has been rejected.") % (application.name,)
+            if reason:
+                message = _("%s Reason: %s") % (message, reason)
+            application._create_portal_notification(
+                _('Application Rejected'),
+                message,
+                notification_type='rejection',
+            )
         
     def action_publish(self):
         """Create the actual event record on the website"""
@@ -374,6 +535,22 @@ class EventEvent(models.Model):
             'domain': [('event_id', '=', self.id)],
             'context': {'default_event_id': self.id}
         }
+
+    def write(self, vals):
+        res = super().write(vals)
+        # Keep application title in sync with published event title so portal edits
+        # are reflected in "All Applications" backend list.
+        if 'name' in vals:
+            for event in self:
+                application = event.application_id.sudo()
+                if not application:
+                    application = self.env['event.application'].sudo().search([('event_id', '=', event.id)], limit=1)
+                if application:
+                    application.with_context(lang=False).write({'name': event.name})
+                    lang_code = self.env.context.get('lang')
+                    if lang_code:
+                        application.with_context(lang=lang_code).write({'name': event.name})
+        return res
 
 
 class EventApplicationTicket(models.Model):

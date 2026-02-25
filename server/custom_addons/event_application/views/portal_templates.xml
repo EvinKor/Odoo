@@ -43,6 +43,14 @@
                             </a>
                         </li>
                     </ul>
+                    <div class="d-flex justify-content-end mb-3">
+                        <a href="/my/event/notifications" class="btn btn-outline-secondary position-relative">
+                            <i class="fa fa-bell"></i>
+                            <span t-if="event_notification_count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                <t t-esc="event_notification_count"/>
+                            </span>
+                        </a>
+                    </div>
 
                     <t t-if="(current_tab or 'events') == 'events'">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -658,7 +666,7 @@
                                     </div>
                                 </section>
                                 
-                                <button type="submit" class="btn btn-primary">Submit Application</button>
+                                <button type="submit" class="btn btn-primary">Continue to Payment</button>
                                 <a href="/event" class="btn btn-secondary">Cancel</a>
                             </form>
                             </div>
@@ -720,7 +728,9 @@
                                     align-items: center;
                                     background-color: var(--mrbur-blue-800);
                                     color: white;
-                                    padding: 2px 8px;
+                                    padding: 2px 8px;alue="('venue_address' in event._fields and event.venue_address)
+                                                or ('venue_city' in event._fields and event.venue_city)
+                                      
                                     border-radius: 4px;
                                     font-size: 14px;
                                 }
@@ -875,6 +885,7 @@
                             <script>
                                 <![CDATA[
                                 document.addEventListener('DOMContentLoaded', function() {
+                                    try {
                                     const venueTypeSelect = document.getElementById('venue_type');
                                     const onlineFields = document.getElementById('online_venue_fields');
                                     const physicalFields = document.getElementById('physical_venue_fields');
@@ -892,29 +903,48 @@
                                     const ticketLinesContainer = document.getElementById('ticket-lines-container');
                                     const ticketLineTemplate = document.getElementById('ticket-line-template');
                                     const addTicketLineBtn = document.getElementById('add-ticket-line');
+
+                                    // This script can be bundled in shared frontend assets.
+                                    // Guard all logic when the event application form is not present.
+                                    if (!venueTypeSelect || !onlineFields || !physicalFields) {
+                                        return;
+                                    }
                                     
                                     function toggleVenueFields() {
+                                        if (!venueTypeSelect || !onlineFields || !physicalFields) {
+                                            return;
+                                        }
                                         const selectedType = venueTypeSelect.value;
                                         
                                         if (selectedType === 'online') {
                                             onlineFields.style.display = 'block';
                                             physicalFields.style.display = 'none';
                                             // Clear physical fields
-                                            document.getElementById('venue_name').value = '';
-                                            document.getElementById('street_address').value = '';
-                                            document.getElementById('city').value = '';
-                                            document.getElementById('zip_code').value = '';
-                                            document.getElementById('state_id').value = '';
+                                            const venueName = document.getElementById('venue_name');
+                                            const street = document.getElementById('street_address');
+                                            const city = document.getElementById('city');
+                                            const zip = document.getElementById('zip_code');
+                                            const state = document.getElementById('state_id');
+                                            if (venueName) venueName.value = '';
+                                            if (street) street.value = '';
+                                            if (city) city.value = '';
+                                            if (zip) zip.value = '';
+                                            if (state) state.value = '';
                                         } else {
                                             onlineFields.style.display = 'none';
                                             physicalFields.style.display = 'block';
                                             // Clear online fields
-                                            document.getElementById('online_platform').value = '';
-                                            document.getElementById('online_link').value = '';
+                                            const platform = document.getElementById('online_platform');
+                                            const link = document.getElementById('online_link');
+                                            if (platform) platform.value = '';
+                                            if (link) link.value = '';
                                         }
                                     }
                                     
                                     function updateStates() {
+                                        if (!countrySelect || !stateSelect) {
+                                            return;
+                                        }
                                         const selectedCountryId = countrySelect.value;
                                         const stateOptions = stateSelect.querySelectorAll('option');
                                         
@@ -939,6 +969,9 @@
                                     }
                                     
                                     function validateZipCode() {
+                                        if (!zipCodeInput || !countrySelect) {
+                                            return;
+                                        }
                                         const zipCode = zipCodeInput.value;
                                         const selectedCountry = countrySelect.options[countrySelect.selectedIndex]?.text;
                                         
@@ -972,14 +1005,20 @@
                                             errorElement.className = 'invalid-feedback';
                                             zipCodeInput.parentNode.appendChild(errorElement);
                                         }
-                                        errorElement.textContent = errorMessage;
+                                        if (errorElement) {
+                                            errorElement.textContent = errorMessage;
+                                        }
                                     }
 
                                     function updatePreviewText() {
-                                        const nameValue = eventNameInput.value.trim();
-                                        const dateValue = dateBeginInput.value.trim();
-                                        previewTitle.textContent = nameValue || 'Event name preview';
-                                        previewDate.textContent = dateValue ? dateValue.replace('T', ' ') : 'Start date preview';
+                                        const nameValue = eventNameInput ? eventNameInput.value.trim() : '';
+                                        const dateValue = dateBeginInput ? dateBeginInput.value.trim() : '';
+                                        if (previewTitle) {
+                                            previewTitle.textContent = nameValue || 'Event name preview';
+                                        }
+                                        if (previewDate) {
+                                            previewDate.textContent = dateValue ? dateValue.replace('T', ' ') : 'Start date preview';
+                                        }
                                     }
 
                                     function updatePreviewImage(input, target, isBackground) {
@@ -1006,6 +1045,9 @@
                                     }
 
                                     function bindTicketRow(row) {
+                                        if (!row) {
+                                            return;
+                                        }
                                         const limitSelect = row.querySelector('.ticket-limit-select');
                                         const maxInput = row.querySelector('.ticket-max-input');
                                         const removeBtn = row.querySelector('.remove-ticket-line');
@@ -1027,6 +1069,9 @@
 
                                         if (removeBtn) {
                                             removeBtn.addEventListener('click', function() {
+                                                if (!ticketLinesContainer) {
+                                                    return;
+                                                }
                                                 const rows = ticketLinesContainer.querySelectorAll('.ticket-line');
                                                 if (rows.length <= 1) {
                                                     row.querySelectorAll('input').forEach(function(input) {
@@ -1048,14 +1093,14 @@
                                     }
                                     
                                     // Event listeners
-                                    venueTypeSelect.addEventListener('change', toggleVenueFields);
-                                    countrySelect.addEventListener('change', updateStates);
-                                    stateSelect.addEventListener('change', validateZipCode);
-                                    zipCodeInput.addEventListener('input', validateZipCode);
-                                    eventNameInput.addEventListener('input', updatePreviewText);
-                                    dateBeginInput.addEventListener('input', updatePreviewText);
-                                    badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false));
-                                    cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
+                                    if (venueTypeSelect) venueTypeSelect.addEventListener('change', toggleVenueFields);
+                                    if (countrySelect) countrySelect.addEventListener('change', updateStates);
+                                    if (stateSelect) stateSelect.addEventListener('change', validateZipCode);
+                                    if (zipCodeInput) zipCodeInput.addEventListener('input', validateZipCode);
+                                    if (eventNameInput) eventNameInput.addEventListener('input', updatePreviewText);
+                                    if (dateBeginInput) dateBeginInput.addEventListener('input', updatePreviewText);
+                                    if (badgeInput && previewBadge) badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false));
+                                    if (cardBgInput && previewBg) cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
                                     if (addTicketLineBtn && ticketLineTemplate && ticketLinesContainer) {
                                         addTicketLineBtn.addEventListener('click', function() {
                                             const templateRow = ticketLineTemplate.querySelector('.ticket-line');
@@ -1086,6 +1131,9 @@
                                     let selectedCases = [];
                                     
                                     function createMultiSelect(tagsContainer, select, hiddenInput, selectedItems) {
+                                        if (!tagsContainer || !select || !hiddenInput) {
+                                            return;
+                                        }
                                         // Get all available options from the select element
                                         const allOptions = Array.from(select.querySelectorAll('option'))
                                             .map(opt => ({ rawId: opt.value, name: opt.textContent }))
@@ -1104,15 +1152,19 @@
                                             allOptions.forEach(option => {
                                                 if (!selectedItems.find(selected => selected.id === option.id)) {
                                                     const opt = document.createElement('option');
-                                                    opt.value = option.id;
-                                                    opt.textContent = option.name;
-                                                    select.appendChild(opt);
+                                                    if (opt) {
+                                                        opt.value = option.id;
+                                                        opt.textContent = option.name;
+                                                        select.appendChild(opt);
+                                                    }
                                                 }
                                             });
                                             const otherOpt = document.createElement('option');
-                                            otherOpt.value = '__other__';
-                                            otherOpt.textContent = 'Other...';
-                                            select.appendChild(otherOpt);
+                                            if (otherOpt) {
+                                                otherOpt.value = '__other__';
+                                                otherOpt.textContent = 'Other...';
+                                                select.appendChild(otherOpt);
+                                            }
                                         }
                                         
                                         function updateTags() {
@@ -1175,9 +1227,12 @@
 
                                     
                                     // Initialize
-                                    toggleVenueFields();
-                                    updateStates();
-                                    updatePreviewText();
+                                    if (venueTypeSelect && onlineFields && physicalFields) toggleVenueFields();
+                                    if (countrySelect && stateSelect) updateStates();
+                                    if (eventNameInput || dateBeginInput || previewTitle || previewDate) updatePreviewText();
+                                    } catch (err) {
+                                        console.error('event_application form init failed', err);
+                                    }
                                 });
                                 ]]>
                             </script>
@@ -1206,6 +1261,12 @@
                             <a href="/my/events" class="btn btn-outline-primary">
                                 <i class="fa fa-arrow-left"></i> Back to My Events
                             </a>
+                            <a href="/my/event/notifications" class="btn btn-outline-secondary position-relative">
+                                <i class="fa fa-bell"></i> Notifications
+                                <span t-if="event_notification_count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <t t-esc="event_notification_count"/>
+                                </span>
+                            </a>
                             <!-- <a href="/event" class="btn btn-secondary">
                                 <i class="fa fa-list"></i> Browse Events
                             </a> -->
@@ -1231,7 +1292,7 @@
                                 </thead>
                                 <tbody>
                                     <tr t-foreach="applications" t-as="app">
-                                        <td><t t-esc="app.name"/></td>
+                                        <td><t t-esc="app.event_id.name or app.name"/></td>
                                         <td><t t-esc="app.date_begin" t-options="{'widget': 'datetime'}"/></td>
                                         <td>
                                             <span t-att-class="'badge bg-secondary' if app.state == 'draft' else 'badge bg-info' if app.state == 'submitted' else 'badge bg-success' if app.state == 'approved' else 'badge bg-danger' if app.state == 'rejected' else 'badge bg-primary'">
@@ -1257,6 +1318,17 @@
                         </div>
                     </t>
                 </div>
+                <script>
+                    <![CDATA[
+                    window.addEventListener('pageshow', function (event) {
+                        const navEntry = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || null;
+                        const fromBackForward = navEntry && navEntry.type === 'back_forward';
+                        if (event.persisted || fromBackForward) {
+                            window.location.reload();
+                        }
+                    });
+                    ]]>
+                </script>
             </t>
         </template>
 
@@ -1270,10 +1342,20 @@
                         <div class="col-lg-8 offset-lg-2">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3><t t-esc="application.name"/></h3>
-                                    <span t-att-class="'badge bg-secondary' if application.state == 'draft' else 'badge bg-info' if application.state == 'submitted' else 'badge bg-success' if application.state == 'approved' else 'badge bg-danger' if application.state == 'rejected' else 'badge bg-primary'">
-                                        <t t-esc="dict(application._fields['state'].selection).get(application.state)"/>
-                                    </span>
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <h3><t t-esc="application.name"/></h3>
+                                            <span t-att-class="'badge bg-secondary' if application.state == 'draft' else 'badge bg-info' if application.state == 'submitted' else 'badge bg-success' if application.state == 'approved' else 'badge bg-danger' if application.state == 'rejected' else 'badge bg-primary'">
+                                                <t t-esc="dict(application._fields['state'].selection).get(application.state)"/>
+                                            </span>
+                                        </div>
+                                        <a href="/my/event/notifications" class="btn btn-outline-secondary position-relative">
+                                            <i class="fa fa-bell"></i>
+                                            <span t-if="event_notification_count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                <t t-esc="event_notification_count"/>
+                                            </span>
+                                        </a>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="row mb-3">
@@ -1332,6 +1414,71 @@
                 </div>
             </t>
         </template>
+
+        <template id="event_application_payment_page" name="Event Application Payment Page">
+            <t t-call="website.layout">
+                <div class="container my-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3 class="mb-0">Submission Payment Review</h3>
+                                <a href="/event/apply" class="btn btn-outline-secondary">Back to Form</a>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2"><t t-esc="application_payload.get('name') or 'Event Application'"/></h5>
+                                    <p class="mb-1"><strong>Start:</strong> <t t-esc="application_payload.get('date_begin') or '-'"/></p>
+                                    <p class="mb-1"><strong>End:</strong> <t t-esc="application_payload.get('date_end') or '-'"/></p>
+                                    <p class="mb-0">
+                                        <strong>Venue:</strong>
+                                        <t t-esc="application_payload.get('venue_type') == 'online' and (application_payload.get('online_platform') or 'Online') or (application_payload.get('venue_name') or application_payload.get('city') or 'Physical Venue')"/>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <strong>Points Payment</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Required Points</span>
+                                        <span class="badge border text-dark"><t t-esc="required_points"/></span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Your Available Points</span>
+                                        <span class="badge border text-dark"><t t-esc="available_points"/></span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="alert alert-danger mb-3" t-if="payment_error_code == 'insufficient_points'">
+                                        Insufficient points. Please top up your wallet before submitting this event.
+                                    </div>
+                                    <div class="alert alert-danger mb-3" t-if="payment_error_code == 'submit_failed'">
+                                        Submission failed. Please review your form data and try again.
+                                        <div t-if="submit_error" class="small mt-1">
+                                            <strong>Details:</strong> <t t-esc="submit_error"/>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="/event/apply" class="btn btn-secondary">Cancel</a>
+                                        <form action="/event/apply/confirm-payment" method="post" class="d-inline">
+                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                            <button type="submit"
+                                                    class="btn btn-primary"
+                                                    t-att-disabled="'disabled' if required_points &gt; available_points else None">
+                                                Pay &amp; Submit Application
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
         
         <!-- Add buttons to Events page -->
         <template id="event_index_submit_application" name="Submit Event Application Button" inherit_id="website_event.index">
@@ -1369,8 +1516,13 @@
                                     <h3>Edit Event: <t t-esc="event.name"/></h3>
                                 </div>
                                 <div class="card-body">
-                                    <form t-attf-action="/my/event/#{event.id}/update" method="post">
-                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                      <form t-attf-action="/my/event/#{event.id}/update" method="post">
+                                          <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                          <t t-if="is_admin">
+                                              <div class="alert alert-warning py-2">
+                                                  Admin mode: full event + ticket editing enabled.
+                                              </div>
+                                          </t>
                                         
                                         <div class="mb-3">
                                             <label class="form-label" for="name">Event Name *</label>
@@ -1390,10 +1542,90 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="mb-3">
-                                            <label class="form-label" for="location">Location</label>
-                                            <input type="text" name="location" id="location" class="form-control" t-att-value="event.location or event.address_id.name or ''"/>
-                                        </div>
+                                          <div class="mb-3">
+                                              <label class="form-label" for="location">Location</label>
+                                              <input type="text" name="location" id="location" class="form-control" t-att-value="event.location or event.address_id.name or ''"/>
+                                          </div>
+
+                                          <t t-if="is_admin">
+                                              <div class="row">
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="contact_phone">Contact Phone</label>
+                                                      <input type="text" name="contact_phone" id="contact_phone" class="form-control" t-att-value="event.contact_phone or ''"/>
+                                                  </div>
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="contact_email">Contact Email</label>
+                                                      <input type="email" name="contact_email" id="contact_email" class="form-control" t-att-value="event.contact_email or ''"/>
+                                                  </div>
+                                              </div>
+
+                                              <div class="mb-3">
+                                                  <label class="form-label" for="venue_type">Venue Type</label>
+                                                  <select name="venue_type" id="venue_type" class="form-select">
+                                                      <option value="physical" t-att-selected="event.venue_type == 'physical'">Physical Venue</option>
+                                                      <option value="online" t-att-selected="event.venue_type == 'online'">Online Event</option>
+                                                  </select>
+                                              </div>
+
+                                              <div class="row">
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="venue_name">Venue Name</label>
+                                                      <input type="text" name="venue_name" id="venue_name" class="form-control" t-att-value="event.venue_name or ''"/>
+                                                  </div>
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="street_address">Street Address</label>
+                                                      <input type="text" name="street_address" id="street_address" class="form-control" t-att-value="event.street_address or ''"/>
+                                                  </div>
+                                              </div>
+                                              <div class="row">
+                                                  <div class="col-md-4 mb-3">
+                                                      <label class="form-label" for="city">City</label>
+                                                      <input type="text" name="city" id="city" class="form-control" t-att-value="event.city or ''"/>
+                                                  </div>
+                                                  <div class="col-md-4 mb-3">
+                                                      <label class="form-label" for="state_id">State</label>
+                                                      <select name="state_id" id="state_id" class="form-select">
+                                                          <option value="">Select State</option>
+                                                          <t t-foreach="states" t-as="state">
+                                                              <option t-att-value="state.id" t-att-selected="event.state_id and state.id == event.state_id.id">
+                                                                  <t t-esc="state.name"/>
+                                                              </option>
+                                                          </t>
+                                                      </select>
+                                                  </div>
+                                                  <div class="col-md-4 mb-3">
+                                                      <label class="form-label" for="zip_code">ZIP Code</label>
+                                                      <input type="text" name="zip_code" id="zip_code" class="form-control" t-att-value="event.zip_code or ''"/>
+                                                  </div>
+                                              </div>
+                                              <div class="row">
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="country_id">Country</label>
+                                                      <select name="country_id" id="country_id" class="form-select">
+                                                          <option value="">Select Country</option>
+                                                          <t t-foreach="countries" t-as="country">
+                                                              <option t-att-value="country.id" t-att-selected="event.country_id and country.id == event.country_id.id">
+                                                                  <t t-esc="country.name"/>
+                                                              </option>
+                                                          </t>
+                                                      </select>
+                                                  </div>
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="address_input">Address Input</label>
+                                                      <textarea name="address_input" id="address_input" class="form-control" rows="1"><t t-esc="event.address_input or ''"/></textarea>
+                                                  </div>
+                                              </div>
+                                              <div class="row">
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="online_platform">Online Platform</label>
+                                                      <input type="text" name="online_platform" id="online_platform" class="form-control" t-att-value="event.online_platform or ''"/>
+                                                  </div>
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="online_link">Online Link</label>
+                                                      <input type="text" name="online_link" id="online_link" class="form-control" t-att-value="event.online_link or ''"/>
+                                                  </div>
+                                              </div>
+                                          </t>
                                         
                                         <!-- Specialty Selection -->
                                         <div class="mb-3">
@@ -1450,12 +1682,94 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="mb-3">
-                                            <label class="form-label" for="description">Description</label>
-                                            <textarea name="description" id="description" class="form-control" rows="5"><t t-esc="event.description or ''"/></textarea>
-                                        </div>
+                                          <div class="mb-3">
+                                              <label class="form-label" for="description">Description</label>
+                                              <textarea name="description" id="description" class="form-control" rows="5"><t t-esc="event.description or ''"/></textarea>
+                                          </div>
+
+                                          <div class="mb-3">
+                                              <label class="form-label">Tickets</label>
+                                              <t t-if="event.event_ticket_ids">
+                                                  <div class="table-responsive">
+                                                      <table class="table table-sm">
+                                                          <thead>
+                                                              <tr>
+                                                                  <th>Name</th>
+                                                                  <th t-if="allow_ticket_price">Price</th>
+                                                                  <th t-if="allow_ticket_point_cost">Point Cost</th>
+                                                                  <th>Start Sale</th>
+                                                                  <th>End Sale</th>
+                                                                  <th>Limited</th>
+                                                                  <th>Max</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody>
+                                                              <tr t-foreach="event.event_ticket_ids" t-as="ticket">
+                                                                  <td>
+                                                                      <input type="text"
+                                                                             t-att-name="'ticket_name_%s' % ticket.id"
+                                                                             class="form-control form-control-sm"
+                                                                             t-att-value="ticket.name or ''"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                  </td>
+                                                                  <td t-if="allow_ticket_price">
+                                                                      <input type="number"
+                                                                             step="0.01"
+                                                                             min="0"
+                                                                             t-att-name="'ticket_price_%s' % ticket.id"
+                                                                             class="form-control form-control-sm"
+                                                                             t-att-value="ticket.price or 0.0"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                  </td>
+                                                                  <td t-if="allow_ticket_point_cost">
+                                                                      <input type="number"
+                                                                             min="0"
+                                                                             t-att-name="'ticket_point_cost_%s' % ticket.id"
+                                                                             class="form-control form-control-sm"
+                                                                             t-att-value="ticket.point_cost or 0"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                  </td>
+                                                                  <td>
+                                                                      <input type="datetime-local"
+                                                                             t-att-name="'ticket_start_%s' % ticket.id"
+                                                                             class="form-control form-control-sm"
+                                                                             t-att-value="ticket.start_sale_datetime and ticket.start_sale_datetime.strftime('%Y-%m-%dT%H:%M') or ''"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                  </td>
+                                                                  <td>
+                                                                      <input type="datetime-local"
+                                                                             t-att-name="'ticket_end_%s' % ticket.id"
+                                                                             class="form-control form-control-sm"
+                                                                             t-att-value="ticket.end_sale_datetime and ticket.end_sale_datetime.strftime('%Y-%m-%dT%H:%M') or ''"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                  </td>
+                                                                  <td>
+                                                                      <select t-att-name="'ticket_limit_%s' % ticket.id"
+                                                                              class="form-select form-select-sm"
+                                                                              t-att-disabled="'disabled' if not can_edit_tickets else None">
+                                                                          <option value="0" t-att-selected="not ticket.seats_limited">No</option>
+                                                                          <option value="1" t-att-selected="ticket.seats_limited">Yes</option>
+                                                                      </select>
+                                                                  </td>
+                                                                  <td>
+                                                                      <input type="number"
+                                                                             min="0"
+                                                                             t-att-name="'ticket_max_%s' % ticket.id"
+                                                                             class="form-control form-control-sm"
+                                                                             t-att-value="ticket.seats_max or 0"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                  </td>
+                                                              </tr>
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
+                                              </t>
+                                              <t t-else="">
+                                                  <div class="text-muted">No tickets configured for this event.</div>
+                                              </t>
+                                          </div>
                                         
-                                        <button type="submit" class="btn btn-primary">Update Event</button>
+                                          <button type="submit" class="btn btn-primary"><t t-esc="is_admin and 'Update Event (Admin)' or 'Update Event'"/></button>
                                         <a href="/my/events" class="btn btn-secondary">Back to My Events</a>
                                         <a t-attf-href="/my/event/#{event.id}/registrations" class="btn btn-outline-primary">View Registrations</a>
                                     </form>
@@ -1529,13 +1843,128 @@
                     <t t-set="url" t-value="'/my/events'"/>
                     <t t-set="placeholder_count" t-value="'my_events_count'"/>
                 </t>
-                <div class="o_portal_doc_item mt-2">
-                    <a href="/my/events" class="d-flex justify-content-between align-items-center text-decoration-none">
-                        <span>My Points</span>
-                        <span class="badge bg-primary"><t t-esc="event_point_balance or 0"/></span>
-                    </a>
-                </div>
+                <t t-call="portal.portal_docs_entry">
+                    <t t-set="title">Event Notifications</t>
+                    <t t-set="url" t-value="'/my/event/notifications'"/>
+                    <t t-set="placeholder_count" t-value="'event_notification_count'"/>
+                </t>
+                <t t-call="portal.portal_docs_entry">
+                    <t t-set="title">My Points</t>
+                    <t t-set="url" t-value="'/my/points/log'"/>
+                    <t t-set="placeholder_count" t-value="'event_point_balance'"/>
+                </t>
             </xpath>
+        </template>
+
+        <template id="portal_my_event_notifications" name="My Event Notifications">
+            <t t-call="portal.portal_layout">
+                <div class="container mt-4 mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">Event Notifications</h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <a t-if="not show_all_notifications" href="/my/event/notifications?show_all=1" class="btn btn-outline-primary">
+                                Show All
+                            </a>
+                            <a t-if="show_all_notifications" href="/my/event/notifications" class="btn btn-outline-primary">
+                                Show Unread
+                            </a>
+                            <a href="/my/events" class="btn btn-outline-secondary">
+                                <i class="fa fa-arrow-left"></i> Back to My Events
+                            </a>
+                        </div>
+                    </div>
+                    <t t-if="not notifications">
+                        <div class="alert alert-info">
+                            <t t-if="show_all_notifications">No notifications yet.</t>
+                            <t t-else="">No unread notifications.</t>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="list-group">
+                            <a t-foreach="notifications" t-as="n" t-attf-href="/my/event/notification/#{n.id}/read"
+                               t-attf-class="list-group-item list-group-item-action #{'' if n.is_read else 'list-group-item-warning'}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong><t t-esc="n.title"/></strong>
+                                        <div class="small text-muted"><t t-esc="n.message"/></div>
+                                    </div>
+                                    <small><t t-esc="n.create_date" t-options="{'widget': 'datetime'}"/></small>
+                                </div>
+                            </a>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </template>
+
+        <template id="portal_my_points_log" name="My Points Log">
+            <t t-call="portal.portal_layout">
+                <div class="container mt-4 mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">My Points Log</h3>
+                        <div class="d-flex gap-2">
+                            <a href="/my/events" class="btn btn-outline-secondary">
+                                <i class="fa fa-arrow-left"></i> Back to My Events
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted">Current Balance</div>
+                                <h4 class="mb-0"><i class="fa fa-star me-1"></i><t t-esc="balance or 0"/> points</h4>
+                            </div>
+                            <a href="/my/event/notifications" class="btn btn-outline-secondary position-relative">
+                                <i class="fa fa-bell"></i>
+                                <span t-if="event_notification_count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <t t-esc="event_notification_count"/>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <t t-if="transactions">
+                        <div class="card">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Type</th>
+                                                <th>Reason</th>
+                                                <th>Reference</th>
+                                                <th class="text-end">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="transactions" t-as="tx">
+                                                <td><t t-esc="tx.create_date" t-options="{'widget': 'datetime'}"/></td>
+                                                <td>
+                                                    <span t-att-class="'badge bg-success' if tx.transaction_type == 'credit' else 'badge bg-danger'">
+                                                        <t t-esc="tx.transaction_type == 'credit' and 'Credit' or 'Debit'"/>
+                                                    </span>
+                                                </td>
+                                                <td><t t-esc="tx.reason or '-'"/></td>
+                                                <td><t t-esc="tx.reference or '-'"/></td>
+                                                <td class="text-end">
+                                                    <strong t-att-class="tx.amount &gt;= 0 and 'text-success' or 'text-danger'">
+                                                        <t t-esc="tx.amount &gt;= 0 and ('+%s' % tx.amount) or tx.amount"/>
+                                                    </strong>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="alert alert-info">No points transactions yet.</div>
+                    </t>
+                </div>
+            </t>
         </template>
 
         <!-- View Registrations for an Event -->
@@ -1579,98 +2008,110 @@
                                 </div>
                             </div>
                             
-                            <!-- Registrations Table -->
-                            <div class="card">
-                                <div class="card-body">
-                                    <t t-if="registrations">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Attendee Name</th>
-                                                        <th>Email</th>
-                                                        <th>Phone</th>
-                                                        <th>Registration Date</th>
-                                                        <th>Status</th>
-                                                        <th class="text-center">QR Code</th>
-                                                        <th class="text-center">Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <t t-foreach="registrations" t-as="registration">
+                            <!-- Registrations Table (grouped by ticket type) -->
+                            <t t-if="ticket_groups">
+                                <t t-foreach="ticket_groups" t-as="ticket_group">
+                                    <div class="card mb-3">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong><i class="fa fa-ticket me-1"></i><t t-esc="ticket_group['ticket_name']"/></strong>
+                                            </div>
+                                            <div class="small text-muted">
+                                                <span class="me-3">Total: <t t-esc="ticket_group['total_count']"/></span>
+                                                <span class="me-3 text-success">Attended: <t t-esc="ticket_group['attended_count']"/></span>
+                                                <span class="text-warning">Pending: <t t-esc="ticket_group['not_attended_count']"/></span>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover mb-0">
+                                                    <thead>
                                                         <tr>
-                                                            <td>
-                                                                <strong><t t-esc="registration.name"/></strong>
-                                                            </td>
-                                                            <td><t t-esc="registration.email or '-'"/></td>
-                                                            <td><t t-esc="registration.phone or '-'"/></td>
-                                                            <td>
-                                                                <t t-if="registration.create_date">
-                                                                    <t t-esc="registration.create_date" t-options="{'widget': 'datetime'}"/>
-                                                                </t>
-                                                                <t t-else="">-</t>
-                                                            </td>
-                                                            <td>
-                                                                <t t-if="registration.state == 'done'">
-                                                                    <span class="badge bg-success">
-                                                                        <i class="fa fa-check"></i> Attended
-                                                                    </span>
-                                                                </t>
-                                                                <t t-elif="registration.state == 'open'">
-                                                                    <span class="badge bg-info">
-                                                                        <i class="fa fa-user"></i> Confirmed
-                                                                    </span>
-                                                                </t>
-                                                                <t t-elif="registration.state == 'draft'">
-                                                                    <span class="badge bg-warning">
-                                                                        <i class="fa fa-clock-o"></i> Draft
-                                                                    </span>
-                                                                </t>
-                                                                <t t-elif="registration.state == 'cancel'">
-                                                                    <span class="badge bg-danger">
-                                                                        <i class="fa fa-times"></i> Cancelled
-                                                                    </span>
-                                                                </t>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <t t-set="checkin_url" t-value="'%s/event/registration/checkin/%s' % (checkin_base, registration.x_ticket_token)"/>
-                                                                <img t-att-src="'/report/barcode/?barcode_type=QR&amp;value=%s&amp;width=160&amp;height=160' % (quote_plus(checkin_url))" alt="QR Code" style="width: 80px; height: 80px;"/>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <t t-if="registration.state == 'done'">
-                                                                    <form t-attf-action="/my/event/#{event.id}/registration/#{registration.id}/unmark" method="post" style="display:inline;">
-                                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Mark as Not Attended">
-                                                                            <i class="fa fa-undo"></i> Unmark
-                                                                        </button>
-                                                                    </form>
-                                                                </t>
-                                                                <t t-elif="registration.state == 'open'">
-                                                                    <form t-attf-action="/my/event/#{event.id}/registration/#{registration.id}/mark" method="post" style="display:inline;">
-                                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                                                        <button type="submit" class="btn btn-sm btn-success" title="Mark as Attended">
-                                                                            <i class="fa fa-check"></i> Mark Attended
-                                                                        </button>
-                                                                    </form>
-                                                                </t>
-                                                                <t t-else="">
-                                                                    <span class="text-muted">-</span>
-                                                                </t>
-                                                            </td>
+                                                            <th>Attendee Name</th>
+                                                            <th>Email</th>
+                                                            <th>Phone</th>
+                                                            <th>Registration Date</th>
+                                                            <th>Status</th>
+                                                            <th class="text-center">QR Code</th>
+                                                            <th class="text-center">Action</th>
                                                         </tr>
-                                                    </t>
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        <t t-foreach="ticket_group['registrations']" t-as="registration">
+                                                            <tr>
+                                                                <td>
+                                                                    <strong><t t-esc="registration.name"/></strong>
+                                                                </td>
+                                                                <td><t t-esc="registration.email or '-'"/></td>
+                                                                <td><t t-esc="registration.phone or '-'"/></td>
+                                                                <td>
+                                                                    <t t-if="registration.create_date">
+                                                                        <t t-esc="registration.create_date" t-options="{'widget': 'datetime'}"/>
+                                                                    </t>
+                                                                    <t t-else="">-</t>
+                                                                </td>
+                                                                <td>
+                                                                    <t t-if="registration.state == 'done'">
+                                                                        <span class="badge bg-success">
+                                                                            <i class="fa fa-check"></i> Attended
+                                                                        </span>
+                                                                    </t>
+                                                                    <t t-elif="registration.state == 'open'">
+                                                                        <span class="badge bg-info">
+                                                                            <i class="fa fa-user"></i> Confirmed
+                                                                        </span>
+                                                                    </t>
+                                                                    <t t-elif="registration.state == 'draft'">
+                                                                        <span class="badge bg-warning">
+                                                                            <i class="fa fa-clock-o"></i> Draft
+                                                                        </span>
+                                                                    </t>
+                                                                    <t t-elif="registration.state == 'cancel'">
+                                                                        <span class="badge bg-danger">
+                                                                            <i class="fa fa-times"></i> Cancelled
+                                                                        </span>
+                                                                    </t>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <t t-set="checkin_url" t-value="'%s/event/registration/checkin/%s' % (checkin_base, registration.x_ticket_token)"/>
+                                                                    <img t-att-src="'/report/barcode/?barcode_type=QR&amp;value=%s&amp;width=160&amp;height=160' % (quote_plus(checkin_url))" alt="QR Code" style="width: 80px; height: 80px;"/>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <t t-if="registration.state == 'done'">
+                                                                        <form t-attf-action="/my/event/#{event.id}/registration/#{registration.id}/unmark" method="post" style="display:inline;">
+                                                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Mark as Not Attended">
+                                                                                <i class="fa fa-undo"></i> Unmark
+                                                                            </button>
+                                                                        </form>
+                                                                    </t>
+                                                                    <t t-elif="registration.state == 'open'">
+                                                                        <form t-attf-action="/my/event/#{event.id}/registration/#{registration.id}/mark" method="post" style="display:inline;">
+                                                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                                            <button type="submit" class="btn btn-sm btn-success" title="Mark as Attended">
+                                                                                <i class="fa fa-check"></i> Mark Attended
+                                                                            </button>
+                                                                        </form>
+                                                                    </t>
+                                                                    <t t-else="">
+                                                                        <span class="text-muted">-</span>
+                                                                    </t>
+                                                                </td>
+                                                            </tr>
+                                                        </t>
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                    </t>
-                                    <t t-else="">
-                                        <div class="alert alert-info text-center">
-                                            <i class="fa fa-info-circle fa-2x mb-2"></i>
-                                            <p class="mb-0">No registrations yet for this event.</p>
-                                        </div>
-                                    </t>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <div class="alert alert-info text-center">
+                                    <i class="fa fa-info-circle fa-2x mb-2"></i>
+                                    <p class="mb-0">No registrations yet for this event.</p>
                                 </div>
-                            </div>
+                            </t>
                         </div>
                     </div>
                 </div>

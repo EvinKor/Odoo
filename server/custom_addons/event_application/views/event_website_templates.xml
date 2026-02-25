@@ -343,7 +343,14 @@
                 </t>
                 </div>
                 <t t-if="not request.env.user._is_public()">
-                    <div class="ms-auto ps-2">
+                    <div class="ms-auto ps-2 d-flex align-items-center gap-2">
+                        <a href="/my/event/notifications" class="badge bg-light text-dark text-decoration-none position-relative">
+                            <i class="fa fa-bell"></i>
+                            Notifications
+                            <span t-if="event_notification_count" class="badge rounded-pill bg-danger ms-1">
+                                <t t-esc="event_notification_count"/>
+                            </span>
+                        </a>
                         <span class="badge bg-light text-dark">
                             <i class="fa fa-star"></i>
                             Points: <t t-esc="point_balance or 0"/>
@@ -418,11 +425,11 @@
 
     <template id="event_cards_badge_overlay" inherit_id="website_event.events_list">
         <xpath expr="//t[@t-call='website.record_cover']/meta[@itemprop='startDate']" position="after">
-            <t t-if="event.card_bg_image">
+            <t t-if="'card_bg_image' in event._fields and event.card_bg_image">
                 <div class="o_wevent_card_bg"
                      t-attf-style="background-image: url(#{image_data_uri(event.card_bg_image)});"/>
             </t>
-            <t t-if="event.badge_image">
+            <t t-if="'badge_image' in event._fields and event.badge_image">
                 <img t-att-src="image_data_uri(event.badge_image)" alt="Badge" class="o_wevent_badge_overlay"/>
             </t>
         </xpath>
@@ -453,6 +460,23 @@
                     border-radius: 6px;
                 }
             </style>
+        </xpath>
+    </template>
+
+    <template id="event_cards_safe_venue_fields" inherit_id="website_event.events_list">
+        <xpath expr="//t[@t-set='has_venue_address']" position="replace">
+            <t t-set="has_venue_address"
+               t-value="('venue_address' in event._fields and event.venue_address) or ('venue_city' in event._fields and event.venue_city) or ('venue_country_id' in event._fields and event.venue_country_id) or ('location' in event._fields and event.location) or event.address_id"/>
+        </xpath>
+        <xpath expr="//main//div[contains(@class, 'd-flex') and contains(@class, 'align-items-center')][i[contains(@class, 'fa-map-marker')]]" position="replace">
+            <div class="d-flex align-items-center">
+                <i class="fa fa-map-marker me-2" title="Location"/>
+                <small t-if="has_venue_address"
+                       class="fw-bold"
+                       itemprop="location"
+                       t-out="(('venue_full_address' in event._fields and event.venue_full_address) or ('location' in event._fields and event.location) or (event.address_id and (event.address_id.contact_address or event.address_id.name)) or 'Venue')"/>
+                <small t-if="not has_venue_address" class="fw-bold" itemprop="location">Online event</small>
+            </div>
         </xpath>
     </template>
 

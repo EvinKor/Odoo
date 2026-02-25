@@ -8,13 +8,15 @@
         ========================
         Allows portal users to submit event applications that can be approved by administrators.
     """,
-    'depends': ['base', 'website', 'portal', 'event', 'website_event', 'mail', 'ticket2u_dental_events'],
+    'depends': ['base', 'website', 'portal', 'event', 'website_event', 'mail'],
     'data': [
         'security/ir.model.access.csv',
+        'security/event_application_security.xml',
         'data/specialty_data.xml',
         'data/case_data.xml',
         'wizard/reject_application_wizard_views.xml',
         'views/event_application_views.xml',
+        'views/event_points_views.xml',
         'views/event_reviews_views.xml',
         'views/event_event_kanban_inherit.xml',
         'views/event_event_form_address_context.xml',

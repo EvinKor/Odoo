@@ -14,6 +14,23 @@ _logger = logging.getLogger(__name__)
 
 
 class CustomWebsiteEventController(WebsiteEventController):
+    def _get_points_wallet(self):
+        if request.env.user._is_public():
+            return False
+        if 'event.points.wallet' not in request.env:
+            return False
+        try:
+            return request.env['event.points.wallet'].get_or_create_wallet(request.env.user.partner_id)
+        except Exception:
+            return False
+
+    def _get_event_notification_count(self):
+        if request.env.user._is_public():
+            return 0
+        return request.env['event.application.notification'].sudo().search_count([
+            ('partner_id', '=', request.env.user.partner_id.id),
+            ('is_read', '=', False),
+        ])
     
     @http.route(['/event', '/event/page/<int:page>'], type='http', auth="public", website=True, sitemap=True)
     def events(self, page=1, **searches):
@@ -294,13 +311,11 @@ class CustomWebsiteEventController(WebsiteEventController):
             'country': country_id,
         }
         point_balance = 0
-        if not request.env.user._is_public():
-            try:
-                wallet = request.env['dental.points.wallet'].get_or_create_wallet(request.env.user.partner_id)
-                point_balance = int(wallet.balance or 0)
-            except Exception:
-                point_balance = 0
+        wallet = self._get_points_wallet()
+        if wallet:
+            point_balance = int(wallet.balance or 0)
         values['point_balance'] = point_balance
+        values['event_notification_count'] = self._get_event_notification_count()
 
         
         return request.render('website_event.index', values)
@@ -440,20 +455,21 @@ class CustomWebsiteEventController(WebsiteEventController):
         if total_points <= 0 and summary['registration_tickets']:
             raise UserError('Selected tickets do not have point cost configured.')
 
-        wallet = request.env['dental.points.wallet'].get_or_create_wallet(request.env.user.partner_id)
-        if total_points > 0 and wallet.balance < total_points:
-            return request.redirect(
-                '/event/%s/registration/payment?%s' % (
-                    event.id,
-                    url_encode({
-                        'payment_error_code': 'insufficient_points',
-                        'required_points': total_points,
-                        'available_points': wallet.balance,
-                    }),
+        wallet = self._get_points_wallet()
+        if wallet:
+            if total_points > 0 and wallet.balance < total_points:
+                return request.redirect(
+                    '/event/%s/registration/payment?%s' % (
+                        event.id,
+                        url_encode({
+                            'payment_error_code': 'insufficient_points',
+                            'required_points': total_points,
+                            'available_points': wallet.balance,
+                        }),
+                    )
                 )
-            )
-        if total_points > 0:
-            wallet.spend_points(total_points, 'Event registration purchase', reference=event.name)
+            if total_points > 0:
+                wallet.spend_points(total_points, 'Event registration purchase', reference=event.name)
 
         request.env.user.partner_id.sudo().write({
             'name': payload['buyer_name'],

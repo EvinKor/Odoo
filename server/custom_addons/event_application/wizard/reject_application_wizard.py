@@ -8,8 +8,5 @@ class RejectApplicationWizard(models.TransientModel):
     rejection_reason = fields.Text(string='Rejection Reason', required=True)
     
     def action_reject(self):
-        self.application_id.write({
-            'state': 'rejected',
-            'rejection_reason': self.rejection_reason
-        })
+        self.application_id.action_reject_with_reason(self.rejection_reason)
         return {'type': 'ir.actions.act_window_close'}

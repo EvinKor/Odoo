@@ -14,3 +14,4 @@ access_event_application_notification_portal,event.application.notification.port
 access_event_application_notification_manager,event.application.notification.manager,model_event_application_notification,base.group_system,1,1,1,1
 access_event_points_wallet_manager,event.points.wallet.manager,model_event_points_wallet,base.group_system,1,1,1,1
 access_event_points_transaction_manager,event.points.transaction.manager,model_event_points_transaction,base.group_system,1,1,1,1
+access_event_application_settings_manager,event.application.settings.manager,model_event_application_settings,base.group_system,1,1,1,1

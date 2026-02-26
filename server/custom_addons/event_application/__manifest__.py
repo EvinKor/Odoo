@@ -16,6 +16,7 @@
         'data/case_data.xml',
         'wizard/reject_application_wizard_views.xml',
         'views/event_application_views.xml',
+        'views/event_settings_views.xml',
         'views/event_points_views.xml',
         'views/event_reviews_views.xml',
         'views/event_event_kanban_inherit.xml',

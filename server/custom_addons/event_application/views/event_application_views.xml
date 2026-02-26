@@ -102,6 +102,10 @@
                     <field name="venue_type"/>
                     <field name="venue_name"/>
                     <field name="full_address"/>
+                    <field name="specialty_ids" widget="many2many_tags" optional="hide"/>
+                    <field name="case_ids" widget="many2many_tags" optional="hide"/>
+                    <field name="specialty_other_text" optional="hide"/>
+                    <field name="case_other_text" optional="hide"/>
                     <field name="address_input" optional="hide"/>
                     <field name="submission_alert_seen" optional="hide"/>
                     <field name="submission_point_cost" optional="hide"/>
@@ -208,6 +212,10 @@
                                 <field name="country_id" invisible="venue_type != 'physical'"/>
                                 <field name="online_platform" invisible="venue_type != 'online'"/>
                                 <field name="online_link" invisible="venue_type != 'online'"/>
+                                <field name="specialty_ids" widget="many2many_tags"/>
+                                <field name="specialty_other_text" placeholder="Other specialties (comma separated)"/>
+                                <field name="case_ids" widget="many2many_tags"/>
+                                <field name="case_other_text" placeholder="Other case types (comma separated)"/>
                             </group>
                             <group>
                                 <field name="date_begin"/>

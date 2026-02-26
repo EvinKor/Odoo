@@ -176,10 +176,11 @@ class EventExternalRegisterController(http.Controller):
             combined_url = f"{base}/api/event/tickets?ids={ids_param}"
             if tokens_param:
                 combined_url += f"&tokens={tokens_param}"
-            report = request.env.ref(
-                "event.action_report_event_registration_full_page_ticket",
-                raise_if_not_found=False,
+            report_xmlid = "event.action_report_event_registration_full_page_ticket"
+            report_id = request.env["ir.model.data"].sudo()._xmlid_to_res_id(
+                report_xmlid, raise_if_not_found=False
             )
+            report = request.env["ir.actions.report"].sudo().browse(report_id) if report_id else False
             if report:
                 report = report.sudo()
                 pdf_bytes, _ = report._render_qweb_pdf(

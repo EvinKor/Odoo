@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_event_application_settings_form" model="ir.ui.view">
+            <field name="name">event.application.settings.form</field>
+            <field name="model">event.application.settings</field>
+            <field name="arch" type="xml">
+                <form string="Event Settings" create="false" edit="true" delete="false">
+                    <sheet>
+                        <group>
+                            <field name="submission_point_cost"/>
+                            <div class="o_form_label">This value is used when users submit new event applications.</div>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_save" type="object" string="Save" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_event_application_settings" model="ir.actions.act_window">
+            <field name="name">Event Settings</field>
+            <field name="res_model">event.application.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record id="view_event_specialty_tree_admin" model="ir.ui.view">
+            <field name="name">event.specialty.tree.admin</field>
+            <field name="model">event.specialty</field>
+            <field name="arch" type="xml">
+                <list string="Specialties" editable="bottom" create="true" edit="true" delete="true">
+                    <field name="name"/>
+                    <field name="color" widget="color_picker"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_event_specialty_form_admin" model="ir.ui.view">
+            <field name="name">event.specialty.form.admin</field>
+            <field name="model">event.specialty</field>
+            <field name="arch" type="xml">
+                <form string="Specialty" create="true" edit="true" delete="true">
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="color" widget="color_picker"/>
+                            <field name="active"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_event_case_tree_admin" model="ir.ui.view">
+            <field name="name">event.case.tree.admin</field>
+            <field name="model">event.case</field>
+            <field name="arch" type="xml">
+                <list string="Case Types" editable="bottom" create="true" edit="true" delete="true">
+                    <field name="name"/>
+                    <field name="color" widget="color_picker"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_event_case_form_admin" model="ir.ui.view">
+            <field name="name">event.case.form.admin</field>
+            <field name="model">event.case</field>
+            <field name="arch" type="xml">
+                <form string="Case Type" create="true" edit="true" delete="true">
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="color" widget="color_picker"/>
+                            <field name="active"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_event_specialty_admin" model="ir.actions.act_window">
+            <field name="name">Specialties</field>
+            <field name="res_model">event.specialty</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <record id="action_event_case_admin" model="ir.actions.act_window">
+            <field name="name">Case Types</field>
+            <field name="res_model">event.case</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_event_application_settings_root"
+                  name="Event Settings"
+                  parent="event.event_main_menu"
+                  action="action_event_application_settings"
+                  groups="base.group_system"
+                  sequence="30"/>
+
+        <menuitem id="menu_event_application_settings"
+                  name="General Settings"
+                  parent="menu_event_application_settings_root"
+                  action="action_event_application_settings"
+                  groups="base.group_system"
+                  sequence="1"/>
+
+        <menuitem id="menu_event_application_specialties"
+                  name="Specialties"
+                  parent="menu_event_application_settings_root"
+                  action="action_event_specialty_admin"
+                  groups="base.group_system"
+                  sequence="2"/>
+
+        <menuitem id="menu_event_application_cases"
+                  name="Case Types"
+                  parent="menu_event_application_settings_root"
+                  action="action_event_case_admin"
+                  groups="base.group_system"
+                  sequence="3"/>
+    </data>
+</odoo>

@@ -4,6 +4,15 @@ from odoo.http import request
 
 
 class EventTicketController(http.Controller):
+    def _get_ticket_report(self):
+        report_xmlid = "event.action_report_event_registration_full_page_ticket"
+        report_id = request.env["ir.model.data"].sudo()._xmlid_to_res_id(
+            report_xmlid, raise_if_not_found=False
+        )
+        if not report_id:
+            return False
+        return request.env["ir.actions.report"].sudo().browse(report_id)
+
     def _registration_owner_domain(self):
         partner = request.env.user.partner_id
         user_email = (request.env.user.email or partner.email or '').strip()
@@ -59,10 +68,7 @@ class EventTicketController(http.Controller):
                         status=403,
                     )
 
-        report = request.env.ref(
-            "event.action_report_event_registration_full_page_ticket",
-            raise_if_not_found=False,
-        )
+        report = self._get_ticket_report()
         if not report:
             return request.make_response(
                 "Ticket report not found",
@@ -94,10 +100,7 @@ class EventTicketController(http.Controller):
             return request.not_found()
 
         # ✅ Correct report XML ID (from your list)
-        report = request.env.ref(
-            "event.action_report_event_registration_full_page_ticket",
-            raise_if_not_found=False,
-        )
+        report = self._get_ticket_report()
 
         if not report:
             return request.make_response(
@@ -128,10 +131,7 @@ class EventTicketController(http.Controller):
         if not reg.exists() or not self._can_access_registration(reg):
             return request.redirect("/my/event-registrations")
 
-        report = request.env.ref(
-            "event.action_report_event_registration_full_page_ticket",
-            raise_if_not_found=False,
-        )
+        report = self._get_ticket_report()
         if not report:
             return request.make_response(
                 "Ticket report not found",
@@ -162,10 +162,7 @@ class EventTicketController(http.Controller):
         if not regs:
             return request.redirect("/my/event-registrations")
 
-        report = request.env.ref(
-            "event.action_report_event_registration_full_page_ticket",
-            raise_if_not_found=False,
-        )
+        report = self._get_ticket_report()
         if not report:
             return request.make_response(
                 "Ticket report not found",

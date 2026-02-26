@@ -17,6 +17,14 @@ class EventEvent(models.Model):
         string='Cases',
         help='Types of cases covered in this event'
     )
+    specialty_other_text = fields.Text(
+        string='Other Specialties',
+        help='One-time specialty labels for this event only.',
+    )
+    case_other_text = fields.Text(
+        string='Other Cases',
+        help='One-time case labels for this event only.',
+    )
 
     country_id = fields.Many2one('res.country', string='Country')
     
@@ -159,4 +167,20 @@ class EventEvent(models.Model):
             if country:
                 parts.append(country.name)
             event.venue_full_address = ', '.join([p for p in parts if p]) or False
+
+
+class EventEventTicket(models.Model):
+    _inherit = 'event.event.ticket'
+    _order = 'is_pinned desc, sequence, id'
+
+    point_cost = fields.Integer(
+        string='Point Cost',
+        default=0,
+        help='Points required for this ticket.',
+    )
+    is_pinned = fields.Boolean(
+        string='Pin Ticket',
+        default=False,
+        help='Pinned tickets are shown first.',
+    )
 

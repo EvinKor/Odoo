@@ -65,18 +65,19 @@ class EventApplicationPortal(CustomerPortal):
                 ids.append(int(value))
         return ids
 
-    def _get_or_create_names(self, model_name, names_text):
-        model = request.env[model_name].sudo()
-        ids = []
-        raw_parts = (names_text or '').replace('\n', ',').split(',')
-        for raw_name in raw_parts:
+    def _parse_custom_names(self, names_text):
+        names = []
+        seen = set()
+        for raw_name in (names_text or '').replace('\n', ',').split(','):
             name = (raw_name or '').strip()
             if not name:
                 continue
-            existing = model.search([('name', '=ilike', name)], limit=1)
-            record = existing or model.create({'name': name})
-            ids.append(record.id)
-        return ids
+            lowered = name.lower()
+            if lowered in seen:
+                continue
+            names.append(name)
+            seen.add(lowered)
+        return names
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
@@ -109,6 +110,8 @@ class EventApplicationPortal(CustomerPortal):
             events_view = 'upcoming'
         registrations_search = (kwargs.get('registrations_search') or '').strip()
         registrations_event_id = (kwargs.get('registrations_event_id') or '').strip()
+        if registrations_event_id.lower() == 'all':
+            registrations_event_id = ''
         registrations_history = str(kwargs.get('registrations_history') or '').strip().lower() in ('1', 'true', 'yes', 'on')
 
         events_domain = [
@@ -126,10 +129,17 @@ class EventApplicationPortal(CustomerPortal):
 
         events = request.env['event.event'].sudo().search(events_domain, order='date_begin desc')
 
-        registrations_domain = list(self._registration_owner_domain())
+        registrations_domain_base = list(self._registration_owner_domain())
         if not registrations_history:
             now_dt = fields.Datetime.now()
-            registrations_domain += ['|', ('event_id.date_end', '>=', now_dt), ('event_id.date_begin', '>=', now_dt)]
+            registrations_domain_base += ['|', ('event_id.date_end', '>=', now_dt), ('event_id.date_begin', '>=', now_dt)]
+        all_registrations = request.env['event.registration'].sudo().search(
+            registrations_domain_base,
+            order='create_date desc'
+        )
+        registration_filter_events = all_registrations.mapped('event_id').sorted(lambda e: e.name or '')
+
+        registrations_domain = list(registrations_domain_base)
         if registrations_event_id.isdigit():
             registrations_domain.append(('event_id', '=', int(registrations_event_id)))
         if registrations_search:
@@ -140,7 +150,11 @@ class EventApplicationPortal(CustomerPortal):
             order='create_date desc'
         )
         now_dt = fields.Datetime.now()
-        registration_filter_events = registrations.mapped('event_id').sorted(lambda e: e.name or '')
+        selected_registration_event = False
+        if registrations_event_id.isdigit():
+            selected_registration_event = registration_filter_events.filtered(
+                lambda ev: ev.id == int(registrations_event_id)
+            )[:1]
         batches_map = {}
         for reg in registrations:
             batch_id = reg.x_register_batch_id or f"single-{reg.id}"
@@ -181,6 +195,8 @@ class EventApplicationPortal(CustomerPortal):
             'events_view': events_view,
             'registrations_search': registrations_search,
             'registrations_event_id': registrations_event_id,
+            'registrations_filter_active': bool(registrations_search or registrations_event_id),
+            'registrations_event_name': selected_registration_event.name if selected_registration_event else '',
             'registrations_history': registrations_history,
             'registration_filter_events': registration_filter_events,
             'event_notification_count': self._get_event_notification_count(),
@@ -190,9 +206,14 @@ class EventApplicationPortal(CustomerPortal):
     def my_event_registrations_index(self, **kwargs):
         """List registrations for the current portal user"""
         search = (kwargs.get('search') or '').strip()
-        event_id = kwargs.get('event_id') or ''
+        event_id = (kwargs.get('event_id') or '').strip()
+        if event_id.lower() == 'all':
+            event_id = ''
 
-        domain = list(self._registration_owner_domain())
+        base_domain = list(self._registration_owner_domain())
+        all_registrations = request.env['event.registration'].sudo().search(base_domain, order='create_date desc')
+
+        domain = list(base_domain)
         if event_id and str(event_id).isdigit():
             domain.append(('event_id', '=', int(event_id)))
         if search:
@@ -201,9 +222,12 @@ class EventApplicationPortal(CustomerPortal):
         registrations = request.env['event.registration'].sudo().search(domain, order='create_date desc')
         now_dt = fields.Datetime.now()
 
-        # Events for filter dropdown (based on user's registrations)
-        event_ids = registrations.mapped('event_id').ids
+        # Events for filter dropdown (based on all user's registrations)
+        event_ids = all_registrations.mapped('event_id').ids
         events = request.env['event.event'].sudo().browse(event_ids).sorted(lambda e: e.name)
+        selected_event = False
+        if str(event_id).isdigit():
+            selected_event = events.filtered(lambda ev: ev.id == int(event_id))[:1]
         batches_map = {}
         for reg in registrations:
             batch_id = reg.x_register_batch_id or f"single-{reg.id}"
@@ -241,6 +265,8 @@ class EventApplicationPortal(CustomerPortal):
             'events': events,
             'search': search,
             'event_id': str(event_id) if event_id else '',
+            'filter_active': bool(search or event_id),
+            'event_name': selected_event.name if selected_event else '',
         })
 
     @http.route(['/my/event-registration/<int:registration_id>'], type='http', auth='user', website=True)
@@ -330,12 +356,18 @@ class EventApplicationPortal(CustomerPortal):
             update_vals['specialty_ids'] = [(6, 0, [int(sid) for sid in specialty_ids])]
         else:
             update_vals['specialty_ids'] = [(5, 0, 0)]
+        if 'specialty_other_names' in post and 'specialty_other_text' in event._fields:
+            specialty_other_names = self._parse_custom_names(post.get('specialty_other_names'))
+            update_vals['specialty_other_text'] = ', '.join(specialty_other_names) if specialty_other_names else False
 
         case_ids = request.httprequest.form.getlist('case_ids')
         if case_ids:
             update_vals['case_ids'] = [(6, 0, [int(cid) for cid in case_ids])]
         else:
             update_vals['case_ids'] = [(5, 0, 0)]
+        if 'case_other_names' in post and 'case_other_text' in event._fields:
+            case_other_names = self._parse_custom_names(post.get('case_other_names'))
+            update_vals['case_other_text'] = ', '.join(case_other_names) if case_other_names else False
 
         if is_admin:
             for field_name in ('contact_phone', 'contact_email', 'venue_name', 'street_address', 'city', 'zip_code', 'online_platform', 'online_link', 'address_input'):
@@ -355,7 +387,7 @@ class EventApplicationPortal(CustomerPortal):
 
             ticket_model = request.env['event.event.ticket'].sudo()
             ticket_fields = ticket_model._fields
-            for ticket in event.event_ticket_ids:
+            for ticket in event.event_ticket_ids.sorted(lambda t: ((not t.is_pinned), t.sequence, t.id)):
                 tvals = {}
                 name_key = f'ticket_name_{ticket.id}'
                 if name_key in post:
@@ -548,12 +580,12 @@ class EventApplicationPortal(CustomerPortal):
             })
 
         specialty_ids = self._parse_csv_int_ids(post.get('specialty_ids', ''))
-        specialty_ids.extend(self._get_or_create_names('event.specialty', post.get('specialty_other_names')))
         specialty_ids = list(dict.fromkeys(specialty_ids))
+        specialty_other_names = self._parse_custom_names(post.get('specialty_other_names'))
 
         case_ids = self._parse_csv_int_ids(post.get('case_ids', ''))
-        case_ids.extend(self._get_or_create_names('event.case', post.get('case_other_names')))
         case_ids = list(dict.fromkeys(case_ids))
+        case_other_names = self._parse_custom_names(post.get('case_other_names'))
 
         badge_image = False
         badge_file = request.httprequest.files.get('badge_image')
@@ -589,6 +621,8 @@ class EventApplicationPortal(CustomerPortal):
             'country_id': int(post.get('country_id')) if post.get('country_id') else False,
             'specialty_ids': specialty_ids,
             'case_ids': case_ids,
+            'specialty_other_text': ', '.join(specialty_other_names),
+            'case_other_text': ', '.join(case_other_names),
             'ticket_lines': ticket_lines,
             'badge_image': badge_image,
             'card_bg_image': card_bg_image,
@@ -635,6 +669,8 @@ class EventApplicationPortal(CustomerPortal):
         case_ids = payload.get('case_ids') or []
         if case_ids:
             vals['case_ids'] = [(6, 0, case_ids)]
+        vals['specialty_other_text'] = payload.get('specialty_other_text') or False
+        vals['case_other_text'] = payload.get('case_other_text') or False
 
         ticket_lines = payload.get('ticket_lines') or []
         if ticket_lines:
@@ -688,7 +724,9 @@ class EventApplicationPortal(CustomerPortal):
             application = request.env['event.application'].create(vals)
             application.action_submit()
             request.session.pop(self._application_payment_session_key(), None)
-            return request.redirect('/my/event/applications')
+            return request.redirect('/event/apply/payment-success?' + urlencode({
+                'application_id': application.id,
+            }))
         except ValidationError as e:
             return request.redirect('/event/apply/payment?' + urlencode({
                 'payment_error_code': 'submit_failed',
@@ -700,6 +738,19 @@ class EventApplicationPortal(CustomerPortal):
                 'payment_error_code': 'submit_failed',
                 'submit_error': str(e),
             }))
+
+    @http.route(['/event/apply/payment-success'], type='http', auth='user', website=True, methods=['GET'])
+    def event_application_payment_success(self, application_id=None, **kwargs):
+        application = False
+        if str(application_id or '').isdigit():
+            application = request.env['event.application'].sudo().browse(int(application_id))
+            if not application.exists() or application.partner_id.id != request.env.user.partner_id.id:
+                application = False
+        return request.render('event_application.event_application_payment_success_page', {
+            'application': application,
+            'redirect_url': '/my/event/applications',
+            'redirect_seconds': 3,
+        })
     
     @http.route(['/my/event/application/<int:application_id>'], type='http', auth='user', website=True)
     def event_application_detail(self, application_id, **kwargs):
@@ -781,7 +832,7 @@ class EventApplicationPortal(CustomerPortal):
         # Pre-create groups from the event's configured ticket types so they
         # are shown even when no attendee has registered yet.
         grouped = {}
-        for ticket in event.event_ticket_ids.sorted(lambda t: (t.sequence, t.id)):
+        for ticket in event.event_ticket_ids.sorted(lambda t: ((not t.is_pinned), t.sequence, t.id)):
             grouped[ticket.id] = {
                 'ticket': ticket,
                 'ticket_name': ticket.name or 'Unnamed Ticket',
@@ -802,6 +853,7 @@ class EventApplicationPortal(CustomerPortal):
         ticket_groups = sorted(
             grouped.values(),
             key=lambda g: (
+                0 if (g['ticket'] and g['ticket'].is_pinned) else 1,
                 g['ticket'].sequence if g['ticket'] else 999999,
                 (g['ticket_name'] or '').lower(),
             ),

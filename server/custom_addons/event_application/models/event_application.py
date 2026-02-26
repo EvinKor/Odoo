@@ -73,6 +73,14 @@ class EventApplication(models.Model):
         string='Cases',
         help='Types of cases covered in this event'
     )
+    specialty_other_text = fields.Text(
+        string='Other Specialties (One-time)',
+        help='Free-text specialties used only for this application/event.',
+    )
+    case_other_text = fields.Text(
+        string='Other Cases (One-time)',
+        help='Free-text case types used only for this application/event.',
+    )
     
     rejection_reason = fields.Text(string='Rejection Reason')
     event_id = fields.Many2one('event.event', string='Published Event', readonly=True)
@@ -349,6 +357,8 @@ class EventApplication(models.Model):
             'application_id': self.id,
             'specialty_ids': [(6, 0, self.specialty_ids.ids)],  # Transfer specialty tags
             'case_ids': [(6, 0, self.case_ids.ids)],  # Transfer case tags
+            'specialty_other_text': self.specialty_other_text,
+            'case_other_text': self.case_other_text,
             'contact_phone': self.contact_phone,
             'contact_email': self.contact_email,
         }

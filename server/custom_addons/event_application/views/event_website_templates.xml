@@ -363,20 +363,26 @@
 
     <template id="event_page_specialty_case" inherit_id="website_event.event_description_full">
         <xpath expr="//aside[@id='o_wevent_event_main_sidebar']/div[@class='o_wevent_sidebar_block border-bottom pb-3 mb-4'][1]" position="after">
-            <div t-if="event.specialty_ids or event.case_ids" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
-                <t t-if="event.specialty_ids">
+            <div t-if="event.specialty_ids or event.case_ids or event.specialty_other_text or event.case_other_text" class="o_wevent_sidebar_block border-bottom pb-3 mb-4">
+                <t t-if="event.specialty_ids or event.specialty_other_text">
                     <h6 class="o_wevent_sidebar_title">Specialties</h6>
                     <div class="d-flex flex-wrap gap-2 mb-2">
                         <t t-foreach="event.specialty_ids" t-as="specialty">
                             <span class="badge text-bg-light mrbur-tag-badge"><t t-esc="specialty.name"/></span>
                         </t>
+                        <t t-foreach="[name.strip() for name in (event.specialty_other_text or '').split(',') if name.strip()]" t-as="specialty_name">
+                            <span class="badge text-bg-light mrbur-tag-badge"><t t-esc="specialty_name"/></span>
+                        </t>
                     </div>
                 </t>
-                <t t-if="event.case_ids">
+                <t t-if="event.case_ids or event.case_other_text">
                     <h6 class="o_wevent_sidebar_title">Case Types</h6>
                     <div class="d-flex flex-wrap gap-2">
                         <t t-foreach="event.case_ids" t-as="case_item">
                             <span class="badge text-bg-light mrbur-tag-badge"><t t-esc="case_item.name"/></span>
+                        </t>
+                        <t t-foreach="[name.strip() for name in (event.case_other_text or '').split(',') if name.strip()]" t-as="case_name">
+                            <span class="badge text-bg-light mrbur-tag-badge"><t t-esc="case_name"/></span>
                         </t>
                     </div>
                 </t>
@@ -483,7 +489,7 @@
     <template id="registration_complete_my_registrations" inherit_id="website_event.registration_complete">
         <xpath expr="//div[contains(@class, 'o_wereg_confirmed')]//div[@class='row mb-3']/div[@class='col-12']" position="inside">
             <div class="mt-2">
-                <a href="/my/event-registrations" class="btn btn-primary">
+                <a href="/my/events/registrations" class="btn btn-primary">
                     <i class="fa fa-qrcode"></i> My Registrations
                 </a>
             </div>

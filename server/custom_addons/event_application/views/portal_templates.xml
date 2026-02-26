@@ -15,6 +15,54 @@
                         .ea-ticket-card {
                             border-width: 1px;
                         }
+                        .ea-ticket-card .card-body {
+                            padding: 1rem 1rem 0.75rem;
+                        }
+                        .ea-ticket-title {
+                            font-size: 1.05rem;
+                            line-height: 1.35;
+                            margin-bottom: 0.25rem;
+                        }
+                        .ea-ticket-row {
+                            display: flex;
+                            align-items: flex-start;
+                            gap: 0.5rem;
+                            margin-bottom: 0.35rem;
+                            color: #495057;
+                        }
+                        .ea-ticket-row i.fa {
+                            width: 1rem;
+                            margin-top: 0.15rem;
+                            color: #6c757d;
+                        }
+                        .ea-ticket-label {
+                            font-weight: 600;
+                            color: #212529;
+                            margin-right: 0.3rem;
+                        }
+                        .ea-ticket-meta {
+                            margin-top: 0.65rem;
+                            padding-top: 0.65rem;
+                            border-top: 1px solid rgba(33, 37, 41, 0.12);
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-start;
+                            gap: 0.75rem;
+                        }
+                        .ea-ticket-names {
+                            display: -webkit-box;
+                            -webkit-line-clamp: 2;
+                            -webkit-box-orient: vertical;
+                            overflow: hidden;
+                            line-height: 1.35;
+                        }
+                        .ea-ticket-created {
+                            white-space: nowrap;
+                        }
+                        .ea-ticket-footer {
+                            padding-top: 0;
+                            border-top: 0;
+                        }
                         .ea-event-card--past {
                             transition: background-color 0.2s ease, border-color 0.2s ease;
                         }
@@ -136,6 +184,17 @@
                                     Show Upcoming Only
                                 </a>
                             </div>
+                            <p class="small text-muted mb-2">
+                                <t t-if="registrations_filter_active">
+                                    Filter on:
+                                    <t t-if="registrations_event_name"> Event = <strong><t t-esc="registrations_event_name"/></strong></t>
+                                    <t t-if="registrations_search">
+                                        <t t-if="registrations_event_name">, </t>
+                                        Search = <strong><t t-esc="registrations_search"/></strong>
+                                    </t>
+                                </t>
+                                <t t-else="">Filter off (showing all events)</t>
+                            </p>
                             <form method="get" action="/my/events/registrations" class="row g-2 mb-3">
                                 <input t-if="registrations_history" type="hidden" name="registrations_history" value="1"/>
                                 <div class="col-md-6">
@@ -145,7 +204,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <select name="registrations_event_id" class="form-select">
-                                        <option value="">All Events</option>
+                                        <option value="" t-att-selected="(not registrations_event_id) and 'selected' or None">All Events</option>
                                         <t t-foreach="registration_filter_events" t-as="ev">
                                             <option t-att-value="ev.id"
                                                     t-att-selected="registrations_event_id and str(ev.id) == str(registrations_event_id)">
@@ -169,47 +228,48 @@
                                         <div class="col-md-6 mb-4">
                                             <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
                                                 <div class="card-body">
-                                                    <h5 class="card-title mb-2">
+                                                    <h5 class="card-title ea-ticket-title">
                                                         <t t-esc="batch['event'].name"/>
                                                     </h5>
-                                                    <p class="mb-2">
+                                                    <p class="mb-3">
                                                         <span t-att-class="'badge ' + (batch.get('status_badge') or 'bg-secondary')">
                                                             <t t-esc="batch.get('status_label') or 'Unknown'"/>
                                                         </span>
                                                     </p>
-                                                    <p class="card-text mb-0">
+                                                    <p class="card-text ea-ticket-row">
                                                         <i class="fa fa-calendar"></i>
-                                                        Event Date:
+                                                        <span><span class="ea-ticket-label">Event Date:</span>
                                                         <t t-esc="batch['event'].date_begin" t-options="{'widget': 'datetime'}"/>
+                                                        </span>
                                                     </p>
-                                                    <p class="card-text mb-0">
+                                                    <p class="card-text ea-ticket-row">
                                                         <i class="fa fa-user"></i>
-                                                        <t t-esc="batch['buyer_name']"/>
+                                                        <span><span class="ea-ticket-label">Name:</span><t t-esc="batch['buyer_name']"/></span>
                                                     </p>
-                                                    <p class="card-text mb-0">
+                                                    <p class="card-text ea-ticket-row">
                                                         <i class="fa fa-envelope"></i>
-                                                        <t t-esc="batch['buyer_email']"/>
+                                                        <span><span class="ea-ticket-label">Email:</span><t t-esc="batch['buyer_email']"/></span>
                                                     </p>
-                                                    <p class="card-text mb-0">
+                                                    <p class="card-text ea-ticket-row">
                                                         <i class="fa fa-phone"></i>
-                                                        <t t-esc="batch['buyer_phone']"/>
+                                                        <span><span class="ea-ticket-label">Phone:</span><t t-esc="batch['buyer_phone']"/></span>
                                                     </p>
-                                                    <p class="card-text mt-2">
+                                                    <p class="card-text ea-ticket-row mb-2 mt-3">
                                                         <i class="fa fa-ticket"></i>
-                                                        Tickets: <t t-esc="batch['count']"/>
+                                                        <span><span class="ea-ticket-label">Tickets:</span><t t-esc="batch['count']"/></span>
                                                     </p>
-                                                    <div class="d-flex justify-content-between align-items-center text-muted mb-0">
-                                                        <small>
+                                                    <div class="ea-ticket-meta text-muted">
+                                                        <small class="ea-ticket-names">
                                                             <t t-foreach="batch['ticket_names']" t-as="tname">
                                                                 <t t-esc="tname"/><t t-if="not tname_last">, </t>
                                                             </t>
                                                         </small>
-                                                        <small>
+                                                        <small class="ea-ticket-created">
                                                             <t t-esc="batch['create_date']" t-options="{'widget': 'datetime'}"/>
                                                         </small>
                                                     </div>
                                                 </div>
-                                                <div class="card-footer bg-transparent">
+                                                <div class="card-footer bg-transparent ea-ticket-footer">
                                                     <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                         <i class="fa fa-download"></i> Download Tickets
                                                     </a>
@@ -228,6 +288,56 @@
         <template id="portal_my_event_registration_index" name="Event Registrations Index">
             <t t-call="portal.portal_layout">
                 <div class="container mt-4 mb-5">
+                    <style>
+                        .ea-ticket-card .card-body {
+                            padding: 1rem 1rem 0.75rem;
+                        }
+                        .ea-ticket-title {
+                            font-size: 1.05rem;
+                            line-height: 1.35;
+                            margin-bottom: 0.25rem;
+                        }
+                        .ea-ticket-row {
+                            display: flex;
+                            align-items: flex-start;
+                            gap: 0.5rem;
+                            margin-bottom: 0.35rem;
+                            color: #495057;
+                        }
+                        .ea-ticket-row i.fa {
+                            width: 1rem;
+                            margin-top: 0.15rem;
+                            color: #6c757d;
+                        }
+                        .ea-ticket-label {
+                            font-weight: 600;
+                            color: #212529;
+                            margin-right: 0.3rem;
+                        }
+                        .ea-ticket-meta {
+                            margin-top: 0.65rem;
+                            padding-top: 0.65rem;
+                            border-top: 1px solid rgba(33, 37, 41, 0.12);
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-start;
+                            gap: 0.75rem;
+                        }
+                        .ea-ticket-names {
+                            display: -webkit-box;
+                            -webkit-line-clamp: 2;
+                            -webkit-box-orient: vertical;
+                            overflow: hidden;
+                            line-height: 1.35;
+                        }
+                        .ea-ticket-created {
+                            white-space: nowrap;
+                        }
+                        .ea-ticket-footer {
+                            padding-top: 0;
+                            border-top: 0;
+                        }
+                    </style>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3>My Event Registrations</h3>
                         <a href="/my/events" class="btn btn-secondary">
@@ -243,7 +353,7 @@
                         </div>
                         <div class="col-md-4">
                             <select name="event_id" class="form-select">
-                                <option value="">All Events</option>
+                                <option value="" t-att-selected="(not event_id) and 'selected' or None">All Events</option>
                                 <t t-foreach="events" t-as="ev">
                                     <option t-att-value="ev.id"
                                             t-att-selected="event_id and str(ev.id) == str(event_id)">
@@ -258,6 +368,17 @@
                             </button>
                         </div>
                     </form>
+                    <p class="small text-muted mb-3">
+                        <t t-if="filter_active">
+                            Filter on:
+                            <t t-if="event_name"> Event = <strong><t t-esc="event_name"/></strong></t>
+                            <t t-if="search">
+                                <t t-if="event_name">, </t>
+                                Search = <strong><t t-esc="search"/></strong>
+                            </t>
+                        </t>
+                        <t t-else="">Filter off (showing all events)</t>
+                    </p>
 
                     <t t-if="not registration_batches">
                         <div class="alert alert-info">
@@ -271,47 +392,48 @@
                                 <div class="col-md-6 mb-4">
                                     <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
                                         <div class="card-body">
-                                            <h5 class="card-title mb-2">
+                                            <h5 class="card-title ea-ticket-title">
                                                 <t t-esc="batch['event'].name"/>
                                             </h5>
-                                            <p class="mb-2">
+                                            <p class="mb-3">
                                                 <span t-att-class="'badge ' + (batch.get('status_badge') or 'bg-secondary')">
                                                     <t t-esc="batch.get('status_label') or 'Unknown'"/>
                                                 </span>
                                             </p>
-                                            <p class="card-text mb-0">
+                                            <p class="card-text ea-ticket-row">
                                                 <i class="fa fa-calendar"></i>
-                                                Event Date:
+                                                <span><span class="ea-ticket-label">Event Date:</span>
                                                 <t t-esc="batch['event'].date_begin" t-options="{'widget': 'datetime'}"/>
+                                                </span>
                                             </p>
-                                            <p class="card-text mb-0">
+                                            <p class="card-text ea-ticket-row">
                                                 <i class="fa fa-user"></i>
-                                                <t t-esc="batch['buyer_name']"/>
+                                                <span><span class="ea-ticket-label">Name:</span><t t-esc="batch['buyer_name']"/></span>
                                             </p>
-                                            <p class="card-text mb-0">
+                                            <p class="card-text ea-ticket-row">
                                                 <i class="fa fa-envelope"></i>
-                                                <t t-esc="batch['buyer_email']"/>
+                                                <span><span class="ea-ticket-label">Email:</span><t t-esc="batch['buyer_email']"/></span>
                                             </p>
-                                            <p class="card-text mb-0">
+                                            <p class="card-text ea-ticket-row">
                                                 <i class="fa fa-phone"></i>
-                                                <t t-esc="batch['buyer_phone']"/>
+                                                <span><span class="ea-ticket-label">Phone:</span><t t-esc="batch['buyer_phone']"/></span>
                                             </p>
-                                            <p class="card-text mt-2">
+                                            <p class="card-text ea-ticket-row mb-2 mt-3">
                                                 <i class="fa fa-ticket"></i>
-                                                Tickets: <t t-esc="batch['count']"/>
+                                                <span><span class="ea-ticket-label">Tickets:</span><t t-esc="batch['count']"/></span>
                                             </p>
-                                            <div class="d-flex justify-content-between align-items-center text-muted mb-0">
-                                                <small>
+                                            <div class="ea-ticket-meta text-muted">
+                                                <small class="ea-ticket-names">
                                                     <t t-foreach="batch['ticket_names']" t-as="tname">
                                                         <t t-esc="tname"/><t t-if="not tname_last">, </t>
                                                     </t>
                                                 </small>
-                                                <small>
+                                                <small class="ea-ticket-created">
                                                     <t t-esc="batch['create_date']" t-options="{'widget': 'datetime'}"/>
                                                 </small>
                                             </div>
                                         </div>
-                                        <div class="card-footer bg-transparent">
+                                        <div class="card-footer bg-transparent ea-ticket-footer">
                                             <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                 <i class="fa fa-download"></i> Download Tickets
                                             </a>
@@ -382,7 +504,7 @@
                                     <t t-else="">Please fix the highlighted data and submit again.</t>
                                 </div>
                             </t>
-                            <form action="/event/apply/submit" method="post" class="o_website_form" enctype="multipart/form-data">
+                            <form id="event-application-submit-form" action="/event/apply/submit" method="post" class="o_website_form" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                 
                                 <div class="row">
@@ -394,14 +516,12 @@
                                                 <input type="text" name="event_name" id="event_name" class="form-control" required="required"/>
                                             </div>
                                             <div class="row">
-                                                <div class="col-md-6 mb-3">
-                                                    <label class="form-label" for="date_begin">Start Date *</label>
-                                                    <input type="datetime-local" name="date_begin" id="date_begin" class="form-control" required="required"/>
+                                                <div class="col-12 mb-3">
+                                                    <label class="form-label" for="event_datetimes">Event Date Range *</label>
+                                                    <input type="text" id="event_datetimes" class="form-control" placeholder="Select start and end date/time"/>
                                                 </div>
-                                                <div class="col-md-6 mb-3">
-                                                    <label class="form-label" for="date_end">End Date *</label>
-                                                    <input type="datetime-local" name="date_end" id="date_end" class="form-control" required="required"/>
-                                                </div>
+                                                <input type="hidden" name="date_begin" id="date_begin"/>
+                                                <input type="hidden" name="date_end" id="date_end"/>
                                             </div>
                                         </section>
                                     </div>
@@ -423,13 +543,19 @@
                                                                 <label class="form-label">Ticket Name</label>
                                                                 <input type="text" name="ticket_name[]" class="form-control" placeholder="General Admission"/>
                                                             </div>
-                                                            <div class="col-md-4 mb-3">
-                                                                <label class="form-label">Sales Start</label>
-                                                                <input type="datetime-local" name="ticket_start[]" class="form-control"/>
-                                                            </div>
-                                                            <div class="col-md-4 mb-3">
-                                                                <label class="form-label">Sales End</label>
-                                                                <input type="datetime-local" name="ticket_end[]" class="form-control"/>
+                                                            <div class="col-md-8 mb-3">
+                                                                <label class="form-label">Sales Window</label>
+                                                                <input type="text" name="ticket_datetimes[]" class="form-control ticket-datetime-range" placeholder="Select sales start and end"/>
+                                                                <div class="ticket-date-fallback d-none mt-2">
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-2">
+                                                                            <input type="datetime-local" name="ticket_start[]" class="form-control ticket-start-input"/>
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-2">
+                                                                            <input type="datetime-local" name="ticket_end[]" class="form-control ticket-end-input"/>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div class="row align-items-end">
@@ -466,13 +592,19 @@
                                                                 <label class="form-label">Ticket Name</label>
                                                                 <input type="text" name="ticket_name[]" class="form-control" placeholder="VIP / Early Bird / Student"/>
                                                             </div>
-                                                            <div class="col-md-4 mb-3">
-                                                                <label class="form-label">Sales Start</label>
-                                                                <input type="datetime-local" name="ticket_start[]" class="form-control"/>
-                                                            </div>
-                                                            <div class="col-md-4 mb-3">
-                                                                <label class="form-label">Sales End</label>
-                                                                <input type="datetime-local" name="ticket_end[]" class="form-control"/>
+                                                            <div class="col-md-8 mb-3">
+                                                                <label class="form-label">Sales Window</label>
+                                                                <input type="text" name="ticket_datetimes[]" class="form-control ticket-datetime-range" placeholder="Select sales start and end"/>
+                                                                <div class="ticket-date-fallback d-none mt-2">
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-2">
+                                                                            <input type="datetime-local" name="ticket_start[]" class="form-control ticket-start-input"/>
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-2">
+                                                                            <input type="datetime-local" name="ticket_end[]" class="form-control ticket-end-input"/>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div class="row align-items-end">
@@ -880,12 +1012,23 @@
                                     color: #2f4f84;
                                     font-weight: 600;
                                 }
+                                .ticket-datetime-range,
+                                .ticket-datetime-range:hover,
+                                #event_datetimes,
+                                #event_datetimes:hover {
+                                    cursor: pointer;
+                                }
                             </style>
+                            <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+                            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+                            <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+                            <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
                             
                             <script>
                                 <![CDATA[
                                 document.addEventListener('DOMContentLoaded', function() {
                                     try {
+                                    const jq = window.jQuery || window.$;
                                     const venueTypeSelect = document.getElementById('venue_type');
                                     const onlineFields = document.getElementById('online_venue_fields');
                                     const physicalFields = document.getElementById('physical_venue_fields');
@@ -894,6 +1037,9 @@
                                     const zipCodeInput = document.getElementById('zip_code');
                                     const eventNameInput = document.getElementById('event_name');
                                     const dateBeginInput = document.getElementById('date_begin');
+                                    const dateEndInput = document.getElementById('date_end');
+                                    const eventDateRangeInput = document.getElementById('event_datetimes');
+                                    const eventDateFallback = document.getElementById('event-date-fallback');
                                     const badgeInput = document.getElementById('badge_image');
                                     const cardBgInput = document.getElementById('card_bg_image');
                                     const previewTitle = document.getElementById('event-card-title-preview');
@@ -1021,6 +1167,87 @@
                                         }
                                     }
 
+                                    function initEventDateRangePicker() {
+                                        if (!eventDateRangeInput || !dateBeginInput || !dateEndInput) {
+                                            return;
+                                        }
+                                        const hasPicker = function() {
+                                            const localJq = window.jQuery || window.$;
+                                            return Boolean(
+                                                localJq &&
+                                                window.moment &&
+                                                localJq.fn &&
+                                                typeof localJq.fn.daterangepicker === 'function'
+                                            );
+                                        };
+                                        const showFallback = function() {
+                                            // Keep merged field only; do not show separate start/end controls.
+                                            dateBeginInput.required = false;
+                                            dateEndInput.required = false;
+                                            eventDateRangeInput.required = true;
+                                        };
+                                        const activateRangePicker = function() {
+                                            const localJq = window.jQuery || window.$;
+                                            if (!hasPicker()) {
+                                                return false;
+                                            }
+
+                                        if (eventDateFallback) {
+                                            eventDateFallback.classList.add('d-none');
+                                        }
+                                        dateBeginInput.required = false;
+                                        dateEndInput.required = false;
+                                        eventDateRangeInput.required = true;
+                                        eventDateRangeInput.classList.remove('d-none');
+
+                                        let start = dateBeginInput.value ? window.moment(dateBeginInput.value) : window.moment().startOf('hour');
+                                        let end = dateEndInput.value ? window.moment(dateEndInput.value) : start.clone().add(32, 'hour');
+                                        if (!start.isValid()) {
+                                            start = window.moment().startOf('hour');
+                                        }
+                                        if (!end.isValid() || end.isBefore(start)) {
+                                            end = start.clone().add(32, 'hour');
+                                        }
+
+                                        const syncDateRange = function(startDate, endDate) {
+                                            dateBeginInput.value = startDate.format('YYYY-MM-DDTHH:mm');
+                                            dateEndInput.value = endDate.format('YYYY-MM-DDTHH:mm');
+                                            eventDateRangeInput.value = `${startDate.format('M/DD hh:mm A')} - ${endDate.format('M/DD hh:mm A')}`;
+                                            updatePreviewText();
+                                        };
+
+                                        localJq(eventDateRangeInput).daterangepicker({
+                                            timePicker: true,
+                                            startDate: start,
+                                            endDate: end,
+                                            locale: {
+                                                format: 'M/DD hh:mm A'
+                                            }
+                                        }, function(startDate, endDate) {
+                                            syncDateRange(startDate, endDate);
+                                        });
+
+                                        syncDateRange(start, end);
+                                            return true;
+                                        };
+
+                                        if (activateRangePicker()) {
+                                            return;
+                                        }
+                                        let tries = 0;
+                                        const retryTimer = window.setInterval(function() {
+                                            tries += 1;
+                                            if (activateRangePicker()) {
+                                                window.clearInterval(retryTimer);
+                                                return;
+                                            }
+                                            if (tries >= 10) {
+                                                window.clearInterval(retryTimer);
+                                                showFallback();
+                                            }
+                                        }, 100);
+                                    }
+
                                     function updatePreviewImage(input, target, isBackground) {
                                         const file = input.files && input.files[0];
                                         if (!file) {
@@ -1051,6 +1278,77 @@
                                         const limitSelect = row.querySelector('.ticket-limit-select');
                                         const maxInput = row.querySelector('.ticket-max-input');
                                         const removeBtn = row.querySelector('.remove-ticket-line');
+                                        const ticketRangeInput = row.querySelector('.ticket-datetime-range');
+                                        const ticketStartInput = row.querySelector('.ticket-start-input');
+                                        const ticketEndInput = row.querySelector('.ticket-end-input');
+                                        const ticketDateFallback = row.querySelector('.ticket-date-fallback');
+
+                                        function initTicketDateRange() {
+                                            if (!ticketRangeInput || !ticketStartInput || !ticketEndInput) {
+                                                return;
+                                            }
+                                            const localJq = window.jQuery || window.$;
+                                            const hasPicker = Boolean(
+                                                localJq &&
+                                                window.moment &&
+                                                localJq.fn &&
+                                                typeof localJq.fn.daterangepicker === 'function'
+                                            );
+                                            if (!hasPicker) {
+                                                ticketRangeInput.classList.add('d-none');
+                                                if (ticketDateFallback) {
+                                                    ticketDateFallback.classList.remove('d-none');
+                                                }
+                                                return;
+                                            }
+
+                                            if (ticketDateFallback) {
+                                                ticketDateFallback.classList.add('d-none');
+                                            }
+                                            ticketRangeInput.classList.remove('d-none');
+                                            if (ticketRangeInput.dataset.rangeInit === '1') {
+                                                return;
+                                            }
+
+                                            const hasExistingRange = Boolean(ticketStartInput.value && ticketEndInput.value);
+                                            let start = ticketStartInput.value ? window.moment(ticketStartInput.value) : window.moment().startOf('hour');
+                                            let end = ticketEndInput.value ? window.moment(ticketEndInput.value) : start.clone().add(1, 'day');
+                                            if (!start.isValid()) {
+                                                start = window.moment().startOf('hour');
+                                            }
+                                            if (!end.isValid() || end.isBefore(start)) {
+                                                end = start.clone().add(1, 'day');
+                                            }
+
+                                            const syncValues = function(startDate, endDate) {
+                                                ticketStartInput.value = startDate.format('YYYY-MM-DDTHH:mm');
+                                                ticketEndInput.value = endDate.format('YYYY-MM-DDTHH:mm');
+                                                ticketRangeInput.value = `${startDate.format('M/DD hh:mm A')} - ${endDate.format('M/DD hh:mm A')}`;
+                                            };
+
+                                            localJq(ticketRangeInput).daterangepicker({
+                                                timePicker: true,
+                                                startDate: start,
+                                                endDate: end,
+                                                autoUpdateInput: false,
+                                                locale: {
+                                                    format: 'M/DD hh:mm A'
+                                                }
+                                            });
+
+                                            localJq(ticketRangeInput).off('apply.daterangepicker.ticket').on('apply.daterangepicker.ticket', function(ev, picker) {
+                                                syncValues(picker.startDate, picker.endDate);
+                                            });
+
+                                            if (hasExistingRange) {
+                                                syncValues(start, end);
+                                            } else {
+                                                ticketRangeInput.value = '';
+                                                ticketStartInput.value = '';
+                                                ticketEndInput.value = '';
+                                            }
+                                            ticketRangeInput.dataset.rangeInit = '1';
+                                        }
 
                                         function syncLimitState() {
                                             const limited = limitSelect && limitSelect.value === '1';
@@ -1066,6 +1364,7 @@
                                             limitSelect.addEventListener('change', syncLimitState);
                                             syncLimitState();
                                         }
+                                        initTicketDateRange();
 
                                         if (removeBtn) {
                                             removeBtn.addEventListener('click', function() {
@@ -1081,6 +1380,9 @@
                                                             input.value = '';
                                                         }
                                                     });
+                                                    if (ticketRangeInput) {
+                                                        ticketRangeInput.value = '';
+                                                    }
                                                     if (limitSelect) {
                                                         limitSelect.value = '0';
                                                     }
@@ -1099,6 +1401,7 @@
                                     if (zipCodeInput) zipCodeInput.addEventListener('input', validateZipCode);
                                     if (eventNameInput) eventNameInput.addEventListener('input', updatePreviewText);
                                     if (dateBeginInput) dateBeginInput.addEventListener('input', updatePreviewText);
+                                    if (dateEndInput) dateEndInput.addEventListener('input', updatePreviewText);
                                     if (badgeInput && previewBadge) badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false));
                                     if (cardBgInput && previewBg) cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
                                     if (addTicketLineBtn && ticketLineTemplate && ticketLinesContainer) {
@@ -1225,8 +1528,211 @@
                                     createMultiSelect(specialtyTags, specialtySelect, specialtyIdsHidden, selectedSpecialties);
                                     createMultiSelect(caseTags, caseSelect, caseIdsHidden, selectedCases);
 
+                                    const applicationForm = document.getElementById('event-application-submit-form');
+                                    const draftStorageKey = 'event_application_form_draft_v1';
+
+                                    function getClientErrorBox() {
+                                        if (!applicationForm) {
+                                            return null;
+                                        }
+                                        let box = applicationForm.querySelector('#event-application-client-error');
+                                        if (!box) {
+                                            box = document.createElement('div');
+                                            box.id = 'event-application-client-error';
+                                            box.className = 'alert alert-danger d-none';
+                                            applicationForm.prepend(box);
+                                        }
+                                        return box;
+                                    }
+
+                                    function showClientError(message) {
+                                        const box = getClientErrorBox();
+                                        if (!box) {
+                                            return;
+                                        }
+                                        box.textContent = message || 'Please fix the form and try again.';
+                                        box.classList.remove('d-none');
+                                        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+
+                                    function clearClientError() {
+                                        const box = getClientErrorBox();
+                                        if (!box) {
+                                            return;
+                                        }
+                                        box.textContent = '';
+                                        box.classList.add('d-none');
+                                    }
+
+                                    function getFieldValueByName(name, index) {
+                                        if (!applicationForm) {
+                                            return '';
+                                        }
+                                        const fields = applicationForm.querySelectorAll(`[name="${name}"]`);
+                                        const field = fields[index];
+                                        if (!field) {
+                                            return '';
+                                        }
+                                        return (field.value || '').trim();
+                                    }
+
+                                    function validateBeforeSubmit() {
+                                        clearClientError();
+                                        if (!applicationForm) {
+                                            return true;
+                                        }
+                                        const eventName = (eventNameInput && eventNameInput.value || '').trim();
+                                        const dateBegin = (dateBeginInput && dateBeginInput.value || '').trim();
+                                        const dateEndInput = document.getElementById('date_end');
+                                        const dateEnd = (dateEndInput && dateEndInput.value || '').trim();
+                                        if (!eventName) {
+                                            showClientError('Event name is required.');
+                                            return false;
+                                        }
+                                        if (!dateBegin || !dateEnd) {
+                                            showClientError('Start date and end date are required.');
+                                            return false;
+                                        }
+                                        if (dateBegin > dateEnd) {
+                                            showClientError('Start date must be before end date.');
+                                            return false;
+                                        }
+
+                                        const ticketRows = applicationForm.querySelectorAll('#ticket-lines-container .ticket-line');
+                                        for (let i = 0; i < ticketRows.length; i++) {
+                                            const ticketName = getFieldValueByName('ticket_name[]', i);
+                                            const ticketStart = getFieldValueByName('ticket_start[]', i);
+                                            const ticketEnd = getFieldValueByName('ticket_end[]', i);
+                                            const limitQty = getFieldValueByName('ticket_limit[]', i);
+                                            const maxQty = getFieldValueByName('ticket_max[]', i);
+                                            const pointCost = getFieldValueByName('ticket_points[]', i);
+                                            const hasRowData = Boolean(ticketName || ticketStart || ticketEnd || maxQty || (pointCost && pointCost !== '0'));
+                                            if (!hasRowData) {
+                                                continue;
+                                            }
+                                            if (!ticketName) {
+                                                showClientError(`Ticket ${i + 1}: ticket name is required.`);
+                                                return false;
+                                            }
+                                            if (ticketStart && ticketEnd && ticketStart > ticketEnd) {
+                                                showClientError(`Ticket ${i + 1}: sales start must be before sales end.`);
+                                                return false;
+                                            }
+                                            if (limitQty === '1' && (!maxQty || parseInt(maxQty, 10) <= 0)) {
+                                                showClientError(`Ticket ${i + 1}: max quantity must be greater than 0 when limit is enabled.`);
+                                                return false;
+                                            }
+                                            if (pointCost && parseInt(pointCost, 10) < 0) {
+                                                showClientError(`Ticket ${i + 1}: point cost cannot be negative.`);
+                                                return false;
+                                            }
+                                        }
+                                        return true;
+                                    }
+
+                                    function buildDraftPayload() {
+                                        if (!applicationForm) {
+                                            return null;
+                                        }
+                                        const payload = {};
+                                        const fields = applicationForm.querySelectorAll('input, textarea, select');
+                                        fields.forEach((field) => {
+                                            const name = field.name;
+                                            if (!name || name === 'csrf_token' || field.type === 'file') {
+                                                return;
+                                            }
+                                            if ((field.type === 'checkbox' || field.type === 'radio') && !field.checked) {
+                                                return;
+                                            }
+                                            if (name.endsWith('[]')) {
+                                                if (!Array.isArray(payload[name])) {
+                                                    payload[name] = [];
+                                                }
+                                                payload[name].push(field.value || '');
+                                            } else {
+                                                payload[name] = field.value || '';
+                                            }
+                                        });
+                                        return payload;
+                                    }
+
+                                    function restoreDraftPayload(payload) {
+                                        if (!applicationForm || !payload) {
+                                            return;
+                                        }
+                                        const ticketArrays = ['ticket_name[]', 'ticket_start[]', 'ticket_end[]', 'ticket_limit[]', 'ticket_max[]', 'ticket_points[]'];
+                                        const targetRows = Math.max(
+                                            ...ticketArrays.map((key) => Array.isArray(payload[key]) ? payload[key].length : 0),
+                                            1
+                                        );
+                                        while (ticketLinesContainer && addTicketLineBtn && ticketLinesContainer.querySelectorAll('.ticket-line').length < targetRows) {
+                                            addTicketLineBtn.click();
+                                        }
+                                        Object.keys(payload).forEach((name) => {
+                                            const value = payload[name];
+                                            const fields = applicationForm.querySelectorAll(`[name="${name}"]`);
+                                            if (!fields.length) {
+                                                return;
+                                            }
+                                            if (Array.isArray(value)) {
+                                                value.forEach((entry, idx) => {
+                                                    if (fields[idx]) {
+                                                        fields[idx].value = entry;
+                                                    }
+                                                });
+                                            } else {
+                                                fields[0].value = value;
+                                            }
+                                        });
+                                        if (ticketLinesContainer) {
+                                            ticketLinesContainer.querySelectorAll('.ticket-line').forEach(bindTicketRow);
+                                        }
+                                        toggleVenueFields();
+                                        updateStates();
+                                        updatePreviewText();
+                                    }
+
+                                    function saveDraft() {
+                                        const payload = buildDraftPayload();
+                                        if (!payload) {
+                                            return;
+                                        }
+                                        sessionStorage.setItem(draftStorageKey, JSON.stringify(payload));
+                                    }
+
+                                    function restoreDraft() {
+                                        const raw = sessionStorage.getItem(draftStorageKey);
+                                        if (!raw) {
+                                            return;
+                                        }
+                                        try {
+                                            restoreDraftPayload(JSON.parse(raw));
+                                        } catch (_) {
+                                            sessionStorage.removeItem(draftStorageKey);
+                                        }
+                                    }
+
+                                    if (applicationForm) {
+                                        restoreDraft();
+                                        applicationForm.addEventListener('input', saveDraft);
+                                        applicationForm.addEventListener('change', saveDraft);
+                                        applicationForm.addEventListener('submit', function (ev) {
+                                            if (!validateBeforeSubmit()) {
+                                                ev.preventDefault();
+                                                return;
+                                            }
+                                            const submitBtn = applicationForm.querySelector('button[type="submit"]');
+                                            if (submitBtn) {
+                                                submitBtn.disabled = true;
+                                                submitBtn.textContent = 'Validating...';
+                                            }
+                                            saveDraft();
+                                        });
+                                    }
+
                                     
                                     // Initialize
+                                    initEventDateRangePicker();
                                     if (venueTypeSelect && onlineFields && physicalFields) toggleVenueFields();
                                     if (countrySelect && stateSelect) updateStates();
                                     if (eventNameInput || dateBeginInput || previewTitle || previewDate) updatePreviewText();
@@ -1479,6 +1985,38 @@
                 </div>
             </t>
         </template>
+
+        <template id="event_application_payment_success_page" name="Event Application Payment Success">
+            <t t-call="website.layout">
+                <div class="container my-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-7">
+                            <div class="card text-center">
+                                <div class="card-body py-5">
+                                    <div class="mb-3">
+                                        <i class="fa fa-check-circle text-success" style="font-size: 3rem;"/>
+                                    </div>
+                                    <h3 class="mb-2">Payment Successful</h3>
+                                    <p class="text-muted mb-2">
+                                        Your event application has been submitted successfully.
+                                    </p>
+                                    <p class="text-muted mb-4" t-if="application">
+                                        Application: <strong><t t-esc="application.name"/></strong>
+                                    </p>
+                                    <p class="small text-muted mb-4">
+                                        Redirecting to your dashboard in <t t-esc="redirect_seconds"/> seconds...
+                                    </p>
+                                    <a t-att-href="redirect_url" class="btn btn-primary">
+                                        Go to Dashboard Now
+                                    </a>
+                                    <meta http-equiv="refresh" t-att-content="str(redirect_seconds) + ';url=' + redirect_url"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
         
         <!-- Add buttons to Events page -->
         <template id="event_index_submit_application" name="Submit Event Application Button" inherit_id="website_event.index">
@@ -1530,16 +2068,12 @@
                                         </div>
                                         
                                         <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label" for="date_begin">Start Date *</label>
-                                                <input type="datetime-local" name="date_begin" id="date_begin" class="form-control" 
-                                                       t-att-value="event.date_begin.strftime('%Y-%m-%dT%H:%M') if event.date_begin else ''" required="required"/>
+                                            <div class="col-12 mb-3">
+                                                <label class="form-label" for="event_edit_datetimes">Event Date Range *</label>
+                                                <input type="text" id="event_edit_datetimes" class="form-control" placeholder="Select start and end date/time"/>
                                             </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label" for="date_end">End Date *</label>
-                                                <input type="datetime-local" name="date_end" id="date_end" class="form-control" 
-                                                       t-att-value="event.date_end.strftime('%Y-%m-%dT%H:%M') if event.date_end else ''" required="required"/>
-                                            </div>
+                                            <input type="hidden" name="date_begin" id="date_begin" t-att-value="event.date_begin.strftime('%Y-%m-%dT%H:%M') if event.date_begin else ''"/>
+                                            <input type="hidden" name="date_end" id="date_end" t-att-value="event.date_end.strftime('%Y-%m-%dT%H:%M') if event.date_end else ''"/>
                                         </div>
                                         
                                           <div class="mb-3">
@@ -1570,24 +2104,24 @@
                                               <div class="row">
                                                   <div class="col-md-6 mb-3">
                                                       <label class="form-label" for="venue_name">Venue Name</label>
-                                                      <input type="text" name="venue_name" id="venue_name" class="form-control" t-att-value="event.venue_name or ''"/>
+                                                      <input type="text" name="venue_name" id="venue_name" class="form-control" t-att-value="event.venue_name or (event.address_id and event.address_id.name) or ''"/>
                                                   </div>
                                                   <div class="col-md-6 mb-3">
                                                       <label class="form-label" for="street_address">Street Address</label>
-                                                      <input type="text" name="street_address" id="street_address" class="form-control" t-att-value="event.street_address or ''"/>
+                                                      <input type="text" name="street_address" id="street_address" class="form-control" t-att-value="event.street_address or (event.address_id and event.address_id.street) or ''"/>
                                                   </div>
                                               </div>
                                               <div class="row">
                                                   <div class="col-md-4 mb-3">
                                                       <label class="form-label" for="city">City</label>
-                                                      <input type="text" name="city" id="city" class="form-control" t-att-value="event.city or ''"/>
+                                                      <input type="text" name="city" id="city" class="form-control" t-att-value="event.city or (event.address_id and event.address_id.city) or ''"/>
                                                   </div>
                                                   <div class="col-md-4 mb-3">
                                                       <label class="form-label" for="state_id">State</label>
                                                       <select name="state_id" id="state_id" class="form-select">
                                                           <option value="">Select State</option>
                                                           <t t-foreach="states" t-as="state">
-                                                              <option t-att-value="state.id" t-att-selected="event.state_id and state.id == event.state_id.id">
+                                                              <option t-att-value="state.id" t-att-selected="(event.state_id and state.id == event.state_id.id) or ((not event.state_id) and event.address_id and event.address_id.state_id and state.id == event.address_id.state_id.id)">
                                                                   <t t-esc="state.name"/>
                                                               </option>
                                                           </t>
@@ -1595,7 +2129,7 @@
                                                   </div>
                                                   <div class="col-md-4 mb-3">
                                                       <label class="form-label" for="zip_code">ZIP Code</label>
-                                                      <input type="text" name="zip_code" id="zip_code" class="form-control" t-att-value="event.zip_code or ''"/>
+                                                      <input type="text" name="zip_code" id="zip_code" class="form-control" t-att-value="event.zip_code or (event.address_id and event.address_id.zip) or ''"/>
                                                   </div>
                                               </div>
                                               <div class="row">
@@ -1604,7 +2138,7 @@
                                                       <select name="country_id" id="country_id" class="form-select">
                                                           <option value="">Select Country</option>
                                                           <t t-foreach="countries" t-as="country">
-                                                              <option t-att-value="country.id" t-att-selected="event.country_id and country.id == event.country_id.id">
+                                                              <option t-att-value="country.id" t-att-selected="(event.country_id and country.id == event.country_id.id) or ((not event.country_id) and event.address_id and event.address_id.country_id and country.id == event.address_id.country_id.id)">
                                                                   <t t-esc="country.name"/>
                                                               </option>
                                                           </t>
@@ -1644,7 +2178,12 @@
                                                         </div>
                                                     </div>
                                                 </t>
+                                                <div class="row ea-other-list"
+                                                     id="specialty-other-list"
+                                                     t-att-data-existing="event.specialty_other_text or ''">
+                                                </div>
                                             </div>
+                                            <input type="hidden" name="specialty_other_names" id="specialty_other_names"/>
                                         </div>
                                         
                                         <!-- Case Selection -->
@@ -1664,7 +2203,12 @@
                                                         </div>
                                                     </div>
                                                 </t>
+                                                <div class="row ea-other-list"
+                                                     id="case-other-list"
+                                                     t-att-data-existing="event.case_other_text or ''">
+                                                </div>
                                             </div>
+                                            <input type="hidden" name="case_other_names" id="case_other_names"/>
                                         </div>
                                         
                                         <div class="row">
@@ -1693,29 +2237,28 @@
                                                   <div class="table-responsive">
                                                       <table class="table table-sm">
                                                           <thead>
-                                                              <tr>
-                                                                  <th>Name</th>
-                                                                  <th t-if="allow_ticket_price">Price</th>
-                                                                  <th t-if="allow_ticket_point_cost">Point Cost</th>
-                                                                  <th>Start Sale</th>
-                                                                  <th>End Sale</th>
-                                                                  <th>Limited</th>
+                                                                <tr>
+                                                                    <th>Name</th>
+                                                                    <th t-if="allow_ticket_price">Price</th>
+                                                                    <th t-if="allow_ticket_point_cost">Point Cost</th>
+                                                                    <th>Sales Window</th>
+                                                                    <th>Limited</th>
                                                                   <th>Max</th>
                                                               </tr>
                                                           </thead>
                                                           <tbody>
-                                                              <tr t-foreach="event.event_ticket_ids" t-as="ticket">
-                                                                  <td>
-                                                                      <input type="text"
-                                                                             t-att-name="'ticket_name_%s' % ticket.id"
-                                                                             class="form-control form-control-sm"
-                                                                             t-att-value="ticket.name or ''"
-                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
-                                                                  </td>
-                                                                  <td t-if="allow_ticket_price">
-                                                                      <input type="number"
-                                                                             step="0.01"
-                                                                             min="0"
+                                                                <tr t-foreach="event.event_ticket_ids.sorted(lambda t: ((not t.is_pinned), t.sequence, t.id))" t-as="ticket">
+                                                                    <td>
+                                                                        <input type="text"
+                                                                               t-att-name="'ticket_name_%s' % ticket.id"
+                                                                               class="form-control form-control-sm"
+                                                                               t-att-value="ticket.name or ''"
+                                                                               t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                    </td>
+                                                                    <td t-if="allow_ticket_price">
+                                                                        <input type="number"
+                                                                               step="0.01"
+                                                                               min="0"
                                                                              t-att-name="'ticket_price_%s' % ticket.id"
                                                                              class="form-control form-control-sm"
                                                                              t-att-value="ticket.price or 0.0"
@@ -1730,18 +2273,22 @@
                                                                              t-att-readonly="'readonly' if not can_edit_tickets else None"/>
                                                                   </td>
                                                                   <td>
-                                                                      <input type="datetime-local"
+                                                                      <input type="text"
+                                                                             t-att-name="'ticket_datetimes_%s' % ticket.id"
+                                                                             class="form-control form-control-sm ticket-edit-datetime-range"
+                                                                             t-att-data-ticket-id="ticket.id"
+                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"
+                                                                             placeholder="Select sales start and end"/>
+                                                                      <input type="hidden"
                                                                              t-att-name="'ticket_start_%s' % ticket.id"
-                                                                             class="form-control form-control-sm"
-                                                                             t-att-value="ticket.start_sale_datetime and ticket.start_sale_datetime.strftime('%Y-%m-%dT%H:%M') or ''"
-                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
-                                                                  </td>
-                                                                  <td>
-                                                                      <input type="datetime-local"
+                                                                             class="ticket-edit-start"
+                                                                             t-att-data-ticket-id="ticket.id"
+                                                                             t-att-value="ticket.start_sale_datetime and ticket.start_sale_datetime.strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                                                      <input type="hidden"
                                                                              t-att-name="'ticket_end_%s' % ticket.id"
-                                                                             class="form-control form-control-sm"
-                                                                             t-att-value="ticket.end_sale_datetime and ticket.end_sale_datetime.strftime('%Y-%m-%dT%H:%M') or ''"
-                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
+                                                                             class="ticket-edit-end"
+                                                                             t-att-data-ticket-id="ticket.id"
+                                                                             t-att-value="ticket.end_sale_datetime and ticket.end_sale_datetime.strftime('%Y-%m-%dT%H:%M') or ''"/>
                                                                   </td>
                                                                   <td>
                                                                       <select t-att-name="'ticket_limit_%s' % ticket.id"
@@ -1773,6 +2320,293 @@
                                         <a href="/my/events" class="btn btn-secondary">Back to My Events</a>
                                         <a t-attf-href="/my/event/#{event.id}/registrations" class="btn btn-outline-primary">View Registrations</a>
                                     </form>
+                                    <style>
+                                        #event_edit_datetimes,
+                                        #event_edit_datetimes:hover,
+                                        .ticket-edit-datetime-range,
+                                        .ticket-edit-datetime-range:hover {
+                                            cursor: pointer;
+                                        }
+                                        .ea-other-list-item {
+                                            margin-bottom: 0.45rem;
+                                        }
+                                        .ea-other-list-row {
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 0.5rem;
+                                            width: 100%;
+                                        }
+                                        .ea-other-list-row .ea-other-checkbox {
+                                            margin-top: 0;
+                                        }
+                                        .ea-other-list-row .ea-other-input {
+                                            border: 0;
+                                            border-bottom: 1px solid #9aa7b8;
+                                            border-radius: 0;
+                                            padding-left: 0.1rem;
+                                            padding-right: 0.1rem;
+                                            background: transparent;
+                                        }
+                                        .ea-other-list-row .ea-other-input:focus {
+                                            box-shadow: none;
+                                            border-bottom-color: #2353a3;
+                                        }
+                                        .ea-other-list-row .ea-other-input:disabled {
+                                            background: transparent;
+                                            color: #9aa7b8;
+                                            border-bottom-color: #c8d0da;
+                                        }
+                                    </style>
+                                    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+                                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+                                    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+                                    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+                                    <script>
+                                        <![CDATA[
+                                        document.addEventListener('DOMContentLoaded', function () {
+                                            const jq = window.jQuery || window.$;
+                                            const rangeInput = document.getElementById('event_edit_datetimes');
+                                            const beginInput = document.getElementById('date_begin');
+                                            const endInput = document.getElementById('date_end');
+                                            const fallbackBox = document.getElementById('event-edit-date-fallback');
+                                            if (!rangeInput || !beginInput || !endInput) {
+                                                return;
+                                            }
+
+                                            const hasPicker = Boolean(
+                                                jq &&
+                                                window.moment &&
+                                                jq.fn &&
+                                                typeof jq.fn.daterangepicker === 'function'
+                                            );
+                                            const initPicker = function () {
+                                                const localJq = window.jQuery || window.$;
+                                                const ready = Boolean(
+                                                    localJq &&
+                                                    window.moment &&
+                                                    localJq.fn &&
+                                                    typeof localJq.fn.daterangepicker === 'function'
+                                                );
+                                                if (!ready) {
+                                                    return false;
+                                                }
+                                                beginInput.required = false;
+                                                endInput.required = false;
+                                                rangeInput.required = true;
+                                                if (fallbackBox) {
+                                                    fallbackBox.classList.add('d-none');
+                                                }
+                                                rangeInput.classList.remove('d-none');
+
+                                                let start = beginInput.value ? window.moment(beginInput.value) : window.moment().startOf('hour');
+                                                let end = endInput.value ? window.moment(endInput.value) : start.clone().add(32, 'hour');
+                                                if (!start.isValid()) {
+                                                    start = window.moment().startOf('hour');
+                                                }
+                                                if (!end.isValid() || end.isBefore(start)) {
+                                                    end = start.clone().add(32, 'hour');
+                                                }
+
+                                                const sync = function (s, e) {
+                                                    beginInput.value = s.format('YYYY-MM-DDTHH:mm');
+                                                    endInput.value = e.format('YYYY-MM-DDTHH:mm');
+                                                    rangeInput.value = `${s.format('M/DD hh:mm A')} - ${e.format('M/DD hh:mm A')}`;
+                                                };
+
+                                                localJq(rangeInput).daterangepicker({
+                                                    timePicker: true,
+                                                    startDate: start,
+                                                    endDate: end,
+                                                    locale: { format: 'M/DD hh:mm A' }
+                                                }, function (s, e) {
+                                                    sync(s, e);
+                                                });
+                                                sync(start, end);
+                                                return true;
+                                            };
+
+                                            if (!initPicker()) {
+                                                let tries = 0;
+                                                const retryTimer = window.setInterval(function () {
+                                                    tries += 1;
+                                                    if (initPicker()) {
+                                                        window.clearInterval(retryTimer);
+                                                        return;
+                                                    }
+                                                    if (tries >= 10) {
+                                                        window.clearInterval(retryTimer);
+                                                    }
+                                                }, 100);
+                                            }
+
+                                            const initTicketPickers = function () {
+                                                const localJq = window.jQuery || window.$;
+                                                const ready = Boolean(
+                                                    localJq &&
+                                                    window.moment &&
+                                                    localJq.fn &&
+                                                    typeof localJq.fn.daterangepicker === 'function'
+                                                );
+                                                if (!ready) {
+                                                    return false;
+                                                }
+                                                const ticketRanges = document.querySelectorAll('.ticket-edit-datetime-range');
+                                                ticketRanges.forEach(function (rangeEl) {
+                                                    const ticketId = rangeEl.getAttribute('data-ticket-id');
+                                                    if (!ticketId || rangeEl.dataset.rangeInit === '1') {
+                                                        return;
+                                                    }
+                                                    const startEl = document.querySelector(`.ticket-edit-start[data-ticket-id="${ticketId}"]`);
+                                                    const endEl = document.querySelector(`.ticket-edit-end[data-ticket-id="${ticketId}"]`);
+                                                    if (!startEl || !endEl) {
+                                                        return;
+                                                    }
+                                                    let start = startEl.value ? window.moment(startEl.value) : window.moment().startOf('hour');
+                                                    let end = endEl.value ? window.moment(endEl.value) : start.clone().add(1, 'day');
+                                                    if (!start.isValid()) {
+                                                        start = window.moment().startOf('hour');
+                                                    }
+                                                    if (!end.isValid() || end.isBefore(start)) {
+                                                        end = start.clone().add(1, 'day');
+                                                    }
+                                                    const sync = function (s, e) {
+                                                        startEl.value = s.format('YYYY-MM-DDTHH:mm');
+                                                        endEl.value = e.format('YYYY-MM-DDTHH:mm');
+                                                        rangeEl.value = `${s.format('M/DD hh:mm A')} - ${e.format('M/DD hh:mm A')}`;
+                                                    };
+                                                    localJq(rangeEl).daterangepicker({
+                                                        timePicker: true,
+                                                        startDate: start,
+                                                        endDate: end,
+                                                        locale: { format: 'M/DD hh:mm A' }
+                                                    }, function (s, e) {
+                                                        sync(s, e);
+                                                    });
+                                                    sync(start, end);
+                                                    rangeEl.dataset.rangeInit = '1';
+                                                });
+                                                return true;
+                                            };
+
+                                            if (!initTicketPickers()) {
+                                                let ticketTries = 0;
+                                                const ticketRetryTimer = window.setInterval(function () {
+                                                    ticketTries += 1;
+                                                    if (initTicketPickers()) {
+                                                        window.clearInterval(ticketRetryTimer);
+                                                        return;
+                                                    }
+                                                    if (ticketTries >= 10) {
+                                                        window.clearInterval(ticketRetryTimer);
+                                                    }
+                                                }, 100);
+                                            }
+
+                                            const initOtherDynamicList = function (listId, hiddenId) {
+                                                const listEl = document.getElementById(listId);
+                                                const hiddenEl = document.getElementById(hiddenId);
+                                                if (!listEl || !hiddenEl) {
+                                                    return;
+                                                }
+
+                                                const parseExisting = function () {
+                                                    const raw = (listEl.dataset.existing || '').trim();
+                                                    if (!raw) {
+                                                        return [];
+                                                    }
+                                                    return raw.split(',').map(function (item) {
+                                                        return item.trim();
+                                                    }).filter(Boolean);
+                                                };
+
+                                                const collectValues = function () {
+                                                    const values = [];
+                                                    listEl.querySelectorAll('.ea-other-list-row').forEach(function (row) {
+                                                        const checkbox = row.querySelector('.ea-other-checkbox');
+                                                        const input = row.querySelector('.ea-other-input');
+                                                        if (!checkbox || !input) {
+                                                            return;
+                                                        }
+                                                        const value = (input.value || '').trim();
+                                                        if (checkbox.checked && value) {
+                                                            values.push(value);
+                                                        }
+                                                    });
+                                                    hiddenEl.value = values.join(',');
+                                                };
+
+                                                const createRow = function (value, checked) {
+                                                    const col = document.createElement('div');
+                                                    col.className = 'col-md-6 ea-other-list-item';
+
+                                                    const row = document.createElement('div');
+                                                    row.className = 'ea-other-list-row';
+                                                    const formCheck = document.createElement('div');
+                                                    formCheck.className = 'form-check d-flex align-items-center gap-2 w-100';
+
+                                                    const checkbox = document.createElement('input');
+                                                    checkbox.type = 'checkbox';
+                                                    checkbox.className = 'form-check-input ea-other-checkbox';
+                                                    checkbox.checked = Boolean(checked);
+
+                                                    const input = document.createElement('input');
+                                                    input.type = 'text';
+                                                    input.className = 'form-control ea-other-input';
+                                                    input.placeholder = 'Other';
+                                                    input.value = value || '';
+                                                    input.disabled = !checkbox.checked;
+
+                                                    checkbox.addEventListener('change', function () {
+                                                        input.disabled = !checkbox.checked;
+                                                        if (!checkbox.checked) {
+                                                            const wasEmpty = !(input.value || '').trim();
+                                                            input.value = '';
+                                                            const rows = listEl.querySelectorAll('.ea-other-list-row');
+                                                            if (wasEmpty && rows.length > 1) {
+                                                                col.remove();
+                                                            }
+                                                        } else {
+                                                            input.disabled = false;
+                                                            input.focus();
+                                                        }
+                                                        if (!listEl.querySelector('.ea-other-list-row')) {
+                                                            createRow('', false);
+                                                        }
+                                                        collectValues();
+                                                    });
+
+                                                    input.addEventListener('input', function () {
+                                                        const rows = listEl.querySelectorAll('.ea-other-list-row');
+                                                        const isLast = rows.length && rows[rows.length - 1] === row;
+                                                        if (checkbox.checked && input.value.trim() && isLast) {
+                                                            createRow('', false);
+                                                        }
+                                                        collectValues();
+                                                    });
+
+                                                    formCheck.appendChild(checkbox);
+                                                    formCheck.appendChild(input);
+                                                    row.appendChild(formCheck);
+                                                    col.appendChild(row);
+                                                    listEl.appendChild(col);
+                                                };
+
+                                                listEl.innerHTML = '';
+                                                const existing = parseExisting();
+                                                if (existing.length) {
+                                                    existing.forEach(function (value) {
+                                                        createRow(value, true);
+                                                    });
+                                                }
+                                                createRow('', false);
+                                                collectValues();
+                                            };
+
+                                            initOtherDynamicList('specialty-other-list', 'specialty_other_names');
+                                            initOtherDynamicList('case-other-list', 'case_other_names');
+                                        });
+                                        ]]>
+                                    </script>
                                 </div>
                             </div>
                         </div>

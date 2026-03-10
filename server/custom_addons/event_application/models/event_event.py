@@ -36,7 +36,12 @@ class EventEvent(models.Model):
 
     # Physical venue fields
     venue_name = fields.Char(string='Venue Name', help='Name of the physical location')
+    building_name = fields.Char(string='Building Name')
     street_address = fields.Char(string='Street Address')
+    street_address2 = fields.Char(string='Address Line 2')
+    district = fields.Char(string='District / Area')
+    floor = fields.Char(string='Floor / Level')
+    unit_no = fields.Char(string='Unit / Suite')
     city = fields.Char(string='City')
     state_id = fields.Many2one('res.country.state', string='State')
     zip_code = fields.Char(string='ZIP Code')
@@ -65,7 +70,12 @@ class EventEvent(models.Model):
 
     @api.depends(
         'venue_name',
+        'building_name',
         'street_address',
+        'street_address2',
+        'district',
+        'floor',
+        'unit_no',
         'city',
         'state_id',
         'zip_code',
@@ -80,8 +90,21 @@ class EventEvent(models.Model):
                 address_parts = []
                 if event.venue_name:
                     address_parts.append(event.venue_name)
+                if event.building_name:
+                    address_parts.append(event.building_name)
                 if event.street_address:
                     address_parts.append(event.street_address)
+                if event.street_address2:
+                    address_parts.append(event.street_address2)
+                detail_parts = []
+                if event.district:
+                    detail_parts.append(event.district)
+                if event.floor:
+                    detail_parts.append(f"Floor {event.floor}")
+                if event.unit_no:
+                    detail_parts.append(f"Unit {event.unit_no}")
+                if detail_parts:
+                    address_parts.append(', '.join(detail_parts))
                 city_state_zip = []
                 if event.city:
                     city_state_zip.append(event.city)
@@ -142,12 +165,17 @@ class EventEvent(models.Model):
 
     @api.depends(
         'venue_name',
+        'building_name',
         'venue_address',
         'venue_city',
         'venue_zip',
         'venue_state_id',
         'venue_country_id',
         'street_address',
+        'street_address2',
+        'district',
+        'floor',
+        'unit_no',
         'city',
         'zip_code',
         'state_id',
@@ -156,11 +184,25 @@ class EventEvent(models.Model):
     def _compute_venue_full_address(self):
         for event in self:
             address = event.venue_address or event.street_address or ''
+            address2 = event.street_address2 or ''
+            detail_parts = []
+            if event.district:
+                detail_parts.append(event.district)
+            if event.floor:
+                detail_parts.append(f"Floor {event.floor}")
+            if event.unit_no:
+                detail_parts.append(f"Unit {event.unit_no}")
             city = event.venue_city or event.city or ''
             zip_code = event.venue_zip or event.zip_code or ''
             state = event.venue_state_id or event.state_id
             country = event.venue_country_id or event.country_id
-            parts = [event.venue_name or False, address or False]
+            parts = [
+                event.venue_name or False,
+                event.building_name or False,
+                address or False,
+                address2 or False,
+                ', '.join(detail_parts) if detail_parts else False,
+            ]
             city_state_zip = [p for p in [city, state.name if state else False, zip_code] if p]
             if city_state_zip:
                 parts.append(', '.join(city_state_zip))

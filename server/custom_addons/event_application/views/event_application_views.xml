@@ -205,13 +205,18 @@
                                        widget="text"/>
                                 
                                 <field name="venue_name" invisible="venue_type != 'physical'"/>
+                                <field name="building_name" invisible="venue_type != 'physical'"/>
                                 <field name="street_address" invisible="venue_type != 'physical'"/>
+                                <field name="street_address2" invisible="venue_type != 'physical'"/>
+                                <field name="district" invisible="venue_type != 'physical'"/>
+                                <field name="floor" invisible="venue_type != 'physical'"/>
+                                <field name="unit_no" invisible="venue_type != 'physical'"/>
                                 <field name="city" invisible="venue_type != 'physical'"/>
                                 <field name="state_id" invisible="venue_type != 'physical'"/>
                                 <field name="zip_code" invisible="venue_type != 'physical'"/>
                                 <field name="country_id" invisible="venue_type != 'physical'"/>
                                 <field name="online_platform" invisible="venue_type != 'online'"/>
-                                <field name="online_link" invisible="venue_type != 'online'"/>
+                                <field name="online_link" invisible="venue_type != 'online'" widget="url"/>
                                 <field name="specialty_ids" widget="many2many_tags"/>
                                 <field name="specialty_other_text" placeholder="Other specialties (comma separated)"/>
                                 <field name="case_ids" widget="many2many_tags"/>
@@ -266,7 +271,8 @@
             <field name="model">event.application</field>
             <field name="arch" type="xml">
                 <kanban default_group_by="state" class="o_kanban_small_column">
-                    <field name="name"/>
+                    <field name="current_event_name" string="Event Name"/>
+                    <field name="name" optional="hide"/>
                     <field name="partner_id"/>
                     <field name="date_begin"/>
                     <field name="venue_name"/>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Replace state badge with clearer check-in status in list view -->
+        <record id="event_registration_tree_checkin_status" model="ir.ui.view">
+            <field name="name">event.registration.list.checkin.status</field>
+            <field name="model">event.registration</field>
+            <field name="inherit_id" ref="event.view_event_registration_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="replace">
+                    <field name="checkin_status"
+                           string="Check-in Status"
+                           widget="badge"
+                           decoration-info="checkin_status == 'not_checked_in'"
+                           decoration-success="checkin_status == 'checked_in'"
+                           decoration-danger="checkin_status == 'absent'"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Same status replacement for kanban cards used by registration desk -->
+        <record id="event_registration_kanban_checkin_status" model="ir.ui.view">
+            <field name="name">event.registration.kanban.checkin.status</field>
+            <field name="model">event.registration</field>
+            <field name="inherit_id" ref="event.event_registration_view_kanban"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state' and @widget='badge']" position="replace">
+                    <field name="checkin_status"
+                           string="Check-in Status"
+                           widget="badge"
+                           decoration-info="checkin_status == 'not_checked_in'"
+                           decoration-success="checkin_status == 'checked_in'"
+                           decoration-danger="checkin_status == 'absent'"
+                           class="position-absolute top-0 end-0 o_event_registration_kanban_badge"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

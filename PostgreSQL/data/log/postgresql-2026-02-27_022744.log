@@ -1,0 +1,8 @@
+2026-02-27 02:27:44.169 +08 [8252] LOG:  database system was shut down at 2026-02-27 02:27:06 +08
+2026-02-27 02:27:44.194 +08 [7832] LOG:  database system is ready to accept connections
+2026-02-27 02:28:15.063 +08 [7832] LOG:  received fast shutdown request
+2026-02-27 02:28:15.073 +08 [8380] ERROR:  canceling statement due to user request
+2026-02-27 02:28:15.074 +08 [7832] LOG:  aborting any active transactions
+2026-02-27 02:28:15.078 +08 [7832] LOG:  background worker "logical replication launcher" (PID 8380) exited with exit code 1
+2026-02-27 02:28:15.084 +08 [8324] LOG:  shutting down
+2026-02-27 02:28:15.113 +08 [7832] LOG:  database system is shut down

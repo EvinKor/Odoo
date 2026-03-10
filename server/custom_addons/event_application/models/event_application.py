@@ -7,6 +7,10 @@ class EventApplication(models.Model):
     _order = 'create_date desc'
     
     name = fields.Char(string='Event Name', required=True)
+    current_event_name = fields.Char(
+        string='Event Name',
+        compute='_compute_current_event_name',
+    )
     partner_id = fields.Many2one('res.partner', string='Organizer', required=True, default=lambda self: self.env.user.partner_id.id)
     date_begin = fields.Datetime(string='Start Date', required=True)
     date_end = fields.Datetime(string='End Date', required=True)
@@ -37,7 +41,12 @@ class EventApplication(models.Model):
     
     # Physical venue fields
     venue_name = fields.Char(string='Venue Name', help='Name of the physical location')
+    building_name = fields.Char(string='Building Name')
     street_address = fields.Char(string='Street Address')
+    street_address2 = fields.Char(string='Address Line 2')
+    district = fields.Char(string='District / Area')
+    floor = fields.Char(string='Floor / Level')
+    unit_no = fields.Char(string='Unit / Suite')
     city = fields.Char(string='City')
     state_id = fields.Many2one('res.country.state', string='State')
     zip_code = fields.Char(string='ZIP Code')
@@ -113,6 +122,11 @@ class EventApplication(models.Model):
         for application in self:
             application.access_url = f'/my/event/application/{application.id}'
 
+    @api.depends('name', 'event_id', 'event_id.name')
+    def _compute_current_event_name(self):
+        for application in self:
+            application.current_event_name = application.event_id.name or application.name
+
     def _default_submission_point_cost(self):
         raw_value = self.env['ir.config_parameter'].sudo().get_param(
             'event_application.submission_point_cost',
@@ -167,7 +181,20 @@ class EventApplication(models.Model):
                     'date_deadline': fields.Date.context_today(self),
                 })
     
-    @api.depends('venue_type', 'venue_name', 'online_platform', 'street_address', 'city', 'state_id', 'country_id')
+    @api.depends(
+        'venue_type',
+        'venue_name',
+        'building_name',
+        'street_address',
+        'street_address2',
+        'district',
+        'floor',
+        'unit_no',
+        'online_platform',
+        'city',
+        'state_id',
+        'country_id',
+    )
     def _compute_location(self):
         """Compute legacy location field for backward compatibility"""
         for application in self:
@@ -182,13 +209,27 @@ class EventApplication(models.Model):
                 location_parts = []
                 if application.venue_name:
                     location_parts.append(application.venue_name)
+                if application.district:
+                    location_parts.append(application.district)
                 if application.city:
                     location_parts.append(application.city)
                 if application.country_id:
                     location_parts.append(application.country_id.name)
                 application.location = ', '.join(location_parts) if location_parts else 'Physical Venue'
     
-    @api.depends('venue_name', 'street_address', 'city', 'state_id', 'zip_code', 'country_id')
+    @api.depends(
+        'venue_name',
+        'building_name',
+        'street_address',
+        'street_address2',
+        'district',
+        'floor',
+        'unit_no',
+        'city',
+        'state_id',
+        'zip_code',
+        'country_id',
+    )
     def _compute_full_address(self):
         """Compute full address for physical venues"""
         for application in self:
@@ -196,8 +237,21 @@ class EventApplication(models.Model):
                 address_parts = []
                 if application.venue_name:
                     address_parts.append(application.venue_name)
+                if application.building_name:
+                    address_parts.append(application.building_name)
                 if application.street_address:
                     address_parts.append(application.street_address)
+                if application.street_address2:
+                    address_parts.append(application.street_address2)
+                detail_parts = []
+                if application.district:
+                    detail_parts.append(application.district)
+                if application.floor:
+                    detail_parts.append(f"Floor {application.floor}")
+                if application.unit_no:
+                    detail_parts.append(f"Unit {application.unit_no}")
+                if detail_parts:
+                    address_parts.append(', '.join(detail_parts))
                 if application.city:
                     address_parts.append(application.city)
                 if application.state_id:
@@ -326,12 +380,33 @@ class EventApplication(models.Model):
         })
 
     def action_reject_with_reason(self, reason=False):
+        refunded_map = {}
+        for application in self:
+            if (
+                application.submission_points_deducted
+                and application.submission_point_cost > 0
+                and 'event.points.wallet' in self.env
+            ):
+                wallet = self.env['event.points.wallet'].get_or_create_wallet(application.partner_id)
+                wallet.add_points(
+                    application.submission_point_cost,
+                    _('Event application rejected refund'),
+                    reference=application.name,
+                )
+                refunded_map[application.id] = application.submission_point_cost
         self.write({
             'state': 'rejected',
             'rejection_reason': reason or False,
+            'submission_points_deducted': False,
         })
         for application in self:
             message = _("Your event '%s' has been rejected.") % (application.name,)
+            refunded_points = refunded_map.get(application.id, 0)
+            if refunded_points:
+                message = _("%s %s point(s) have been refunded back to you.") % (
+                    message,
+                    refunded_points,
+                )
             if reason:
                 message = _("%s Reason: %s") % (message, reason)
             application._create_portal_notification(
@@ -430,12 +505,34 @@ class EventApplication(models.Model):
             venue_partner = False
             venue_name_value = self.venue_name or self.full_address or self.address_input or self.location or 'Venue'
             partner_street = self.street_address or self.address_input or False
-            if any([self.venue_name, self.address_input, self.street_address, self.city, self.zip_code, self.state_id, self.country_id]):
+            partner_street2_parts = [part for part in [
+                self.street_address2,
+                self.district,
+                f"Floor {self.floor}" if self.floor else False,
+                f"Unit {self.unit_no}" if self.unit_no else False,
+            ] if part]
+            partner_street2 = ', '.join(partner_street2_parts) if partner_street2_parts else False
+            if any([
+                self.venue_name,
+                self.building_name,
+                self.address_input,
+                self.street_address,
+                self.street_address2,
+                self.district,
+                self.floor,
+                self.unit_no,
+                self.city,
+                self.zip_code,
+                self.state_id,
+                self.country_id,
+            ]):
                 def _norm(value):
                     return (value or '').strip().lower()
 
                 def _partner_matches(candidate):
                     if partner_street and _norm(candidate.street) != _norm(partner_street):
+                        return False
+                    if partner_street2 and _norm(candidate.street2) != _norm(partner_street2):
                         return False
                     if self.city and _norm(candidate.city) != _norm(self.city):
                         return False
@@ -457,6 +554,7 @@ class EventApplication(models.Model):
                     venue_partner = self.env['res.partner'].create({
                         'name': venue_name_value,
                         'street': partner_street,
+                        'street2': partner_street2,
                         'city': self.city or False,
                         'zip': self.zip_code or False,
                         'state_id': self.state_id.id if self.state_id else False,
@@ -484,7 +582,12 @@ class EventApplication(models.Model):
                 # event_venue_map module is installed
                 event_vals.update({
                     'venue_name': self.venue_name,
+                    'building_name': self.building_name,
                     'venue_address': self.street_address,
+                    'street_address2': self.street_address2,
+                    'district': self.district,
+                    'floor': self.floor,
+                    'unit_no': self.unit_no,
                     'venue_city': self.city,
                     'venue_zip': self.zip_code,
                     'venue_state_id': self.state_id.id if self.state_id else False,
@@ -494,7 +597,12 @@ class EventApplication(models.Model):
                 # event_application extension fields
                 event_vals.update({
                     'venue_name': self.venue_name,
+                    'building_name': self.building_name,
                     'street_address': self.street_address,
+                    'street_address2': self.street_address2,
+                    'district': self.district,
+                    'floor': self.floor,
+                    'unit_no': self.unit_no,
                     'city': self.city,
                     'state_id': self.state_id.id if self.state_id else False,
                     'zip_code': self.zip_code,

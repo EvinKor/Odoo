@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 
 import pytz
 import logging
+from urllib.parse import urlparse
 
 from odoo import fields, http
 from odoo.http import request
@@ -15,6 +16,15 @@ from odoo.exceptions import ValidationError
 _logger = logging.getLogger(__name__)
 
 class EventApplicationPortal(CustomerPortal):
+    def _normalize_online_link(self, raw_link):
+        link = (raw_link or '').strip()
+        if not link:
+            return False
+        parsed = urlparse(link)
+        if not parsed.scheme:
+            link = f"https://{link}"
+        return link
+
     def _registration_owner_domain(self):
         partner = request.env.user.partner_id
         user_email = (request.env.user.email or partner.email or '').strip()
@@ -41,6 +51,7 @@ class EventApplicationPortal(CustomerPortal):
         if date_begin and date_begin > now_dt:
             return ('upcoming', 'Upcoming', 'bg-success')
         return ('present', 'Present', 'bg-warning text-dark')
+
 
     def _get_point_balance(self):
         try:
@@ -170,6 +181,13 @@ class EventApplicationPortal(CustomerPortal):
                 if not batch_id.startswith("single-")
                 else f"/my/event-registration/{first.id}/ticket"
             )
+            # Build ticket type summary (e.g., "First Class x2, Economy x1")
+            type_counter = {}
+            for reg in regs:
+                type_name = reg.event_ticket_id.name or "Ticket"
+                type_counter[type_name] = type_counter.get(type_name, 0) + 1
+            ticket_type_labels = [f"{name} x{qty}" for name, qty in type_counter.items()]
+            all_checked_in = all(r.state == 'done' for r in regs)
             registration_batches.append({
                 "batch_id": batch_id,
                 "event": first.event_id,
@@ -178,11 +196,13 @@ class EventApplicationPortal(CustomerPortal):
                 "buyer_email": first.email,
                 "buyer_phone": first.phone,
                 "ticket_names": [r.name for r in regs],
+                "ticket_types": ticket_type_labels,
                 "download_url": download_url,
                 "create_date": first.create_date,
                 "status_code": status_code,
                 "status_label": status_label,
                 "status_badge": status_badge,
+                "all_checked_in": all_checked_in,
             })
 
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
@@ -209,7 +229,6 @@ class EventApplicationPortal(CustomerPortal):
         event_id = (kwargs.get('event_id') or '').strip()
         if event_id.lower() == 'all':
             event_id = ''
-
         base_domain = list(self._registration_owner_domain())
         all_registrations = request.env['event.registration'].sudo().search(base_domain, order='create_date desc')
 
@@ -243,6 +262,12 @@ class EventApplicationPortal(CustomerPortal):
                 if not batch_id.startswith("single-")
                 else f"/my/event-registration/{first.id}/ticket"
             )
+            type_counter = {}
+            for reg in regs:
+                type_name = reg.event_ticket_id.name or "Ticket"
+                type_counter[type_name] = type_counter.get(type_name, 0) + 1
+            ticket_type_labels = [f"{name} x{qty}" for name, qty in type_counter.items()]
+            all_checked_in = all(r.state == 'done' for r in regs)
             registration_batches.append({
                 "batch_id": batch_id,
                 "event": first.event_id,
@@ -251,11 +276,13 @@ class EventApplicationPortal(CustomerPortal):
                 "buyer_email": first.email,
                 "buyer_phone": first.phone,
                 "ticket_names": [r.name for r in regs],
+                "ticket_types": ticket_type_labels,
                 "download_url": download_url,
                 "create_date": first.create_date,
                 "status_code": status_code,
                 "status_label": status_label,
                 "status_badge": status_badge,
+                "all_checked_in": all_checked_in,
             })
 
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
@@ -282,6 +309,46 @@ class EventApplicationPortal(CustomerPortal):
             'checkin_base': checkin_base,
             'quote_plus': quote_plus,
         })
+
+    @http.route(
+        ['/my/event-registrations/batch/<string:batch_id>/self-checkin'],
+        type='json',
+        auth='user',
+        website=True,
+        csrf=False,
+    )
+    def my_event_registration_self_checkin(self, batch_id, **kwargs):
+        """Allow portal users to self-check-in their own tickets for a batch."""
+        domain = self._registration_owner_domain()
+        regs = request.env['event.registration'].sudo().search(
+            [('x_register_batch_id', '=', batch_id)] + domain
+        )
+
+        if not regs and batch_id.startswith("single-"):
+            try:
+                reg_id = int(batch_id.split("-", 1)[1])
+            except (IndexError, ValueError):
+                reg_id = False
+            if reg_id:
+                candidate = request.env['event.registration'].sudo().browse(reg_id)
+                if candidate.exists() and self._can_access_registration(candidate):
+                    regs = candidate
+
+        if not regs:
+            return {"ok": False, "message": "Ticket not found or not accessible."}
+
+        to_mark = regs.filtered(lambda r: r.state != "done")
+        if to_mark:
+            to_mark.action_mark_attended()
+
+        status = "checked_in" if to_mark else "already_checked_in"
+        return {
+            "ok": True,
+            "marked": len(to_mark),
+            "total": len(regs),
+            "all_checked_in": all(r.state == "done" for r in regs),
+            "status": status,
+        }
     
     @http.route(['/my/event/<int:event_id>'], type='http', auth='user', website=True)
     def my_event_detail(self, event_id, **kwargs):
@@ -370,9 +437,26 @@ class EventApplicationPortal(CustomerPortal):
             update_vals['case_other_text'] = ', '.join(case_other_names) if case_other_names else False
 
         if is_admin:
-            for field_name in ('contact_phone', 'contact_email', 'venue_name', 'street_address', 'city', 'zip_code', 'online_platform', 'online_link', 'address_input'):
+            for field_name in (
+                'contact_phone',
+                'contact_email',
+                'venue_name',
+                'building_name',
+                'street_address',
+                'street_address2',
+                'district',
+                'floor',
+                'unit_no',
+                'city',
+                'zip_code',
+                'online_platform',
+                'online_link',
+                'address_input',
+            ):
                 if field_name in post:
                     update_vals[field_name] = post.get(field_name) or False
+            if 'online_link' in update_vals:
+                update_vals['online_link'] = self._normalize_online_link(update_vals['online_link'])
 
             if 'venue_type' in post:
                 update_vals['venue_type'] = post.get('venue_type') or 'physical'
@@ -428,6 +512,9 @@ class EventApplicationPortal(CustomerPortal):
             lang_code = request.env.context.get('lang')
             if lang_code:
                 event.with_context(lang=lang_code).write({'name': new_name})
+            application = event.application_id.sudo() or request.env['event.application'].sudo().search([('event_id', '=', event.id)], limit=1)
+            if application:
+                application.write({'name': new_name})
 
         if update_vals:
             event.write(update_vals)
@@ -611,10 +698,15 @@ class EventApplicationPortal(CustomerPortal):
             'description': post.get('description'),
             'venue_type': post.get('venue_type', 'physical'),
             'online_platform': post.get('online_platform'),
-            'online_link': post.get('online_link'),
+            'online_link': self._normalize_online_link(post.get('online_link')),
             'venue_name': post.get('venue_name'),
+            'building_name': post.get('building_name'),
             'address_input': post.get('address_input'),
             'street_address': post.get('street_address'),
+            'street_address2': post.get('street_address2'),
+            'district': post.get('district'),
+            'floor': post.get('floor'),
+            'unit_no': post.get('unit_no'),
             'city': post.get('city'),
             'zip_code': post.get('zip_code'),
             'state_id': int(post.get('state_id')) if post.get('state_id') else False,
@@ -655,8 +747,13 @@ class EventApplicationPortal(CustomerPortal):
         else:
             vals.update({
                 'venue_name': payload.get('venue_name'),
+                'building_name': payload.get('building_name'),
                 'address_input': payload.get('address_input'),
                 'street_address': payload.get('street_address'),
+                'street_address2': payload.get('street_address2'),
+                'district': payload.get('district'),
+                'floor': payload.get('floor'),
+                'unit_no': payload.get('unit_no'),
                 'city': payload.get('city'),
                 'zip_code': payload.get('zip_code'),
                 'state_id': payload.get('state_id') or False,

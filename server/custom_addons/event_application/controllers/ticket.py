@@ -29,6 +29,25 @@ class EventTicketController(http.Controller):
         reg_email = (registration.email or '').strip().lower()
         return registration.partner_id.id == partner.id or (user_email and reg_email == user_email)
 
+    def _self_check_registration(self, token=None, registration_id=None, mark_attended=False):
+        """Validate a registration by token or id and optionally mark attendance."""
+        Registration = request.env["event.registration"].sudo()
+        registration = Registration.browse()
+        if token and "x_ticket_token" in Registration._fields:
+            registration = Registration.search([("x_ticket_token", "=", token)], limit=1)
+        elif registration_id:
+            registration = Registration.browse(int(registration_id))
+
+        if not registration or not registration.exists():
+            return None, "not_found"
+
+        status = "already_checked_in" if registration.state == "done" else "pending"
+        if mark_attended and registration.state != "done":
+            registration.action_mark_attended()
+            status = "checked_in"
+
+        return registration, status
+
     @http.route(
         "/api/event/tickets",
         type="http",
@@ -207,3 +226,40 @@ class EventTicketController(http.Controller):
             "registration": registration,
             "event": registration.event_id,
         })
+
+    @http.route(
+        "/api/event/ticket/self_check",
+        type="json",
+        auth="public",
+        website=True,
+        csrf=False,
+    )
+    def api_self_check_ticket(self, token=None, registration_id=None, mark_attended=True, **kw):
+        """
+        Public endpoint for kiosks/self-service scanners to validate ticket tokens.
+        Parameters:
+            token: external ticket token (preferred)
+            registration_id: fallback lookup by registration id
+            mark_attended: truthy/falsey flag to mark attendance (default True)
+        """
+        mark_attended_flag = str(mark_attended).lower() not in ("0", "false", "no", "off")
+        registration, status = self._self_check_registration(
+            token=token,
+            registration_id=registration_id,
+            mark_attended=mark_attended_flag,
+        )
+        if status == "not_found":
+            return {"ok": False, "status": status, "message": "Ticket not found or invalid."}
+
+        return {
+            "ok": True,
+            "status": status,
+            "registration_id": registration.id,
+            "attendee_name": registration.name,
+            "attendee_email": registration.email,
+            "event": {
+                "id": registration.event_id.id,
+                "name": registration.event_id.name,
+            },
+            "checked_in": status in ("checked_in", "already_checked_in"),
+        }

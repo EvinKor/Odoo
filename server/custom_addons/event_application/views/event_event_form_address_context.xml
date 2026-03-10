@@ -16,10 +16,19 @@
             <xpath expr="//group[@name='right_event_details']/field[@name='company_id']" position="after">
                 <field name="venue_type"/>
                 <field name="venue_name" invisible="venue_type != 'physical'"/>
+                <field name="building_name" invisible="venue_type != 'physical'"/>
+                <field name="street_address" invisible="venue_type != 'physical'"/>
+                <field name="street_address2" invisible="venue_type != 'physical'"/>
+                <field name="district" invisible="venue_type != 'physical'"/>
+                <field name="floor" invisible="venue_type != 'physical'"/>
+                <field name="unit_no" invisible="venue_type != 'physical'"/>
+                <field name="city" invisible="venue_type != 'physical'"/>
+                <field name="state_id" invisible="venue_type != 'physical'"/>
+                <field name="zip_code" invisible="venue_type != 'physical'"/>
                 <field name="country_id" invisible="venue_type != 'physical'"/>
                 <field name="full_address" invisible="venue_type != 'physical'" readonly="1" widget="text"/>
                 <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
-                <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
+                <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL" widget="url"/>
             </xpath>
             <xpath expr="//field[@name='address_id']" position="attributes">
                 <attribute name="context">{'show_address_only': True, 'show_address': True}</attribute>
@@ -35,6 +44,7 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="venue_type" optional="show"/>
                 <field name="venue_name" optional="show"/>
+                <field name="district" optional="hide"/>
                 <field name="city" optional="show"/>
                 <field name="address_input" optional="hide"/>
             </xpath>
@@ -54,13 +64,18 @@
                        placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."
                        widget="text"/>
                 <field name="venue_name" invisible="venue_type != 'physical'" placeholder="Venue Name"/>
+                <field name="building_name" invisible="venue_type != 'physical'" placeholder="Building Name"/>
                 <field name="street_address" invisible="venue_type != 'physical'" placeholder="Street Address"/>
+                <field name="street_address2" invisible="venue_type != 'physical'" placeholder="Address Line 2"/>
+                <field name="district" invisible="venue_type != 'physical'" placeholder="District / Area"/>
+                <field name="floor" invisible="venue_type != 'physical'" placeholder="Floor / Level"/>
+                <field name="unit_no" invisible="venue_type != 'physical'" placeholder="Unit / Suite"/>
                 <field name="city" invisible="venue_type != 'physical'" placeholder="City"/>
                 <field name="state_id" invisible="venue_type != 'physical'"/>
                 <field name="zip_code" invisible="venue_type != 'physical'" placeholder="ZIP"/>
                 <field name="country_id" invisible="venue_type != 'physical'"/>
                 <field name="online_platform" string="Platform" invisible="venue_type != 'online'" placeholder="Zoom, Google Meet, Microsoft Teams"/>
-                <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL"/>
+                <field name="online_link" string="Website" invisible="venue_type != 'online'" placeholder="Meeting link or website URL" widget="url"/>
             </xpath>
         </field>
     </record>

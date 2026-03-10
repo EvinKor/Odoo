@@ -78,6 +78,20 @@
                             background-color: rgba(220, 53, 69, 0.16) !important;
                             border-color: rgba(220, 53, 69, 0.45) !important;
                         }
+                        .ea-ticket-card--used {
+                            background-color: #f8f9fa !important;
+                            border-color: #ced4da !important;
+                            color: #6c757d;
+                        }
+                        .ea-ticket-card--used .card-text,
+                        .ea-ticket-card--used .ea-ticket-names,
+                        .ea-ticket-card--used .ea-ticket-created {
+                            color: #6c757d !important;
+                        }
+                        .ea-ticket-card--used .ea-self-checkin-btn {
+                            opacity: 0.65;
+                            pointer-events: none;
+                        }
                     </style>
                     <ul class="nav nav-tabs mb-3" role="tablist">
                         <li class="nav-item" role="presentation">
@@ -149,7 +163,7 @@
                                                     </div>
                                                     <p class="card-text">
                                                         <i class="fa fa-calendar"></i> <t t-esc="event.date_begin" t-options="{'widget': 'datetime'}"/><br/>
-                                                        <i class="fa fa-map-marker"></i> <t t-esc="event.location or event.address_id.name or 'No location'"/><br/>
+                                                        <i class="fa fa-map-marker"></i> <t t-esc="event.full_address or event.venue_full_address or event.location or event.address_id.name or 'No location'"/><br/>
                                                         <i class="fa fa-users"></i> <t t-esc="event.seats_used"/> / <t t-esc="event.seats_max or 'Unlimited'"/> registrations
                                                     </p>
                                                 </div>
@@ -207,7 +221,7 @@
                                         <option value="" t-att-selected="(not registrations_event_id) and 'selected' or None">All Events</option>
                                         <t t-foreach="registration_filter_events" t-as="ev">
                                             <option t-att-value="ev.id"
-                                                    t-att-selected="registrations_event_id and str(ev.id) == str(registrations_event_id)">
+                                                    t-att-selected="(registrations_event_id and str(ev.id) == str(registrations_event_id)) and 'selected' or None">
                                                 <t t-esc="ev.name"/>
                                             </option>
                                         </t>
@@ -226,7 +240,7 @@
                                 <div class="row">
                                     <t t-foreach="registration_batches" t-as="batch">
                                         <div class="col-md-6 mb-4">
-                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
+                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''} #{'ea-ticket-card--used' if batch.get('all_checked_in') else ''}">
                                                 <div class="card-body">
                                                     <h5 class="card-title ea-ticket-title">
                                                         <t t-esc="batch['event'].name"/>
@@ -259,6 +273,12 @@
                                                         <span><span class="ea-ticket-label">Tickets:</span><t t-esc="batch['count']"/></span>
                                                     </p>
                                                     <div class="ea-ticket-meta text-muted">
+                                                        <small class="ea-ticket-types d-block mb-1" t-if="batch.get('ticket_types')">
+                                                            <span class="fw-semibold">Types:</span>
+                                                            <t t-foreach="batch['ticket_types']" t-as="ttype">
+                                                                <t t-esc="ttype"/><t t-if="not ttype_last">, </t>
+                                                            </t>
+                                                        </small>
                                                         <small class="ea-ticket-names">
                                                             <t t-foreach="batch['ticket_names']" t-as="tname">
                                                                 <t t-esc="tname"/><t t-if="not tname_last">, </t>
@@ -270,6 +290,15 @@
                                                     </div>
                                                 </div>
                                                 <div class="card-footer bg-transparent ea-ticket-footer">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-primary me-2 ea-self-checkin-btn"
+                                                            t-att-data-batch-id="batch['batch_id']"
+                                                            t-att-data-used="batch.get('all_checked_in') and '1' or '0'"
+                                                            t-att-disabled="batch.get('all_checked_in') and 'disabled' or None">
+                                                        <i class="fa fa-check-circle"></i>
+                                                        <t t-if="batch.get('all_checked_in')">Used</t>
+                                                        <t t-else="">Self Check-in</t>
+                                                    </button>
                                                     <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                         <i class="fa fa-download"></i> Download Tickets
                                                     </a>
@@ -280,6 +309,72 @@
                                 </div>
                             </t>
                     </t>
+
+                    <script><![CDATA[
+                        document.addEventListener('DOMContentLoaded', function () {
+                            var buttons = document.querySelectorAll('.ea-self-checkin-btn');
+                            if (!buttons.length) {
+                                return;
+                            }
+                            buttons.forEach(function (btn) {
+                                btn.addEventListener('click', function (ev) {
+                                    ev.preventDefault();
+                                    if (btn.dataset.used === '1') {
+                                        return;
+                                    }
+                                    var confirmUse = window.confirm('Use this ticket now? This will self check-in and mark the ticket as used.');
+                                    if (!confirmUse) {
+                                        return;
+                                    }
+                                    var batchId = btn.dataset.batchId;
+                                    if (!batchId) {
+                                        return;
+                                    }
+                                    btn.disabled = true;
+                                    btn.classList.add('disabled');
+
+                                    fetch('/my/event-registrations/batch/' + encodeURIComponent(batchId) + '/self-checkin', {
+                                        method: 'POST',
+                                        credentials: 'same-origin',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({}),
+                                    })
+                                        .then(function (resp) {
+                                            if (!resp.ok) {
+                                                throw new Error('Server error (' + resp.status + ').');
+                                            }
+                                            return resp.text().then(function (text) {
+                                                try {
+                                                    return JSON.parse(text || '{}');
+                                                } catch (e) {
+                                                    // If parsing fails but response is 200, assume success (backend may have returned HTML while still marking attendance)
+                                                    return { ok: true, parse_fallback: true };
+                                                }
+                                            });
+                                        })
+                                        .then(function (data) {
+                                            if (!data || data.ok === false) {
+                                                throw new Error((data && data.message) || 'Self check-in failed.');
+                                            }
+                                            btn.dataset.used = '1';
+                                            var label = (data.status === 'already_checked_in') ? 'Already checked-in' : 'Used';
+                                            btn.innerHTML = '<i class="fa fa-check-circle"></i> ' + label;
+                                            var card = btn.closest('.ea-ticket-card');
+                                            if (card) {
+                                                card.classList.add('ea-ticket-card--used');
+                                            }
+                                        })
+                                        .catch(function (err) {
+                                            alert(err.message || 'Unable to self check-in right now.');
+                                            btn.disabled = false;
+                                            btn.classList.remove('disabled');
+                                        });
+                                });
+                            });
+                        });
+                    ]]></script>
                 </div>
             </t>
         </template>
@@ -356,7 +451,7 @@
                                 <option value="" t-att-selected="(not event_id) and 'selected' or None">All Events</option>
                                 <t t-foreach="events" t-as="ev">
                                     <option t-att-value="ev.id"
-                                            t-att-selected="event_id and str(ev.id) == str(event_id)">
+                                            t-att-selected="(event_id and str(ev.id) == str(event_id)) and 'selected' or None">
                                         <t t-esc="ev.name"/>
                                     </option>
                                 </t>
@@ -518,7 +613,7 @@
                                             <div class="row">
                                                 <div class="col-12 mb-3">
                                                     <label class="form-label" for="event_datetimes">Event Date Range *</label>
-                                                    <input type="text" id="event_datetimes" class="form-control" placeholder="Select start and end date/time"/>
+                                                    <input type="text" id="event_datetimes" name="datetimes" class="form-control" placeholder="Select start and end date/time"/>
                                                 </div>
                                                 <input type="hidden" name="date_begin" id="date_begin"/>
                                                 <input type="hidden" name="date_end" id="date_end"/>
@@ -546,16 +641,8 @@
                                                             <div class="col-md-8 mb-3">
                                                                 <label class="form-label">Sales Window</label>
                                                                 <input type="text" name="ticket_datetimes[]" class="form-control ticket-datetime-range" placeholder="Select sales start and end"/>
-                                                                <div class="ticket-date-fallback d-none mt-2">
-                                                                    <div class="row">
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <input type="datetime-local" name="ticket_start[]" class="form-control ticket-start-input"/>
-                                                                        </div>
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <input type="datetime-local" name="ticket_end[]" class="form-control ticket-end-input"/>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                <input type="hidden" name="ticket_start[]" class="ticket-start-input"/>
+                                                                <input type="hidden" name="ticket_end[]" class="ticket-end-input"/>
                                                             </div>
                                                         </div>
                                                         <div class="row align-items-end">
@@ -595,16 +682,8 @@
                                                             <div class="col-md-8 mb-3">
                                                                 <label class="form-label">Sales Window</label>
                                                                 <input type="text" name="ticket_datetimes[]" class="form-control ticket-datetime-range" placeholder="Select sales start and end"/>
-                                                                <div class="ticket-date-fallback d-none mt-2">
-                                                                    <div class="row">
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <input type="datetime-local" name="ticket_start[]" class="form-control ticket-start-input"/>
-                                                                        </div>
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <input type="datetime-local" name="ticket_end[]" class="form-control ticket-end-input"/>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                <input type="hidden" name="ticket_start[]" class="ticket-start-input"/>
+                                                                <input type="hidden" name="ticket_end[]" class="ticket-end-input"/>
                                                             </div>
                                                         </div>
                                                         <div class="row align-items-end">
@@ -693,7 +772,7 @@
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label" for="online_link">Online Link/Access Instructions</label>
-                                            <input type="text" name="online_link" id="online_link" class="form-control" placeholder="Meeting link or access instructions"/>
+                                            <input type="url" name="online_link" id="online_link" class="form-control" placeholder="https://meet.google.com/..." inputmode="url"/>
                                         </div>
                                     </div>
 
@@ -704,12 +783,34 @@
                                             <input type="text" name="venue_name" id="venue_name" class="form-control" placeholder="e.g., Conference Center, Hotel Name"/>
                                         </div>
                                         <div class="mb-3">
+                                            <label class="form-label" for="building_name">Building Name</label>
+                                            <input type="text" name="building_name" id="building_name" class="form-control" placeholder="e.g., North Tower"/>
+                                        </div>
+                                        <div class="mb-3">
                                             <label class="form-label" for="address_input">Complete Address</label>
                                             <textarea name="address_input" id="address_input" class="form-control" rows="2" placeholder="Type the complete address: house number, street, city, ZIP code, country, etc."></textarea>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label" for="street_address">Street Address</label>
                                             <input type="text" name="street_address" id="street_address" class="form-control" placeholder="Street name and number"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label" for="street_address2">Address Line 2</label>
+                                            <input type="text" name="street_address2" id="street_address2" class="form-control" placeholder="Suite, block, wing, landmark"/>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label class="form-label" for="district">District / Area</label>
+                                                <input type="text" name="district" id="district" class="form-control"/>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label class="form-label" for="floor">Floor / Level</label>
+                                                <input type="text" name="floor" id="floor" class="form-control" placeholder="e.g., 12"/>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label class="form-label" for="unit_no">Unit / Suite</label>
+                                                <input type="text" name="unit_no" id="unit_no" class="form-control" placeholder="e.g., A-12-3"/>
+                                            </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
@@ -860,9 +961,7 @@
                                     align-items: center;
                                     background-color: var(--mrbur-blue-800);
                                     color: white;
-                                    padding: 2px 8px;alue="('venue_address' in event._fields and event.venue_address)
-                                                or ('venue_city' in event._fields and event.venue_city)
-                                      
+                                    padding: 2px 8px;
                                     border-radius: 4px;
                                     font-size: 14px;
                                 }
@@ -1050,6 +1149,14 @@
                                     const ticketLineTemplate = document.getElementById('ticket-line-template');
                                     const addTicketLineBtn = document.getElementById('add-ticket-line');
 
+                                    // Keep accessibility clean if runtime DOM changes leave orphaned labels.
+                                    document.querySelectorAll('label[for]').forEach(function(labelEl) {
+                                        const targetId = labelEl.getAttribute('for');
+                                        if (targetId && !document.getElementById(targetId)) {
+                                            labelEl.removeAttribute('for');
+                                        }
+                                    });
+
                                     // This script can be bundled in shared frontend assets.
                                     // Guard all logic when the event application form is not present.
                                     if (!venueTypeSelect || !onlineFields || !physicalFields) {
@@ -1067,12 +1174,22 @@
                                             physicalFields.style.display = 'none';
                                             // Clear physical fields
                                             const venueName = document.getElementById('venue_name');
+                                            const buildingName = document.getElementById('building_name');
                                             const street = document.getElementById('street_address');
+                                            const street2 = document.getElementById('street_address2');
+                                            const district = document.getElementById('district');
+                                            const floor = document.getElementById('floor');
+                                            const unitNo = document.getElementById('unit_no');
                                             const city = document.getElementById('city');
                                             const zip = document.getElementById('zip_code');
                                             const state = document.getElementById('state_id');
                                             if (venueName) venueName.value = '';
+                                            if (buildingName) buildingName.value = '';
                                             if (street) street.value = '';
+                                            if (street2) street2.value = '';
+                                            if (district) district.value = '';
+                                            if (floor) floor.value = '';
+                                            if (unitNo) unitNo.value = '';
                                             if (city) city.value = '';
                                             if (zip) zip.value = '';
                                             if (state) state.value = '';
@@ -1295,9 +1412,30 @@
                                                 typeof localJq.fn.daterangepicker === 'function'
                                             );
                                             if (!hasPicker) {
-                                                ticketRangeInput.classList.add('d-none');
-                                                if (ticketDateFallback) {
-                                                    ticketDateFallback.classList.remove('d-none');
+                                                ticketRangeInput.classList.remove('d-none');
+                                                if (ticketRangeInput.dataset.rangeRetryStarted !== '1') {
+                                                    ticketRangeInput.dataset.rangeRetryStarted = '1';
+                                                    let retryCount = 0;
+                                                    const retryTimer = window.setInterval(function() {
+                                                        retryCount += 1;
+                                                        const jqRetry = window.jQuery || window.$;
+                                                        const ready = Boolean(
+                                                            jqRetry &&
+                                                            window.moment &&
+                                                            jqRetry.fn &&
+                                                            typeof jqRetry.fn.daterangepicker === 'function'
+                                                        );
+                                                        if (ready) {
+                                                            window.clearInterval(retryTimer);
+                                                            ticketRangeInput.dataset.rangeRetryStarted = '0';
+                                                            initTicketDateRange();
+                                                            return;
+                                                        }
+                                                        if (retryCount >= 20) {
+                                                            window.clearInterval(retryTimer);
+                                                            ticketRangeInput.dataset.rangeRetryStarted = '0';
+                                                        }
+                                                    }, 100);
                                                 }
                                                 return;
                                             }
@@ -1306,6 +1444,10 @@
                                                 ticketDateFallback.classList.add('d-none');
                                             }
                                             ticketRangeInput.classList.remove('d-none');
+                                            const existingPicker = localJq(ticketRangeInput).data('daterangepicker');
+                                            if (ticketRangeInput.dataset.rangeInit === '1' && !existingPicker) {
+                                                ticketRangeInput.dataset.rangeInit = '';
+                                            }
                                             if (ticketRangeInput.dataset.rangeInit === '1') {
                                                 return;
                                             }
@@ -1339,6 +1481,15 @@
                                             localJq(ticketRangeInput).off('apply.daterangepicker.ticket').on('apply.daterangepicker.ticket', function(ev, picker) {
                                                 syncValues(picker.startDate, picker.endDate);
                                             });
+                                            localJq(ticketRangeInput)
+                                                .off('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen')
+                                                .on('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen', function() {
+                                                    initTicketDateRange();
+                                                    const picker = localJq(this).data('daterangepicker');
+                                                    if (picker) {
+                                                        picker.show();
+                                                    }
+                                                });
 
                                             if (hasExistingRange) {
                                                 syncValues(start, end);
@@ -1365,6 +1516,10 @@
                                             syncLimitState();
                                         }
                                         initTicketDateRange();
+                                        if (ticketRangeInput) {
+                                            ticketRangeInput.addEventListener('focus', initTicketDateRange);
+                                            ticketRangeInput.addEventListener('click', initTicketDateRange);
+                                        }
 
                                         if (removeBtn) {
                                             removeBtn.addEventListener('click', function() {
@@ -1406,13 +1561,7 @@
                                     if (cardBgInput && previewBg) cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
                                     if (addTicketLineBtn && ticketLineTemplate && ticketLinesContainer) {
                                         addTicketLineBtn.addEventListener('click', function() {
-                                            const templateRow = ticketLineTemplate.querySelector('.ticket-line');
-                                            if (!templateRow) {
-                                                return;
-                                            }
-                                            const newRow = templateRow.cloneNode(true);
-                                            ticketLinesContainer.appendChild(newRow);
-                                            bindTicketRow(newRow);
+                                            appendNewTicketRow();
                                         });
                                         ticketLinesContainer.querySelectorAll('.ticket-line').forEach(bindTicketRow);
                                     }
@@ -1665,8 +1814,13 @@
                                             ...ticketArrays.map((key) => Array.isArray(payload[key]) ? payload[key].length : 0),
                                             1
                                         );
-                                        while (ticketLinesContainer && addTicketLineBtn && ticketLinesContainer.querySelectorAll('.ticket-line').length < targetRows) {
-                                            addTicketLineBtn.click();
+                                        let guard = 0;
+                                        while (ticketLinesContainer && ticketLinesContainer.querySelectorAll('.ticket-line').length < targetRows && guard < 100) {
+                                            const created = appendNewTicketRow();
+                                            if (!created) {
+                                                break;
+                                            }
+                                            guard += 1;
                                         }
                                         Object.keys(payload).forEach((name) => {
                                             const value = payload[name];
@@ -1710,6 +1864,29 @@
                                         } catch (_) {
                                             sessionStorage.removeItem(draftStorageKey);
                                         }
+                                    }
+
+                                    function appendNewTicketRow() {
+                                        if (!ticketLineTemplate || !ticketLinesContainer) {
+                                            return null;
+                                        }
+                                        const templateRow = ticketLineTemplate.querySelector('.ticket-line');
+                                        if (!templateRow) {
+                                            return null;
+                                        }
+                                        const newRow = templateRow.cloneNode(true);
+                                        // Ensure cloned row never carries stale picker/value state.
+                                        newRow.querySelectorAll('input').forEach(function(input) {
+                                            input.value = '';
+                                        });
+                                        const newRangeInput = newRow.querySelector('.ticket-datetime-range');
+                                        if (newRangeInput) {
+                                            newRangeInput.dataset.rangeInit = '';
+                                            newRangeInput.dataset.rangeRetryStarted = '0';
+                                        }
+                                        ticketLinesContainer.appendChild(newRow);
+                                        bindTicketRow(newRow);
+                                        return newRow;
                                     }
 
                                     if (applicationForm) {
@@ -1871,7 +2048,7 @@
                                         </div>
                                         <div class="col-md-6">
                                             <strong>Location:</strong><br/>
-                                            <t t-esc="application.location or 'Not specified'"/>
+                                            <t t-esc="application.full_address or application.location or 'Not specified'"/>
                                         </div>
                                     </div>
                                     <div class="row mb-3">
@@ -2070,7 +2247,7 @@
                                         <div class="row">
                                             <div class="col-12 mb-3">
                                                 <label class="form-label" for="event_edit_datetimes">Event Date Range *</label>
-                                                <input type="text" id="event_edit_datetimes" class="form-control" placeholder="Select start and end date/time"/>
+                                                <input type="text" id="event_edit_datetimes" name="datetimes" class="form-control" placeholder="Select start and end date/time"/>
                                             </div>
                                             <input type="hidden" name="date_begin" id="date_begin" t-att-value="event.date_begin.strftime('%Y-%m-%dT%H:%M') if event.date_begin else ''"/>
                                             <input type="hidden" name="date_end" id="date_end" t-att-value="event.date_end.strftime('%Y-%m-%dT%H:%M') if event.date_end else ''"/>
@@ -2107,15 +2284,39 @@
                                                       <input type="text" name="venue_name" id="venue_name" class="form-control" t-att-value="event.venue_name or (event.address_id and event.address_id.name) or ''"/>
                                                   </div>
                                                   <div class="col-md-6 mb-3">
-                                                      <label class="form-label" for="street_address">Street Address</label>
-                                                      <input type="text" name="street_address" id="street_address" class="form-control" t-att-value="event.street_address or (event.address_id and event.address_id.street) or ''"/>
+                                                      <label class="form-label" for="building_name">Building Name</label>
+                                                      <input type="text" name="building_name" id="building_name" class="form-control" t-att-value="event.building_name or ''"/>
                                                   </div>
                                               </div>
                                               <div class="row">
-                                                  <div class="col-md-4 mb-3">
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="street_address">Street Address</label>
+                                                      <input type="text" name="street_address" id="street_address" class="form-control" t-att-value="event.street_address or (event.address_id and event.address_id.street) or ''"/>
+                                                  </div>
+                                                  <div class="col-md-6 mb-3">
+                                                      <label class="form-label" for="street_address2">Address Line 2</label>
+                                                      <input type="text" name="street_address2" id="street_address2" class="form-control" t-att-value="event.street_address2 or (event.address_id and event.address_id.street2) or ''"/>
+                                                  </div>
+                                              </div>
+                                              <div class="row">
+                                                  <div class="col-md-3 mb-3">
+                                                      <label class="form-label" for="district">District / Area</label>
+                                                      <input type="text" name="district" id="district" class="form-control" t-att-value="event.district or ''"/>
+                                                  </div>
+                                                  <div class="col-md-3 mb-3">
+                                                      <label class="form-label" for="floor">Floor / Level</label>
+                                                      <input type="text" name="floor" id="floor" class="form-control" t-att-value="event.floor or ''"/>
+                                                  </div>
+                                                  <div class="col-md-3 mb-3">
+                                                      <label class="form-label" for="unit_no">Unit / Suite</label>
+                                                      <input type="text" name="unit_no" id="unit_no" class="form-control" t-att-value="event.unit_no or ''"/>
+                                                  </div>
+                                                  <div class="col-md-3 mb-3">
                                                       <label class="form-label" for="city">City</label>
                                                       <input type="text" name="city" id="city" class="form-control" t-att-value="event.city or (event.address_id and event.address_id.city) or ''"/>
                                                   </div>
+                                              </div>
+                                              <div class="row">
                                                   <div class="col-md-4 mb-3">
                                                       <label class="form-label" for="state_id">State</label>
                                                       <select name="state_id" id="state_id" class="form-select">
@@ -2156,7 +2357,7 @@
                                                   </div>
                                                   <div class="col-md-6 mb-3">
                                                       <label class="form-label" for="online_link">Online Link</label>
-                                                      <input type="text" name="online_link" id="online_link" class="form-control" t-att-value="event.online_link or ''"/>
+                                                      <input type="url" name="online_link" id="online_link" class="form-control" inputmode="url" placeholder="https://meet.google.com/..." t-att-value="event.online_link or ''"/>
                                                   </div>
                                               </div>
                                           </t>

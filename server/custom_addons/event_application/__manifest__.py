@@ -21,6 +21,7 @@
         'views/event_reviews_views.xml',
         'views/event_event_kanban_inherit.xml',
         'views/event_event_form_address_context.xml',
+        'views/event_registration_backend_views.xml',
         'views/portal_templates.xml',
         'views/event_website_templates.xml',
     ],

@@ -1,0 +1,8 @@
+2026-03-07 04:48:36.962 +08 [6364] LOG:  database system was shut down at 2026-03-07 04:47:58 +08
+2026-03-07 04:48:36.992 +08 [8864] LOG:  database system is ready to accept connections
+2026-03-07 04:49:19.947 +08 [8864] LOG:  received fast shutdown request
+2026-03-07 04:49:19.954 +08 [8864] LOG:  aborting any active transactions
+2026-03-07 04:49:19.956 +08 [9332] ERROR:  canceling statement due to user request
+2026-03-07 04:49:19.959 +08 [8864] LOG:  background worker "logical replication launcher" (PID 9332) exited with exit code 1
+2026-03-07 04:49:19.965 +08 [9264] LOG:  shutting down
+2026-03-07 04:49:20.010 +08 [8864] LOG:  database system is shut down

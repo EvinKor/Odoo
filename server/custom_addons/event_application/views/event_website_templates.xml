@@ -486,6 +486,66 @@
         </xpath>
     </template>
 
+    <!-- Use the event's stored image as the main cover background instead of the static default -->
+    <template id="event_cover_use_event_image" inherit_id="website_event.event_description_full">
+        <!-- Inject styles inside the main template to drive the cover background -->
+        <xpath expr="//t[@t-call='website_event.event_details']" position="inside">
+            <t t-if="event">
+                <t t-if="'card_bg_image' in event._fields and event.card_bg_image">
+                    <style>
+                        /* Use custom card background image when provided */
+                        .o_wevent_event_main_cover .o_record_cover_image {
+                            background-image: url("<t t-esc='image_data_uri(event.card_bg_image)'/>") !important;
+                            background-size: cover !important;
+                            background-position: center center !important;
+                        }
+                    </style>
+                </t>
+                <t t-elif="'image_1920' in event._fields">
+                    <style>
+                        /* Fallback to the main event image stored on the model */
+                        .o_wevent_event_main_cover .o_record_cover_image {
+                            background-image: url("/web/image/event.event/<t t-esc='event.id'/>/image_1920") !important;
+                            background-size: cover !important;
+                            background-position: center center !important;
+                        }
+                    </style>
+                </t>
+                <t t-elif="'image' in event._fields">
+                    <style>
+                        .o_wevent_event_main_cover .o_record_cover_image {
+                            background-image: url("/web/image/event.event/<t t-esc='event.id'/>/image") !important;
+                            background-size: cover !important;
+                            background-position: center center !important;
+                        }
+                    </style>
+                </t>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- Show the uploaded event image/thumbnail in the event header -->
+    <template id="event_cover_show_thumb" inherit_id="website_event.event_description_full">
+        <!-- Cover at top variant -->
+        <xpath expr="//t[@t-if='opt_event_description_cover_top']//div[@id='o_wevent_event_main_cover_content']//div[@class='w-100 mt-auto']" position="inside">
+            <t t-if="'image_512' in event._fields">
+                <img t-att-src="'/web/image/event.event/%s/image_512' % event.id"
+                     alt="Event image"
+                     class="o_wevent_cover_thumb mb-2 rounded shadow-sm"
+                     style="max-height: 180px; width: auto;"/>
+            </t>
+        </xpath>
+        <!-- Cover within main body variant -->
+        <xpath expr="//t[@t-if='not opt_event_description_cover_top' and @t-call='website.record_cover']//div[@id='o_wevent_event_main_cover_content']" position="inside">
+            <t t-if="'image_512' in event._fields">
+                <img t-att-src="'/web/image/event.event/%s/image_512' % event.id"
+                     alt="Event image"
+                     class="o_wevent_cover_thumb mb-2 rounded shadow-sm"
+                     style="max-height: 180px; width: auto;"/>
+            </t>
+        </xpath>
+    </template>
+
     <template id="registration_complete_my_registrations" inherit_id="website_event.registration_complete">
         <xpath expr="//div[contains(@class, 'o_wereg_confirmed')]//div[@class='row mb-3']/div[@class='col-12']" position="inside">
             <div class="mt-2">

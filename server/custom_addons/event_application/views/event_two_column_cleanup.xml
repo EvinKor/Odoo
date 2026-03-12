@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Remove hero right column (details/tickets) from two-column showcase -->
+    <template id="event_two_column_showcase_cleanup" inherit_id="event_application.event_two_column_showcase">
+        <xpath expr="//div[contains(@class,'ea-hero-right')]" position="replace"/>
+    </template>
+
+    <!-- Ensure badge image/badge overlay hidden via CSS for robustness -->
+    <template id="event_hide_badge_on_cover_cleanup" inherit_id="website_event.event_description_full">
+        <xpath expr="//section[@id='o_wevent_event_main']" position="before">
+            <style type="text/css">
+                .o_wevent_badge_image,
+                .o_wevent_badge { display: none !important; }
+            </style>
+        </xpath>
+    </template>
+</odoo>

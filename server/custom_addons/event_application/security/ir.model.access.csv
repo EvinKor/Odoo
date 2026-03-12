@@ -15,3 +15,8 @@ access_event_application_notification_manager,event.application.notification.man
 access_event_points_wallet_manager,event.points.wallet.manager,model_event_points_wallet,base.group_system,1,1,1,1
 access_event_points_transaction_manager,event.points.transaction.manager,model_event_points_transaction,base.group_system,1,1,1,1
 access_event_application_settings_manager,event.application.settings.manager,model_event_application_settings,base.group_system,1,1,1,1
+access_event_application_image_portal,event.application.image.portal,model_event_application_image,base.group_portal,1,1,1,0
+access_event_application_image_manager,event.application.image.manager,model_event_application_image,base.group_system,1,1,1,1
+access_event_event_image_public,event.event.image.public,model_event_image,base.group_public,1,0,0,0
+access_event_event_image_portal,event.event.image.portal,model_event_image,base.group_portal,1,0,0,0
+access_event_event_image_manager,event.event.image.manager,model_event_image,base.group_system,1,1,1,1

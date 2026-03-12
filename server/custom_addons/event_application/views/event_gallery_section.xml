@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Hide badge image on event cover (CSS so it remains robust if DOM changes) -->
+    <template id="event_cover_hide_badge" inherit_id="website_event.event_description_full">
+        <xpath expr="//section[@id='o_wevent_event_main']" position="before">
+            <style type="text/css">
+                .o_wevent_badge_image { display: none !important; }
+            </style>
+        </xpath>
+    </template>
+
+    <!-- Add gallery section inside the main event column so it stays with the event content (including on /register) -->
+    <template id="event_gallery_section" inherit_id="website_event.event_description_full">
+        <xpath expr="//div[@id='o_wevent_event_main_col']" position="inside">
+            <t t-if="event.image_ids">
+                <section class="mt-4 ea-gallery-section">
+                    <h5 class="mb-3">Gallery</h5>
+                    <div class="row g-3">
+                        <t t-foreach="event.image_ids" t-as="img_rec" t-key="img_rec.id">
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <a t-att-href="image_data_uri(img_rec.image)" target="_blank" rel="noopener">
+                                    <img t-att-src="image_data_uri(img_rec.image)" class="img-fluid rounded shadow-sm" t-att-alt="img_rec.name or event.name"/>
+                                </a>
+                            </div>
+                        </t>
+                    </div>
+                </section>
+            </t>
+        </xpath>
+        <!-- Place the event description immediately below the gallery (when images exist) -->
+        <xpath expr="//section[@id='o_wevent_event_main']//section[contains(@class,'ea-gallery-section')]" position="after">
+            <div class="mt-5 mb-4" t-if="event.description">
+                <h5 class="mb-3">Description</h5>
+                <div class="ea-description-full">
+                    <t t-raw="event.description"/>
+                </div>
+            </div>
+        </xpath>
+        <!-- Fallback: if no gallery, still show the description inside the main column -->
+        <xpath expr="//div[@id='o_wevent_event_main_col']" position="inside">
+            <div class="mb-4" t-if="event.description and not event.image_ids">
+                <h5 class="mb-3">Description</h5>
+                <div class="ea-description-full">
+                    <t t-raw="event.description"/>
+                </div>
+            </div>
+        </xpath>
+    </template>
+</odoo>

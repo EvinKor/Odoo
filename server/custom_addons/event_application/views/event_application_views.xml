@@ -230,7 +230,7 @@
                                 <field name="registration_limit"/>
                                 <field name="max_registrations" invisible="not registration_limit"/>
                                 <field name="badge_image" widget="image"/>
-                                <field name="card_bg_image" widget="image"/>
+                                <field name="thumbnail_image" widget="image"/>
                                 <field name="event_id" readonly="1" invisible="not event_id"/>
                             </group>
                         </group>
@@ -258,6 +258,14 @@
                                     <field name="submission_points_deducted" readonly="1"/>
                                     <field name="rejection_reason" invisible="state != 'rejected'"/>
                                 </group>
+                            </page>
+                            <page string="Images">
+                                <group>
+                                    <group>
+                                        <field name="thumbnail_image" widget="image" class="oe_avatar"/>
+                                    </group>
+                                </group>
+                                <field name="image_ids"/>
                             </page>
                         </notebook>
                     </sheet>

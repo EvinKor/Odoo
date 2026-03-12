@@ -469,6 +469,109 @@
         </xpath>
     </template>
 
+    <!-- Make event info sidebar sticky and allow overflow for sticky on register/description pages -->
+    <template id="event_sidebar_sticky" inherit_id="website_event.event_description_full">
+        <!-- Allow sticky positioning by removing overflow hidden on main container -->
+        <xpath expr="//section[@id='o_wevent_event_main']/div[contains(@class,'container')]" position="attributes">
+            <attribute name="class" add=" pb-5" separator=" "/>
+            <attribute name="style">overflow: visible;</attribute>
+        </xpath>
+        <!-- Stick the sidebar on the right -->
+          <xpath expr="//section[@id='o_wevent_event_main']//div[contains(@class, 'container')]/div[contains(@class, 'row')]" position="attributes">
+            <attribute name="class" add=" align-items-start justify-content-between" separator=" "/>
+          </xpath>
+          <!-- Ensure main content takes remaining width so sidebar stays at right -->
+          <xpath expr="//div[@id='o_wevent_event_main_col']" position="attributes">
+            <attribute name="class" add=" col-12 col-lg-10 col-xl-10 me-lg-auto" separator=" "/>
+          </xpath>
+        <xpath expr="//aside[@id='o_wevent_event_main_sidebar']" position="attributes">
+            <attribute name="style">position: sticky; top: 1.5rem;</attribute>
+            <attribute name="class" add=" sticky-lg-top" separator=" "/>
+        </xpath>
+        <xpath expr="//section[@id='o_wevent_event_main']" position="inside">
+            <style>
+                /* ensure no ancestor blocks sticky */
+                #o_wevent_event_main .container { overflow: visible !important; }
+                #o_wevent_event_main .o_wevent_event_content { overflow: visible !important; }
+                #o_wevent_event_main .o_wevent_event_main { align-items: flex-start !important; }
+                @media (min-width: 992px) {
+                    #o_wevent_event_main_sidebar { position: sticky; top: 1.25rem; }
+                }
+            </style>
+        </xpath>
+    </template>
+
+    <!-- Split layout: two sibling columns, sidebar on the right -->
+    <template id="event_sidebar_two_column_layout" inherit_id="website_event.event_description_full">
+        <xpath expr="//section[@id='o_wevent_event_main']/div[contains(@class,'container')]" position="inside">
+            <script type="text/javascript">
+                (function () {
+                    var container = document.querySelector('#o_wevent_event_main .container');
+                    if (!container) { return; }
+                    var mainCol = container.querySelector('#o_wevent_event_main_col');
+                    var sidebar = container.querySelector('#o_wevent_event_main_sidebar');
+                    if (!mainCol || !sidebar) { return; }
+
+                    // Build two-column wrapper
+                    var splitRow = document.createElement('div');
+                    splitRow.className = 'row g-0 flex-lg-nowrap align-items-start ea-event-two-col';
+
+                    var mainWrap = document.createElement('div');
+                    mainWrap.className = 'col-12 col-lg-8';
+                    mainWrap.id = 'ea-event-main-wrap';
+
+                    var asideWrap = document.createElement('div');
+                    asideWrap.className = 'col-12 col-lg-4';
+                    asideWrap.id = 'ea-event-aside-wrap';
+
+                    splitRow.appendChild(mainWrap);
+                    splitRow.appendChild(asideWrap);
+
+                    var oldRow = mainCol.parentElement;
+                    if (oldRow) {
+                        container.insertBefore(splitRow, oldRow);
+                    } else {
+                        container.appendChild(splitRow);
+                    }
+
+                    mainWrap.appendChild(mainCol);
+                    asideWrap.appendChild(sidebar);
+
+                    // Let sidebar fill the new column instead of nested grid sizing
+                    sidebar.classList.remove('col-lg-4', 'col-12', 'my-3', 'mb-lg-0');
+                    sidebar.classList.add('w-100');
+                    sidebar.style.width = '100%';
+                })();
+            </script>
+        </xpath>
+        <xpath expr="//section[@id='o_wevent_event_main']" position="inside">
+            <style>
+                #ea-event-main-wrap > #o_wevent_event_main_col { width: 100%; }
+                #ea-event-aside-wrap #o_wevent_event_main_sidebar {
+                    position: sticky;
+                    top: 1.5rem;
+                    width: 100%;
+                    max-width: 100%;
+                }
+                #ea-event-aside-wrap #o_wevent_event_main_sidebar .o_wevent_sidebar_block {
+                    width: 100%;
+                }
+                #ea-event-aside-wrap #o_wevent_event_main_sidebar .card.bg-transparent {
+                    width: 100%;
+                }
+                @media (max-width: 991.98px) {
+                    #ea-event-aside-wrap #o_wevent_event_main_sidebar {
+                        position: static;
+                        margin-top: 1.5rem;
+                        width: 100%;
+                    }
+                }
+                /* Remove gutter between main and info columns */
+                .ea-event-two-col > .col-12 { padding-left: 0; padding-right: 0; }
+            </style>
+        </xpath>
+    </template>
+
     <template id="event_cards_safe_venue_fields" inherit_id="website_event.events_list">
         <xpath expr="//t[@t-set='has_venue_address']" position="replace">
             <t t-set="has_venue_address"
@@ -501,11 +604,11 @@
                         }
                     </style>
                 </t>
-                <t t-elif="'image_1920' in event._fields">
+                <t t-elif="'badge_image' in event._fields and event.badge_image">
                     <style>
-                        /* Fallback to the main event image stored on the model */
+                        /* Fallback to badge image if provided */
                         .o_wevent_event_main_cover .o_record_cover_image {
-                            background-image: url("/web/image/event.event/<t t-esc='event.id'/>/image_1920") !important;
+                            background-image: url("<t t-esc='image_data_uri(event.badge_image)'/>") !important;
                             background-size: cover !important;
                             background-position: center center !important;
                         }
@@ -546,6 +649,43 @@
         </xpath>
     </template>
 
+    <template id="event_icon_and_gallery" inherit_id="website_event.event_description_full">
+        <!-- Image gallery below the description (attached inside the main event container for robustness across template variants) -->
+        <xpath expr="//section[@id='o_wevent_event_main']" position="inside">
+            <t t-if="event.image_ids">
+                <!-- Gallery intentionally suppressed; handled by custom two-column hero below -->
+            </t>
+        </xpath>
+
+        <xpath expr="//section[@id='o_wevent_event_main']" position="after">
+            <style>
+                .ea-gallery-card .card-body {
+                    background: #f8fafc;
+                }
+                .ea-gallery-thumb {
+                    position: relative;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 8px 18px rgba(35, 83, 163, 0.14);
+                    background: #fff;
+                }
+                .ea-gallery-thumb img {
+                    width: 100%;
+                    height: 180px;
+                    object-fit: cover;
+                    display: block;
+                }
+                .ea-gallery-badge {
+                    position: absolute;
+                    top: 10px;
+                    left: 10px;
+                    border-radius: 999px;
+                }
+            </style>
+        </xpath>
+    </template>
+
+
     <template id="registration_complete_my_registrations" inherit_id="website_event.registration_complete">
         <xpath expr="//div[contains(@class, 'o_wereg_confirmed')]//div[@class='row mb-3']/div[@class='col-12']" position="inside">
             <div class="mt-2">
@@ -573,6 +713,10 @@
                         </t>
                         <div class="modal-body border-bottom">
                             <h5 class="mt-1 pb-2 border-bottom">Where should we send the tickets?</h5>
+                            <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2">
+                                <i class="fa fa-clone"></i>
+                                <span>Use the + / - controls below to choose multiple tickets per type.</span>
+                            </div>
                             <div class="row">
                                 <div class="col-lg-6 mt-2">
                                     <label class="form-label">Name</label>
@@ -873,7 +1017,320 @@
         </t>
     </template>
 
+    <!-- Two-column hero: left image carousel, right details and tickets -->
+    <template id="event_two_column_showcase" inherit_id="website_event.event_description_full">
+        <!-- Remove default long description block so we only show the hero description once -->
+        <xpath expr="//div[@id='o_wevent_event_main_col']/div[@class='mt-4' and @itemprop='description']" position="replace">
+            <t/>
+        </xpath>
+        <xpath expr="//section[@id='o_wevent_event_main']/div[contains(@class,'container')]" position="inside">
+            <style>
+                /* Flatten the register page: remove hero card styling and padding so all info shows plainly */
+                body .o_wevent_event {
+                    background: #ffffff;
+                }
+                #o_wevent_event_main_col,
+                #o_wevent_event_main_sidebar {
+                    background: transparent;
+                    border: 0;
+                    box-shadow: none;
+                    padding: 0;
+                }
+                .ea-hero-card {
+                    display: none !important;
+                }
+                .ea-description-full p {
+                    margin-bottom: 1rem;
+                }
+            </style>
+            <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 flex-grow-1 mb-3">
+                <ul class="breadcrumb p-0 m-0">
+                    <li class="breadcrumb-item">
+                        <a href="/event" title="Back to All Events">All Events</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <span class="pe-3"><t t-esc="event.name"/></span>
+                    </li>
+                </ul>
+                <ul class="nav" data-menu_name="Event Menu"></ul>
+            </nav>
+        </xpath>
+        <!-- Gallery and Description placed inside the main event column just after the first block (cover/intro) -->
+        <xpath expr="//div[@id='o_wevent_event_main_col']/*[1]" position="after">
+            <div class="mb-2">
+                <h1 class="h3 fw-bold mb-1"><t t-esc="event.name"/></h1>
+                <div class="text-muted small">
+                    <i class="fa fa-calendar me-1"></i>
+                    <t t-esc="event.date_begin" t-options="{'widget':'datetime'}"/>
+                    <t t-if="event.date_end"> - <t t-esc="event.date_end" t-options="{'widget':'datetime'}"/></t>
+                    <span class="ms-3">
+                        <i class="fa fa-map-marker me-1"></i>
+                        <t t-esc="event.full_address or event.location or event.address_id.name or 'Online / TBD'"/>
+                    </span>
+                </div>
+            </div>
+            <div class="ea-hero-card row g-0 mb-4">
+                <div class="col-lg-6 ea-hero-left">
+                    <t t-set="carousel_id" t-value="'eaCarousel-%s' % event.id"/>
+                    <div t-att-id="carousel_id" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+                        <div class="carousel-inner">
+                            <t t-set="gallery" t-value="event.image_ids"/>
+                            <t t-if="gallery">
+                                <t t-foreach="gallery" t-as="img_rec" t-key="img_rec.id">
+                                    <div t-attf-class="carousel-item #{'active' if img_rec_first else ''}">
+                                        <img t-att-src="image_data_uri(img_rec.image)" class="d-block w-100" style="max-height:420px;object-fit:cover;" t-att-alt="img_rec.name or 'Event image'"/>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-elif="'thumbnail_image' in event._fields and event.thumbnail_image">
+                                <div class="carousel-item active">
+                                    <img t-att-src="image_data_uri(event.thumbnail_image)" alt="Event image"/>
+                                </div>
+                            </t>
+                            <t t-elif="'badge_image' in event._fields and event.badge_image">
+                                <div class="carousel-item active">
+                                    <img t-att-src="image_data_uri(event.badge_image)" alt="Event image"/>
+                                </div>
+                            </t>
+                        </div>
+                        <button class="carousel-control-prev" type="button" t-att-data-bs-target="'#%s' % carousel_id" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" t-att-data-bs-target="'#%s' % carousel_id" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-6 p-4 p-lg-5 ea-hero-right">
+                    <h2 class="fw-bold"><t t-esc="event.name"/></h2>
+                    <div class="text-muted mb-2">
+                        <i class="fa fa-calendar me-1"></i>
+                        <t t-esc="event.date_begin" t-options="{'widget':'datetime'}"/>
+                        <t t-if="event.date_end"> – <t t-esc="event.date_end" t-options="{'widget':'datetime'}"/></t>
+                    </div>
+                    <div class="text-muted mb-3">
+                        <i class="fa fa-map-marker me-1"></i>
+                        <t t-esc="event.full_address or event.location or event.address_id.name or 'Online / TBD'"/>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                        <t t-foreach="event.event_ticket_ids" t-as="ticket" t-key="ticket.id">
+                            <div class="ea-ticket-pill">
+                                <strong><t t-esc="ticket.name"/></strong>
+                                <t t-if="ticket.seats_limited">
+                                    · <t t-esc="(ticket.seats_available or 0)"/> left
+                                </t>
+                                <t t-if="'point_cost' in ticket._fields and ticket.point_cost">
+                                    · <t t-esc="ticket.point_cost"/> pts
+                                </t>
+                            </div>
+                        </t>
+                        <t t-if="not event.event_ticket_ids">
+                            <span class="text-muted">No tickets configured.</span>
+                        </t>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a t-attf-href="/event/#{slug(event)}/register" class="btn btn-primary">Get Tickets</a>
+                        <a t-attf-href="/event/#{slug(event)}" class="btn btn-outline-secondary">Details</a>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="event_page_premium_styles_custom" inherit_id="website_event.event_description_full">
+        <xpath expr="//section[@id='o_wevent_event_main']" position="before">
+            <style>
+                /* Premium Aesthetics for Event Registration Page */
+                body .o_wevent_event {
+                    background: radial-gradient(circle at top right, #E2E8F3 0%, #f6f8fc 45%, #ffffff 100%);
+                }
+                
+                #o_wevent_event_main_col {
+                    background: rgba(255, 255, 255, 0.9);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(196, 209, 230, 0.5);
+                    border-radius: 16px;
+                    padding: 2rem;
+                    box-shadow: 0 12px 32px rgba(35, 83, 163, 0.08);
+                    margin-bottom: 2rem;
+                }
+                
+                #o_wevent_event_main_sidebar {
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(196, 209, 230, 0.5);
+                    border-radius: 16px;
+                    padding: 1.5rem;
+                    box-shadow: 0 12px 32px rgba(35, 83, 163, 0.12);
+                }
+                
+                /* Typography enhancements */
+                #o_wevent_event_main h5, #o_wevent_event_main h6 {
+                    font-weight: 700;
+                    color: #1a3673;
+                    letter-spacing: -0.01em;
+                }
+                
+                /* Form and Button Enhancements */
+                .o_wevent_event .btn-primary {
+                    background: linear-gradient(135deg, #2353A3 0%, #1a3673 100%);
+                    border: none;
+                    box-shadow: 0 4px 12px rgba(35, 83, 163, 0.3);
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    border-radius: 8px;
+                    font-weight: 600;
+                    padding: 0.6rem 1.5rem;
+                }
+                
+                .o_wevent_event .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(35, 83, 163, 0.4);
+                    background: linear-gradient(135deg, #2a63c3 0%, #1a3673 100%);
+                }
+                
+                /* Secondary buttons / links */
+                .o_wevent_event .btn-light {
+                    background: #f1f5fa;
+                    border: 1px solid #d1def0;
+                    color: #2353A3;
+                    transition: all 0.2s ease;
+                    border-radius: 8px;
+                }
+                
+                .o_wevent_event .btn-light:hover {
+                    background: #e2e8f3;
+                    border-color: #c4d1e6;
+                    transform: translateY(-1px);
+                }
+
+                /* Sidebar specific */
+                #o_wevent_event_main_sidebar .o_wevent_sidebar_block {
+                    border-bottom: 1px solid rgba(196, 209, 230, 0.5) !important;
+                    margin-bottom: 1.5rem !important;
+                    padding-bottom: 1.5rem !important;
+                    background: transparent;
+                    border-radius: 0;
+                    box-shadow: none;
+                }
+                
+                #o_wevent_event_main_sidebar .o_wevent_sidebar_block:last-child {
+                    border-bottom: none !important;
+                    margin-bottom: 0 !important;
+                    padding-bottom: 0 !important;
+                }
+                
+                /* Gallery adjustments */
+                .card.border-0.shadow-sm.mb-4:has(.carousel) {
+                    border-radius: 16px;
+                    overflow: hidden;
+                    box-shadow: 0 12px 32px rgba(35, 83, 163, 0.08) !important;
+                    border: 1px solid rgba(196, 209, 230, 0.5) !important;
+                }
+                
+                /* Fade in animation */
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                #o_wevent_event_main {
+                    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+                
+                /* Layout fixes for the date block on desktop (in the padded sidebar) */
+                .o_wevent_dates_block .flex-lg-column {
+                    flex-direction: row !important;
+                }
+                .o_wevent_dates_block .w-lg-100 {
+                    width: auto !important;
+                    flex: 1 1 auto;
+                }
+                .o_wevent_dates_block .card.align-items-end {
+                    align-items: center !important;
+                }
+            </style>
+        </xpath>
+    </template>
+
+    <!-- Register page layout fixes: breadcrumbs above, gallery/description inside event column -->
+    <template id="event_register_layout_fixes" inherit_id="website_event.event_description_full">
+        <!-- The default navbar sits inside the main column; move it above the grid so breadcrumbs lead the page -->
+        <xpath expr="//section[@id='o_wevent_event_main']//t[@t-call='website_event.navbar']" position="replace"/>
+        <xpath expr="//section[@id='o_wevent_event_main']/div[contains(@class,'container')]" position="before">
+            <t t-call="website_event.navbar"/>
+        </xpath>
+
+        <!-- Make the left event column flex to fill available space -->
+        <xpath expr="//section[@id='o_wevent_event_main']" position="inside">
+            <style>
+                #o_wevent_event_main .row { align-items: stretch; }
+                #o_wevent_event_main_col {
+                    flex: 1 1 0%;
+                    min-width: 0;
+                }
+                #ea-event-main-wrap { flex: 1 1 0%; min-width: 0; }
+                @media (min-width: 992px) {
+                    /* widen main content vs sidebar */
+                    #o_wevent_event_main_col,
+                    #ea-event-main-wrap {
+                        flex: 0 0 78%;
+                        max-width: 78%;
+                    }
+                    #o_wevent_event_main_sidebar,
+                    #ea-event-aside-wrap {
+                        flex: 0 0 22%;
+                        max-width: 22%;
+                    }
+                }
+            </style>
+        </xpath>
+
+        <!-- On the register page, ensure gallery/description live inside the main column and breadcrumbs stay above -->
+        <xpath expr="//section[@id='o_wevent_event_main']" position="inside">
+            <script type="text/javascript"><![CDATA[
+                (function () {
+                    var path = (window.location && window.location.pathname) || '';
+                    if (!/\/register(?:[/?]|$)/.test(path)) {
+                        return;
+                    }
+                    var section = document.querySelector('#o_wevent_event_main');
+                    var container = section && section.querySelector(':scope > .container');
+                    var mainCol = container && container.querySelector('#o_wevent_event_main_col');
+                    if (!container || !mainCol) {
+                        return;
+                    }
+
+                    // Move navbar/breadcrumbs just above the container if still inside the grid
+                    var submenu = container.querySelector('#o_wevent_event_submenu');
+                    if (submenu && submenu.parentElement !== section) {
+                        section.insertBefore(submenu, container);
+                    }
+
+                    // Re-home gallery and description elements into the main column
+                    var gallery = section.querySelector('.ea-gallery-section') || section.querySelector('.ea-hero-card');
+                    var desc = section.querySelector('.ea-desc-truncate') || section.querySelector('[itemprop="description"]');
+                    var anchor = mainCol.firstElementChild;
+
+                    [gallery, desc].forEach(function (el) {
+                        if (el && !mainCol.contains(el)) {
+                            mainCol.insertBefore(el, anchor || mainCol.firstChild);
+                        }
+                    });
+                })();
+            ]]></script>
+        </xpath>
+    </template>
+
 </odoo>
+
 
 
 

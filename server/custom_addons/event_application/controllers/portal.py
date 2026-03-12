@@ -680,9 +680,31 @@ class EventApplicationPortal(CustomerPortal):
             badge_image = base64.b64encode(badge_file.read()).decode('ascii')
 
         card_bg_image = False
-        card_bg_file = request.httprequest.files.get('card_bg_image')
-        if card_bg_file and card_bg_file.filename:
-            card_bg_image = base64.b64encode(card_bg_file.read()).decode('ascii')
+
+        # Multiple event images + thumbnail selection
+        gallery_images = []
+        thumbnail_image = False
+        raw_thumbnail_choice = (post.get('thumbnail_choice') or '').strip()
+        try:
+            thumbnail_choice_idx = int(raw_thumbnail_choice)
+        except (TypeError, ValueError):
+            thumbnail_choice_idx = 0
+
+        image_files = request.httprequest.files.getlist('event_images') or []
+        for idx, upload in enumerate(image_files):
+            if not upload or not upload.filename:
+                continue
+            image_data = base64.b64encode(upload.read()).decode('ascii')
+            gallery_images.append({
+                'name': upload.filename or f"Image {idx + 1}",
+                'image': image_data,
+                'sequence': (idx + 1) * 10,
+            })
+            if thumbnail_image is False and idx == thumbnail_choice_idx:
+                thumbnail_image = image_data
+        if thumbnail_image is False and gallery_images:
+            # Default to the first uploaded image when no explicit choice
+            thumbnail_image = gallery_images[0]['image']
 
         payload = {
             'name': post.get('event_name'),
@@ -719,6 +741,8 @@ class EventApplicationPortal(CustomerPortal):
             'badge_image': badge_image,
             'card_bg_image': card_bg_image,
             'submission_point_cost': self._get_submission_point_cost(),
+            'thumbnail_image': thumbnail_image,
+            'gallery_images': gallery_images,
         }
         return payload, None
 
@@ -775,8 +799,11 @@ class EventApplicationPortal(CustomerPortal):
 
         if payload.get('badge_image'):
             vals['badge_image'] = payload.get('badge_image')
-        if payload.get('card_bg_image'):
-            vals['card_bg_image'] = payload.get('card_bg_image')
+        if payload.get('thumbnail_image'):
+            vals['thumbnail_image'] = payload.get('thumbnail_image')
+        gallery_images = payload.get('gallery_images') or []
+        if gallery_images:
+            vals['image_ids'] = [(0, 0, img_vals) for img_vals in gallery_images]
         return vals
     
     @http.route(['/event/apply/submit'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
@@ -871,6 +898,13 @@ class EventApplicationPortal(CustomerPortal):
             'event_notification_count': self._get_event_notification_count(),
             'show_all_notifications': show_all,
         })
+
+    @http.route(['/my/event/notifications/read_all'], type='http', auth='user', website=True)
+    def my_event_notifications_read_all(self, **kwargs):
+        """Mark all notifications for the current partner as read then return to list."""
+        notif_model = request.env['event.application.notification'].sudo()
+        notif_model.search([('partner_id', '=', request.env.user.partner_id.id), ('is_read', '=', False)]).write({'is_read': True})
+        return request.redirect('/my/event/notifications')
 
     @http.route(['/my/points/log'], type='http', auth='user', website=True)
     def my_points_log(self, **kwargs):

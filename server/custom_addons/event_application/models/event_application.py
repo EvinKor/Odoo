@@ -23,6 +23,12 @@ class EventApplication(models.Model):
         'application_id',
         string='Tickets'
     )
+    image_ids = fields.One2many(
+        'event.application.image',
+        'application_id',
+        string='Event Images'
+    )
+    thumbnail_image = fields.Image(string='Thumbnail Image')
     badge_image = fields.Binary(string='Badge Background')
     card_bg_image = fields.Binary(string='Card Background')
     contact_phone = fields.Char(string='Contact Phone')
@@ -443,8 +449,17 @@ class EventApplication(models.Model):
 
         if self.badge_image:
             event_vals['badge_image'] = self.badge_image
-        if self.card_bg_image:
+        # Use thumbnail as the card background; fall back to legacy card_bg_image only if no thumbnail provided.
+        if self.thumbnail_image:
+            if 'thumbnail_image' in self.env['event.event']._fields:
+                event_vals['thumbnail_image'] = self.thumbnail_image
+            event_vals['card_bg_image'] = self.thumbnail_image
+        elif self.card_bg_image:
             event_vals['card_bg_image'] = self.card_bg_image
+
+        # Drop any residual cover-image keys that the target model may not have
+        event_vals.pop('image_1920', None)
+        event_vals.pop('image', None)
 
         ticket_model_fields = self.env['event.event.ticket']._fields
         ticket_commands = []
@@ -608,7 +623,20 @@ class EventApplication(models.Model):
                     'zip_code': self.zip_code,
                     'country_id': self.country_id.id if self.country_id else False,
                 })
-        
+        # Copy gallery images to the published event (only if target field exists)
+        if 'image_ids' in self.env['event.event']._fields:
+            image_commands = []
+            for image in self.image_ids.sorted(lambda img: (img.sequence, img.id)):
+                if not image.image:
+                    continue
+                image_commands.append(Command.create({
+                    'name': image.name or 'Event Image',
+                    'sequence': image.sequence,
+                    'image': image.image,
+                }))
+            if image_commands:
+                event_vals['image_ids'] = image_commands
+
         event = self.env['event.event'].create(event_vals)
         self.write({
             'state': 'published',
@@ -640,6 +668,8 @@ class EventEvent(models.Model):
     application_id = fields.Many2one('event.application', string='Original Application', readonly=True)
     location = fields.Char(string='Location')
     badge_image = fields.Binary(string='Badge Background')
+    image_ids = fields.One2many('event.image', 'event_id', string='Gallery Images')
+    thumbnail_image = fields.Image(string='Thumbnail Image')
     
     
     def action_view_registrations_portal(self):

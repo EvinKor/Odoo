@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Fix ids/for attributes for tag, date and country filters (accessibility/autofill) -->
+    <template id="event_filters_labels_ids" inherit_id="website_event.index_topbar">
+        <!-- Tag checkboxes in mobile offcanvas -->
+        <xpath expr="//div[@id='o_wevent_index_offcanvas']//input[@type='checkbox']" position="attributes">
+            <attribute name="t-attf-id">tag-filter-#{tag.id or tag.color}</attribute>
+        </xpath>
+        <xpath expr="//div[@id='o_wevent_index_offcanvas']//div[@class='form-check']/label[@class='form-check-label']" position="attributes">
+            <attribute name="t-attf-for">tag-filter-#{tag.id or tag.color}</attribute>
+        </xpath>
+
+        <!-- Date radios in mobile offcanvas -->
+        <xpath expr="//div[@id='o_wevent_offcanvas_date']//input[@type='radio']" position="attributes">
+            <attribute name="t-att-id">'date-filter-%s' % date[0]</attribute>
+        </xpath>
+        <xpath expr="//div[@id='o_wevent_offcanvas_date']//label[@class='form-check-label']" position="attributes">
+            <attribute name="t-att-for">'date-filter-%s' % date[0]</attribute>
+        </xpath>
+
+    </template>
+</odoo>

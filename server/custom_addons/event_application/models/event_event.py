@@ -149,6 +149,12 @@ class EventEvent(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Remove image fields that may not exist in this deployment to avoid invalid field errors.
+        for vals in vals_list:
+            if 'image_1920' in vals and 'image_1920' not in self._fields:
+                vals.pop('image_1920', None)
+            if 'image' in vals and 'image' not in self._fields:
+                vals.pop('image', None)
         records = super().create(vals_list)
         for event in records:
             if not event.address_input:

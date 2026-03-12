@@ -31,12 +31,28 @@ class EventReactApi(http.Controller):
         image_url = f"{base}/web/image/event.event/{event.id}/image_1920"
         thumb_url = f"{base}/web/image/event.event/{event.id}/image_512"
         api_url = f"{base}/api/app/events/{event.id}/image"
+        thumb_api_url = f"{base}/api/app/events/{event.id}/thumb"
 
         # Data URI fallback for clients without cookie access to Odoo
         image_data = ""
         if hasattr(event, "image_512") and event.image_512:
             raw = event.image_512.decode() if isinstance(event.image_512, bytes) else event.image_512
             image_data = f"data:image/png;base64,{raw}"
+
+        badge_url = ""
+        badge_data = ""
+        if hasattr(event, "badge_image") and event.badge_image:
+            badge_url = f"{base}/web/image/event.event/{event.id}/badge_image"
+            raw_badge = event.badge_image.decode() if isinstance(event.badge_image, bytes) else event.badge_image
+            badge_data = f"data:image/png;base64,{raw_badge}"
+
+        card_bg_url = ""
+        card_bg_data = ""
+        if hasattr(event, "card_bg_image") and event.card_bg_image:
+            card_bg_url = f"{base}/web/image/event.event/{event.id}/card_bg_image"
+            raw_card = event.card_bg_image.decode() if isinstance(event.card_bg_image, bytes) else event.card_bg_image
+            card_bg_data = f"data:image/png;base64,{raw_card}"
+
         return {
             "id": event.id,
             "name": event.name,
@@ -46,11 +62,16 @@ class EventReactApi(http.Controller):
             "image": image_url,
             "image_thumb": thumb_url,
             "image_api": api_url,
+            "image_thumb_api": thumb_api_url,
             "image_data": image_data,
+            "badge_image": badge_url,
+            "badge_image_data": badge_data,
+            "card_bg_image": card_bg_url,
+            "card_bg_image_data": card_bg_data,
             "tickets": [self._json_ticket(t) for t in event.event_ticket_ids],
         }
 
-    @http.route("/api/app/events/<int:event_id>/image", type="http", auth="public", csrf=False, cors="*")
+    @http.route("/api/app/events/<int:event_id>/image", type="http", auth="public", csrf=False)
     def app_event_image(self, event_id, **kwargs):
         """Serve the event image without requiring session cookies (for React fetch)."""
         try:
@@ -60,7 +81,7 @@ class EventReactApi(http.Controller):
 
             # Look for any available image field on the model, highest resolution first.
             img_b64 = None
-            for field in ("image_1920", "image", "image_1024", "image_512", "image_medium", "image_small"):
+            for field in ("card_bg_image", "badge_image", "image_1920", "image", "image_1024", "image_512", "image_medium", "image_small"):
                 if hasattr(event, field):
                     val = getattr(event, field)
                     if val:
@@ -76,26 +97,55 @@ class EventReactApi(http.Controller):
 
             binary = base64.b64decode(img_b64)
 
-            origin = request.httprequest.headers.get("Origin")
-
             headers = [
                 ("Content-Type", "image/png"),
                 ("Cache-Control", "public, max-age=3600"),
             ]
-            if origin:
-                # Echo the caller's Origin so browsers allow credentials if sent.
-                headers.append(("Access-Control-Allow-Origin", origin))
-                headers.append(("Access-Control-Allow-Credentials", "true"))
-            else:
-                headers.append(("Access-Control-Allow-Origin", "*"))
             return request.make_response(binary, headers=headers)
         except Exception as e:
             # Return the error in dev so we can see the root cause quickly.
             return request.make_response(f"Error: {e}", status=500)
 
+    @http.route("/api/app/events/<int:event_id>/thumb", type="http", auth="public", csrf=False)
+    def app_event_thumb(self, event_id, **kwargs):
+        """Serve a small/thumbnail image for the event."""
+        try:
+            event = request.env["event.event"].sudo().browse(event_id)
+            if not event.exists() or not (event.website_published or event.is_published):
+                return request.make_response("Not Found", status=404)
+
+            img_b64 = None
+            for field in ("card_bg_image", "badge_image", "image_512", "image_256", "image_small", "image_1920", "image"):
+                if hasattr(event, field):
+                    val = getattr(event, field)
+                    if val:
+                        img_b64 = val
+                        break
+
+            if not img_b64:
+                return request.make_response("", status=204)
+
+            if isinstance(img_b64, bytes):
+                img_b64 = img_b64.decode()
+            binary = base64.b64decode(img_b64)
+
+            headers = [
+                ("Content-Type", "image/png"),
+                ("Cache-Control", "public, max-age=1800"),
+            ]
+            return request.make_response(binary, headers=headers)
+        except Exception as e:
+            return request.make_response(f"Error: {e}", status=500)
+
     @http.route("/api/app/events/<int:event_id>/image/set", type="json", auth="public", csrf=False, cors="*")
     def app_event_image_set(self, event_id, **payload):
-        """Update an event image from React via base64 data URI or raw base64.
+        """Update event images (cover, background, badge, thumbnail) via base64.
+
+        Accepts keys:
+        - image_base64: main image (stored on image_1920)
+        - card_bg_base64: background/cover (stored on card_bg_image when available)
+        - badge_base64: badge overlay (stored on badge_image when available)
+        - thumb_base64: thumbnail (stored on image_512 when available)
 
         Security: requires a shared token stored in system parameter ``event_react_api.token``.
         """
@@ -108,21 +158,34 @@ class EventReactApi(http.Controller):
         if expected_token and token != expected_token:
             return {"ok": False, "error": "unauthorized"}
 
-        img_b64 = (payload.get("image_base64") or "").strip()
-        if not img_b64:
-            return {"ok": False, "error": "image_required"}
+        to_write = {}
+        errors = {}
 
-        # Support data URI prefix
-        if "," in img_b64:
-            img_b64 = img_b64.split(",", 1)[1]
+        def validate(field_key, field_name):
+            raw = (payload.get(field_key) or "").strip()
+            if not raw:
+                return
+            value = raw.split(",", 1)[1] if "," in raw else raw
+            try:
+                base64.b64decode(value, validate=True)
+            except Exception:
+                errors[field_key] = "invalid_base64"
+                return
+            if field_name not in event._fields:
+                errors[field_key] = "field_not_found"
+                return
+            to_write[field_name] = value
 
-        try:
-            base64.b64decode(img_b64, validate=True)
-        except Exception:
-            return {"ok": False, "error": "invalid_base64"}
+        validate("image_base64", "image_1920")
+        validate("card_bg_base64", "card_bg_image")
+        validate("badge_base64", "badge_image")
+        validate("thumb_base64", "image_512")
 
-        event.write({"image_1920": img_b64})
-        return {"ok": True}
+        if errors and not to_write:
+            return {"ok": False, "error": errors}
+        if to_write:
+            event.write(to_write)
+        return {"ok": True, "written": list(to_write.keys()), "errors": errors}
 
     @http.route("/api/app/events", type="json", auth="public", csrf=False, cors="*")
     def app_events(self, **payload):

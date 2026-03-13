@@ -1,5 +1,6 @@
 import base64
 from datetime import datetime
+import json
 
 from urllib.parse import quote_plus
 from urllib.parse import urlencode
@@ -11,6 +12,7 @@ from urllib.parse import urlparse
 from odoo import fields, http
 from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
+from odoo.tools import html2plaintext
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -571,6 +573,80 @@ class EventApplicationPortal(CustomerPortal):
         dt_utc = dt_local.astimezone(pytz.UTC)
         return fields.Datetime.to_string(dt_utc)
 
+    def _format_datetime_local(self, dt):
+        """Convert stored datetime to datetime-local string in user's TZ."""
+        if not dt:
+            return ''
+        try:
+            dt_utc = fields.Datetime.to_datetime(dt)
+        except Exception:
+            return ''
+        tz_name = (
+            request.env.context.get('tz')
+            or request.env.user.tz
+            or request.env.company.partner_id.tz
+            or 'UTC'
+        )
+        try:
+            tzinfo = pytz.timezone(tz_name)
+        except pytz.UnknownTimeZoneError:
+            tzinfo = pytz.UTC
+        dt_local = dt_utc.astimezone(tzinfo)
+        return dt_local.replace(tzinfo=None).strftime('%Y-%m-%dT%H:%M')
+
+    def _build_draft_from_application(self, application):
+        """Map an existing application into the form draft payload (sessionStorage)."""
+        fmt = self._format_datetime_local
+        payload = {
+            'event_name': application.name or '',
+            'partner_id': request.env.user.partner_id.id,
+            'date_begin': fmt(application.date_begin),
+            'date_end': fmt(application.date_end),
+            'registration_start': fmt(application.registration_start),
+            'registration_end': fmt(application.registration_end),
+            'registration_limit': '1' if application.registration_limit else '0',
+            'max_registrations': str(application.max_registrations or 0),
+            'venue_type': application.venue_type or 'physical',
+            'online_platform': application.online_platform or '',
+            'online_link': application.online_link or '',
+            'venue_name': application.venue_name or '',
+            'building_name': application.building_name or '',
+            'address_input': application.address_input or '',
+            'street_address': application.street_address or '',
+            'street_address2': application.street_address2 or '',
+            'district': application.district or '',
+            'floor': application.floor or '',
+            'unit_no': application.unit_no or '',
+            'city': application.city or '',
+            'zip_code': application.zip_code or '',
+            'state_id': application.state_id.id or '',
+            'country_id': application.country_id.id or '',
+            'contact_phone': application.contact_phone or '',
+            'contact_email': application.contact_email or '',
+            'description': html2plaintext(application.description or '') if application.description else '',
+            'specialty_ids': ','.join(str(i) for i in application.specialty_ids.ids),
+            'specialty_other_names': application.specialty_other_text or '',
+            'case_ids': ','.join(str(i) for i in application.case_ids.ids),
+            'case_other_names': application.case_other_text or '',
+            'thumbnail_choice': '0',
+            'resubmit_application_id': application.id,
+            'submission_point_cost': application.submission_point_cost or self._get_submission_point_cost(),
+            'existing_image_ids': ','.join(str(i) for i in application.image_ids.ids),
+            'badge_image_url': application.badge_image and f"/web/image/event.application/{application.id}/badge_image/720x0" or '',
+            'thumbnail_choice': '0',
+            'thumbnail_image_url': application.thumbnail_image and f"/web/image/event.application/{application.id}/thumbnail_image/720x0" or '',
+            'specialty_id_list': application.specialty_ids.ids,
+            'case_id_list': application.case_ids.ids,
+        }
+        ticket_lines = application.ticket_line_ids.sorted('sequence') if application.ticket_line_ids else []
+        payload['ticket_name[]'] = [line.name or '' for line in ticket_lines]
+        payload['ticket_start[]'] = [fmt(line.start_sale_datetime) for line in ticket_lines]
+        payload['ticket_end[]'] = [fmt(line.end_sale_datetime) for line in ticket_lines]
+        payload['ticket_limit[]'] = ['1' if line.seats_limited else '0' for line in ticket_lines]
+        payload['ticket_max[]'] = [str(line.seats_max or '') for line in ticket_lines]
+        payload['ticket_points[]'] = [str(line.point_cost or 0) for line in ticket_lines]
+        return payload
+
     def _application_payment_session_key(self):
         return 'event_application_submit_payment'
 
@@ -674,10 +750,15 @@ class EventApplicationPortal(CustomerPortal):
         case_ids = list(dict.fromkeys(case_ids))
         case_other_names = self._parse_custom_names(post.get('case_other_names'))
 
+        max_upload_bytes = 2 * 1024 * 1024  # 2 MB per image
+
         badge_image = False
         badge_file = request.httprequest.files.get('badge_image')
         if badge_file and badge_file.filename:
-            badge_image = base64.b64encode(badge_file.read()).decode('ascii')
+            badge_bytes = badge_file.read()
+            if badge_bytes and len(badge_bytes) > max_upload_bytes:
+                return None, 'image_too_large'
+            badge_image = base64.b64encode(badge_bytes).decode('ascii') if badge_bytes else False
 
         card_bg_image = False
 
@@ -690,21 +771,60 @@ class EventApplicationPortal(CustomerPortal):
         except (TypeError, ValueError):
             thumbnail_choice_idx = 0
 
+        resubmit_id = int(post.get('resubmit_application_id') or 0)
         image_files = request.httprequest.files.getlist('event_images') or []
         for idx, upload in enumerate(image_files):
             if not upload or not upload.filename:
                 continue
-            image_data = base64.b64encode(upload.read()).decode('ascii')
-            gallery_images.append({
-                'name': upload.filename or f"Image {idx + 1}",
-                'image': image_data,
-                'sequence': (idx + 1) * 10,
-            })
-            if thumbnail_image is False and idx == thumbnail_choice_idx:
-                thumbnail_image = image_data
+            image_bytes = upload.read()
+            if image_bytes and len(image_bytes) > max_upload_bytes:
+                return None, 'image_too_large'
+            image_data = base64.b64encode(image_bytes).decode('ascii') if image_bytes else False
+            if image_data:
+                gallery_images.append({
+                    'name': upload.filename or f"Image {idx + 1}",
+                    'image': image_data,
+                    'sequence': (idx + 1) * 10,
+                })
+                if thumbnail_image is False and idx == thumbnail_choice_idx:
+                    thumbnail_image = image_data
         if thumbnail_image is False and gallery_images:
             # Default to the first uploaded image when no explicit choice
             thumbnail_image = gallery_images[0]['image']
+        # Reuse gallery from previous application if resubmitting and no new uploads
+        if not gallery_images and resubmit_id:
+            existing_app = request.env['event.application'].sudo().browse(resubmit_id)
+            if existing_app.exists() and existing_app.partner_id.id == request.env.user.partner_id.id:
+                for idx, img in enumerate(existing_app.image_ids.sorted('sequence')):
+                    if not img.image:
+                        continue
+                    gallery_images.append({
+                        'name': img.name or f"Image {idx + 1}",
+                        'image': img.image,
+                        'sequence': (idx + 1) * 10,
+                    })
+                if gallery_images and thumbnail_image is False:
+                    thumbnail_image = gallery_images[0]['image']
+        # Fallback to explicit existing ids (hidden field)
+        if not gallery_images and post.get('existing_image_ids'):
+            existing_ids = self._parse_csv_int_ids(post.get('existing_image_ids', ''))
+            if existing_ids:
+                for idx, img in enumerate(request.env['event.application.image'].sudo().browse(existing_ids)):
+                    if not img.image:
+                        continue
+                    gallery_images.append({
+                        'name': img.name or f"Image {idx + 1}",
+                        'image': img.image,
+                        'sequence': (idx + 1) * 10,
+                    })
+                if gallery_images and thumbnail_image is False:
+                    thumbnail_image = gallery_images[0]['image']
+
+        # Reuse badge when resubmitting if none uploaded
+        if not badge_image and resubmit_id:
+            existing_app = request.env['event.application'].sudo().browse(resubmit_id)
+            if existing_app.exists() and existing_app.partner_id.id == request.env.user.partner_id.id:
+                badge_image = existing_app.badge_image or False
 
         payload = {
             'name': post.get('event_name'),
@@ -812,7 +932,28 @@ class EventApplicationPortal(CustomerPortal):
         if error_code:
             return request.redirect(f'/event/apply?error={error_code}')
         request.session[self._application_payment_session_key()] = payload
-        return request.redirect('/event/apply/payment')
+        return request.redirect('/event/apply/review')
+
+    @http.route(['/event/apply/review'], type='http', auth='user', website=True, methods=['GET'])
+    def event_application_review(self, **kwargs):
+        payload = request.session.get(self._application_payment_session_key())
+        if not payload:
+            return request.redirect('/event/apply')
+        specialty_names = []
+        case_names = []
+        try:
+            if payload.get('specialty_ids'):
+                specialty_names = request.env['event.specialty'].sudo().browse(payload.get('specialty_ids')).mapped('name')
+            if payload.get('case_ids'):
+                case_names = request.env['event.case'].sudo().browse(payload.get('case_ids')).mapped('name')
+        except Exception:
+            specialty_names = []
+            case_names = []
+        return request.render('event_application.event_application_review_page', {
+            'application_payload': payload,
+            'specialty_names': specialty_names,
+            'case_names': case_names,
+        })
 
     @http.route(['/event/apply/payment'], type='http', auth='user', website=True, methods=['GET'])
     def event_application_payment(self, **kwargs):
@@ -845,7 +986,14 @@ class EventApplicationPortal(CustomerPortal):
             if required_points > 0 and available_points < required_points:
                 return request.redirect('/event/apply/payment?payment_error_code=insufficient_points')
             vals = self._build_application_vals_from_payload(payload)
-            application = request.env['event.application'].create(vals)
+            application = False
+            resubmit_id = int(payload.get('resubmit_application_id') or 0)
+            resubmit_rec = request.env['event.application'].sudo().browse(resubmit_id) if resubmit_id else False
+            if resubmit_rec and resubmit_rec.exists() and resubmit_rec.partner_id.id == request.env.user.partner_id.id and resubmit_rec.state in ('rejected', 'draft'):
+                resubmit_rec.write(vals)
+                application = resubmit_rec
+            else:
+                application = request.env['event.application'].create(vals)
             application.action_submit()
             request.session.pop(self._application_payment_session_key(), None)
             return request.redirect('/event/apply/payment-success?' + urlencode({
@@ -874,6 +1022,22 @@ class EventApplicationPortal(CustomerPortal):
             'application': application,
             'redirect_url': '/my/event/applications',
             'redirect_seconds': 3,
+        })
+
+    @http.route(['/my/event/application/<int:application_id>/resubmit'], type='http', auth='user', website=True)
+    def event_application_resubmit(self, application_id, **kwargs):
+        application = request.env['event.application'].sudo().browse(application_id)
+        if (
+            not application.exists()
+            or application.partner_id.id != request.env.user.partner_id.id
+            or application.state != 'rejected'
+        ):
+            return request.redirect('/my/event/applications')
+        draft_payload = self._build_draft_from_application(application)
+        draft_json = json.dumps(draft_payload, ensure_ascii=False)
+        draft_b64 = base64.b64encode(draft_json.encode('utf-8')).decode('ascii')
+        return request.render('event_application.event_application_resubmit_redirect', {
+            'draft_b64': draft_b64,
         })
     
     @http.route(['/my/event/application/<int:application_id>'], type='http', auth='user', website=True)

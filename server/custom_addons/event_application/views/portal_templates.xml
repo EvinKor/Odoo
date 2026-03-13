@@ -105,7 +105,10 @@
                             </a>
                         </li>
                     </ul>
-                    <div class="d-flex justify-content-end mb-3">
+                    <div class="d-flex justify-content-end gap-2 mb-3">
+                        <a href="/my/event/applications" class="btn btn-outline-primary">
+                            <i class="fa fa-clipboard-check"></i> View Event Status
+                        </a>
                         <a href="/my/event/notifications" class="btn btn-outline-secondary position-relative">
                             <i class="fa fa-bell"></i>
                             <span t-if="event_notification_count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -596,11 +599,13 @@
                                     <t t-elif="form_error == 'invalid_ticket_date_range'">Ticket sales start date must be before end date.</t>
                                     <t t-elif="form_error == 'invalid_ticket_max'">Limited tickets require a maximum quantity greater than 0.</t>
                                     <t t-elif="form_error == 'invalid_ticket_points'">Point cost cannot be negative.</t>
+                                    <t t-elif="form_error == 'image_too_large'">Each image must be 2 MB or smaller. Please resize and upload again.</t>
                                     <t t-else="">Please fix the highlighted data and submit again.</t>
                                 </div>
                             </t>
                             <form id="event-application-submit-form" action="/event/apply/submit" method="post" class="o_website_form" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <input type="hidden" name="resubmit_application_id" id="resubmit_application_id"/>
                                 
                                 <div class="row">
                                     <div class="col-12 mb-3">
@@ -643,6 +648,17 @@
                                                                 <input type="text" name="ticket_datetimes[]" class="form-control ticket-datetime-range" placeholder="Select sales start and end" autocomplete="off"/>
                                                                 <input type="hidden" name="ticket_start[]" class="ticket-start-input"/>
                                                                 <input type="hidden" name="ticket_end[]" class="ticket-end-input"/>
+                                                                <div class="ticket-date-fallback d-none mt-2">
+                                                                    <div class="row g-2">
+                                                                        <div class="col">
+                                                                            <input type="datetime-local" class="form-control ticket-start-fallback" placeholder="Sales start"/>
+                                                                        </div>
+                                                                        <div class="col">
+                                                                            <input type="datetime-local" class="form-control ticket-end-fallback" placeholder="Sales end"/>
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="text-muted">Basic picker in use because enhanced date picker is unavailable.</small>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div class="row align-items-end">
@@ -684,6 +700,17 @@
                                                                 <input type="text" name="ticket_datetimes[]" class="form-control ticket-datetime-range" placeholder="Select sales start and end" autocomplete="off"/>
                                                                 <input type="hidden" name="ticket_start[]" class="ticket-start-input"/>
                                                                 <input type="hidden" name="ticket_end[]" class="ticket-end-input"/>
+                                                                <div class="ticket-date-fallback d-none mt-2">
+                                                                    <div class="row g-2">
+                                                                        <div class="col">
+                                                                            <input type="datetime-local" class="form-control ticket-start-fallback" placeholder="Sales start"/>
+                                                                        </div>
+                                                                        <div class="col">
+                                                                            <input type="datetime-local" class="form-control ticket-end-fallback" placeholder="Sales end"/>
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="text-muted">Basic picker in use because enhanced date picker is unavailable.</small>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div class="row align-items-end">
@@ -722,17 +749,36 @@
                                     <h5 class="section-title">Branding &amp; contact</h5>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label" for="badge_image">Badge background</label>
-                                            <input type="file" name="badge_image" id="badge_image" class="form-control ea-file" accept="image/*"/>
+                                            <label class="form-label" for="badge_image">
+                                                <i class="fa fa-id-badge me-1"></i> Badge background
+                                            </label>
+                                            <div class="ea-upload-box">
+                                                <input type="file" name="badge_image" id="badge_image" class="ea-upload-input" accept="image/*"/>
+                                                <div class="ea-upload-content">
+                                                    <div class="ea-upload-btn"><i class="fa fa-cloud-upload"></i>Upload badge</div>
+                                                    <p class="ea-upload-hint">PNG or JPG, ideally 1200×600 for crisp cards.</p>
+                                                </div>
+                                            </div>
+                                            <small id="badge-existing-note" class="text-muted d-none mt-1"></small>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-12 mb-3">
-                                            <label class="form-label" for="event_images">Event Images (Gallery)</label>
-                                            <input type="file" name="event_images" id="event_images" class="form-control ea-file" accept="image/*" multiple="multiple"/>
+                                            <label class="form-label" for="event_images">
+                                                <i class="fa fa-images me-1"></i> Event Images (Gallery)
+                                            </label>
+                                            <input type="hidden" name="existing_image_ids" id="existing_image_ids"/>
+                                            <div class="ea-upload-box">
+                                                <input type="file" name="event_images" id="event_images" class="ea-upload-input" accept="image/*" multiple="multiple"/>
+                                                <div class="ea-upload-content">
+                                                    <div class="ea-upload-btn"><i class="fa fa-upload"></i>Select gallery images</div>
+                                                    <p class="ea-upload-hint">Up to 5 images · PNG/JPG · Choose one as thumbnail.</p>
+                                                </div>
+                                            </div>
                                             <input type="hidden" name="thumbnail_choice" id="thumbnail_choice" value="0"/>
                                             <small class="text-muted d-block mt-1">Upload multiple images (max 5) and pick one as the thumbnail.</small>
                                             <small id="event-images-limit" class="text-danger d-none"></small>
+                                            <small id="existing-images-note" class="text-muted d-none mt-1"></small>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -909,7 +955,7 @@
                                     </div>
                                 </section>
                                 
-                                <button type="submit" class="btn btn-primary">Continue to Payment</button>
+                                <button type="submit" class="btn btn-primary">Review Event</button>
                                 <a href="/event" class="btn btn-secondary">Cancel</a>
                             </form>
                             </div>
@@ -1121,26 +1167,55 @@
                                     color: #2f4f84;
                                     font-weight: 600;
                                 }
-                                .ea-file {
-                                    border: 1px dashed #b1c3df;
-                                    background: #f8fbff;
-                                    color: #2f4f84;
-                                    padding: 0.6rem 0.9rem;
+                                .ea-upload-box {
+                                    position: relative;
+                                    border: 2px dashed #cbd5e1;
+                                    background: radial-gradient(circle at 20% 20%, #f8fbff, #edf2ff);
+                                    border-radius: 14px;
+                                    padding: 1.25rem 1rem;
+                                    text-align: center;
+                                    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
                                     cursor: pointer;
                                 }
-                                .ea-file::-webkit-file-upload-button,
-                                .ea-file::file-selector-button {
-                                    color: #ffffff;
-                                    background: #2353A3;
-                                    border: none;
-                                    border-radius: 6px;
-                                    padding: 0.45rem 0.85rem;
-                                    margin-right: 12px;
+                                .ea-upload-box:hover {
+                                    border-color: #2563eb;
+                                    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+                                    transform: translateY(-1px);
+                                }
+                                .ea-upload-input {
+                                    position: absolute;
+                                    inset: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    opacity: 0;
                                     cursor: pointer;
                                 }
-                                .ea-file:hover {
-                                    border-color: #2353A3;
-                                    background: #eef5ff;
+                                .ea-upload-content {
+                                    pointer-events: none;
+                                    display: flex;
+                                    flex-direction: column;
+                                    align-items: center;
+                                    gap: 0.35rem;
+                                    color: #1f2a44;
+                                }
+                                .ea-upload-btn {
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 0.45rem;
+                                    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                                    color: #fff;
+                                    padding: 0.55rem 1.15rem;
+                                    border-radius: 9999px;
+                                    font-weight: 600;
+                                    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+                                }
+                                .ea-upload-btn i {
+                                    font-size: 1rem;
+                                }
+                                .ea-upload-hint {
+                                    margin: 0;
+                                    font-size: 0.9rem;
+                                    color: #475569;
                                 }
                                 .ea-image-thumb {
                                     width: 100%;
@@ -1213,6 +1288,11 @@
                                     const imagesPreview = document.getElementById('event-images-preview');
                                     const thumbnailChoiceInput = document.getElementById('thumbnail_choice');
                                     const maxImages = 5;
+                                    const maxImageBytes = 2 * 1024 * 1024; // 2 MB
+                                    const maxImageLabel = '2 MB';
+                                    const existingImagesHidden = document.getElementById('existing_image_ids');
+                                    const existingImagesNote = document.getElementById('existing-images-note');
+                                    const badgeExistingNote = document.getElementById('badge-existing-note');
                                     const limitNotice = document.getElementById('event-images-limit');
                                     let selectedImages = [];
                                     let currentThumbUrl = '';
@@ -1365,9 +1445,34 @@
                                         }
                                         const files = Array.from(fileList || []);
                                         imagesPreview.innerHTML = '';
+                                        // Show existing images if no new files selected and we have stored IDs.
+                                        if (!files.length && existingImagesHidden && existingImagesHidden.value && existingImagesHidden.dataset.cleared !== '1') {
+                                            const ids = existingImagesHidden.value.split(',').map(id => id.trim()).filter(Boolean);
+                                            ids.forEach((id) => {
+                                                const col = document.createElement('div');
+                                                col.className = 'col-6 col-md-4 col-lg-3';
+                                                col.innerHTML = `
+                                                    <div class="card h-100 shadow-sm">
+                                                        <img src="/web/image/event.application.image/${id}/image/256x0" class="card-img-top" style="object-fit: cover; height: 140px;">
+                                                        <div class="card-body p-2">
+                                                            <div class="small text-muted text-truncate">Existing image</div>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                                imagesPreview.appendChild(col);
+                                            });
+                                            if (existingImagesNote) {
+                                                existingImagesNote.textContent = `Keeping ${ids.length} existing image(s). Upload new files to replace.`;
+                                                existingImagesNote.classList.remove('d-none');
+                                            }
+                                        }
                                         if (!files.length) {
                                             if (thumbnailChoiceInput) {
                                                 thumbnailChoiceInput.value = '';
+                                            }
+                                            if (existingImagesNote && (!existingImagesHidden || !existingImagesHidden.value || existingImagesHidden.dataset.cleared === '1')) {
+                                                existingImagesNote.textContent = '';
+                                                existingImagesNote.classList.add('d-none');
                                             }
                                             return;
                                         }
@@ -1413,8 +1518,8 @@
                                             thumbSelect.appendChild(text);
                                             const removeBtn = document.createElement('button');
                                             removeBtn.type = 'button';
-                                            removeBtn.className = 'btn btn-sm btn-outline-danger ea-thumb-remove';
-                                            removeBtn.textContent = '×';
+                                            removeBtn.className = 'btn btn-sm btn-danger ea-thumb-remove';
+                                            removeBtn.innerHTML = '<i class="fa fa-times"></i>';
                                             removeBtn.addEventListener('click', (ev) => {
                                                 ev.preventDefault();
                                                 selectedImages.splice(idx, 1);
@@ -1459,17 +1564,40 @@
                                         if (!fresh.length) {
                                             return;
                                         }
+                                        const allowed = [];
+                                        const rejected = [];
+                                        fresh.forEach(function(file) {
+                                            if (file.size && file.size > maxImageBytes) {
+                                                rejected.push(file.name);
+                                                return;
+                                            }
+                                            allowed.push(file);
+                                        });
                                         const available = Math.max(0, maxImages - selectedImages.length);
-                                        let toAdd = fresh;
-                                        if (fresh.length > available) {
-                                            toAdd = fresh.slice(0, available);
+                                        let toAdd = allowed;
+                                        if (allowed.length > available) {
+                                            toAdd = allowed.slice(0, available);
                                             if (limitNotice) {
                                                 limitNotice.textContent = `You can upload up to ${maxImages} images. Only the first ${available} new file(s) were kept.`;
                                                 limitNotice.classList.remove('d-none');
                                             }
-                                        } else if (limitNotice) {
-                                            limitNotice.textContent = '';
-                                            limitNotice.classList.add('d-none');
+                                        }
+                                        if (limitNotice) {
+                                            if (rejected.length) {
+                                                limitNotice.textContent = `Skipped ${rejected.length} file(s) over ${maxImageLabel}: ${rejected.join(', ')}`;
+                                                limitNotice.classList.remove('d-none');
+                                            } else if (toAdd.length <= available) {
+                                                limitNotice.textContent = '';
+                                                limitNotice.classList.add('d-none');
+                                            }
+                                        }
+                                        // When new files are selected, ignore existing stored images
+                                        if (existingImagesHidden) {
+                                            existingImagesHidden.dataset.cleared = '1';
+                                            if (existingImagesNote) {
+                                                existingImagesNote.textContent = '';
+                                                existingImagesNote.classList.add('d-none');
+                                            }
                                         }
                                         // Keep previously chosen files and append within limit.
                                         selectedImages = selectedImages.concat(toAdd).slice(0, maxImages);
@@ -1574,6 +1702,14 @@
                                             }
                                             return;
                                         }
+                                        if (file.size && file.size > maxImageBytes) {
+                                            if (limitNotice) {
+                                                limitNotice.textContent = `Each image must be ${maxImageLabel} or smaller. '${file.name}' was skipped.`;
+                                                limitNotice.classList.remove('d-none');
+                                            }
+                                            input.value = '';
+                                            return;
+                                        }
                                         const reader = new FileReader();
                                         reader.onload = function(evt) {
                                             if (isBackground) {
@@ -1586,7 +1722,53 @@
                                         reader.readAsDataURL(file);
                                     }
 
-                                    function bindTicketRow(row) {
+                                    let dateAssetsPromise = null;
+
+                                    function ensureDateAssets() {
+                                        const ready = Boolean(
+                                            (window.jQuery || window.$) &&
+                                            window.moment &&
+                                            (window.jQuery || window.$).fn &&
+                                            typeof (window.jQuery || window.$).fn.daterangepicker === 'function'
+                                        );
+                                        if (ready) {
+                                            return Promise.resolve();
+                                        }
+                                        if (dateAssetsPromise) {
+                                            return dateAssetsPromise;
+                                        }
+                                        dateAssetsPromise = new Promise((resolve, reject) => {
+                                            const head = document.head || document.getElementsByTagName('head')[0];
+                                            const addScript = (src) => new Promise((res, rej) => {
+                                                const s = document.createElement('script');
+                                                s.src = src;
+                                                s.onload = res;
+                                                s.onerror = rej;
+                                                head.appendChild(s);
+                                            });
+                                            const addCss = (href) => {
+                                                const l = document.createElement('link');
+                                                l.rel = 'stylesheet';
+                                                l.href = href;
+                                                head.appendChild(l);
+                                            };
+                                            // Ensure CSS once
+                                            if (!document.querySelector('link[href*=\"daterangepicker.css\"]')) {
+                                                addCss('https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css');
+                                            }
+                                            // Load moment then daterangepicker
+                                            addScript('https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js')
+                                                .then(() => addScript('https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js'))
+                                                .then(resolve)
+                                                .catch(reject);
+                                        });
+                                        return dateAssetsPromise;
+                                    }
+
+                                    function bindTicketRow(row, opts) {
+                                        const options = opts || {};
+                                        const forceReinit = Boolean(options.forceReinit);
+                                        const showOnInit = Boolean(options.show && false); // force disable auto-open
                                         if (!row) {
                                             return;
                                         }
@@ -1597,106 +1779,143 @@
                                         const ticketStartInput = row.querySelector('.ticket-start-input');
                                         const ticketEndInput = row.querySelector('.ticket-end-input');
                                         const ticketDateFallback = row.querySelector('.ticket-date-fallback');
+                                        const ticketStartFallback = row.querySelector('.ticket-start-fallback');
+                                        const ticketEndFallback = row.querySelector('.ticket-end-fallback');
 
-                                        function initTicketDateRange() {
+                                        function initTicketDateRange(config) {
+                                            const cfg = config || {};
+                                            const forceShow = Boolean(cfg.show);
+                                            const forceReload = Boolean(cfg.forceReinit);
                                             if (!ticketRangeInput || !ticketStartInput || !ticketEndInput) {
                                                 return;
                                             }
-                                            const localJq = window.jQuery || window.$;
-                                            const hasPicker = Boolean(
-                                                localJq &&
-                                                window.moment &&
-                                                localJq.fn &&
-                                                typeof localJq.fn.daterangepicker === 'function'
-                                            );
-                                            if (!hasPicker) {
+                                            if (!ticketRangeInput.dataset.rangeRetryStarted) {
+                                                ticketRangeInput.dataset.rangeRetryStarted = '0';
+                                            }
+                                            const activate = function() {
+                                                const localJq = window.jQuery || window.$;
+                                                const hasPicker = Boolean(
+                                                    localJq &&
+                                                    window.moment &&
+                                                    localJq.fn &&
+                                                    typeof localJq.fn.daterangepicker === 'function'
+                                                );
+                                                if (!hasPicker) {
+                                                    ticketRangeInput.classList.remove('d-none');
+                                                    if (ticketDateFallback) {
+                                                        ticketDateFallback.classList.remove('d-none');
+                                                    }
+                                                    if (ticketStartFallback && ticketEndFallback) {
+                                                        ticketStartFallback.addEventListener('change', function() {
+                                                            ticketStartInput.value = ticketStartFallback.value;
+                                                        });
+                                                        ticketEndFallback.addEventListener('change', function() {
+                                                            ticketEndInput.value = ticketEndFallback.value;
+                                                        });
+                                                    }
+                                                    return;
+                                                }
+
+                                                if (ticketDateFallback) {
+                                                    ticketDateFallback.classList.add('d-none');
+                                                }
                                                 ticketRangeInput.classList.remove('d-none');
-                                                if (ticketRangeInput.dataset.rangeRetryStarted !== '1') {
-                                                    ticketRangeInput.dataset.rangeRetryStarted = '1';
-                                                    let retryCount = 0;
-                                                    const retryTimer = window.setInterval(function() {
-                                                        retryCount += 1;
-                                                        const jqRetry = window.jQuery || window.$;
-                                                        const ready = Boolean(
-                                                            jqRetry &&
-                                                            window.moment &&
-                                                            jqRetry.fn &&
-                                                            typeof jqRetry.fn.daterangepicker === 'function'
-                                                        );
-                                                        if (ready) {
-                                                            window.clearInterval(retryTimer);
-                                                            ticketRangeInput.dataset.rangeRetryStarted = '0';
-                                                            initTicketDateRange();
-                                                            return;
-                                                        }
-                                                        if (retryCount >= 20) {
-                                                            window.clearInterval(retryTimer);
-                                                            ticketRangeInput.dataset.rangeRetryStarted = '0';
-                                                        }
-                                                    }, 100);
+                                                let existingPicker = localJq(ticketRangeInput).data('daterangepicker');
+                                                if (existingPicker && forceShow) {
+                                                    existingPicker.remove();
+                                                    localJq(ticketRangeInput).data('daterangepicker', null);
+                                                    existingPicker = null;
+                                                    ticketRangeInput.dataset.rangeInit = '';
                                                 }
-                                                return;
-                                            }
-
-                                            if (ticketDateFallback) {
-                                                ticketDateFallback.classList.add('d-none');
-                                            }
-                                            ticketRangeInput.classList.remove('d-none');
-                                            const existingPicker = localJq(ticketRangeInput).data('daterangepicker');
-                                            if (ticketRangeInput.dataset.rangeInit === '1' && !existingPicker) {
-                                                ticketRangeInput.dataset.rangeInit = '';
-                                            }
-                                            if (ticketRangeInput.dataset.rangeInit === '1') {
-                                                return;
-                                            }
-
-                                            const hasExistingRange = Boolean(ticketStartInput.value && ticketEndInput.value);
-                                            let start = ticketStartInput.value ? window.moment(ticketStartInput.value) : window.moment().startOf('hour');
-                                            let end = ticketEndInput.value ? window.moment(ticketEndInput.value) : start.clone().add(1, 'day');
-                                            if (!start.isValid()) {
-                                                start = window.moment().startOf('hour');
-                                            }
-                                            if (!end.isValid() || end.isBefore(start)) {
-                                                end = start.clone().add(1, 'day');
-                                            }
-
-                                            const syncValues = function(startDate, endDate) {
-                                                ticketStartInput.value = startDate.format('YYYY-MM-DDTHH:mm');
-                                                ticketEndInput.value = endDate.format('YYYY-MM-DDTHH:mm');
-                                                ticketRangeInput.value = `${startDate.format('M/DD hh:mm A')} - ${endDate.format('M/DD hh:mm A')}`;
-                                            };
-
-                                            localJq(ticketRangeInput).daterangepicker({
-                                                timePicker: true,
-                                                startDate: start,
-                                                endDate: end,
-                                                autoUpdateInput: false,
-                                                locale: {
-                                                    format: 'M/DD hh:mm A'
+                                                if (ticketRangeInput.dataset.rangeInit === '1' && !existingPicker) {
+                                                    ticketRangeInput.dataset.rangeInit = '';
                                                 }
-                                            });
+                                                if (forceReload && existingPicker) {
+                                                    existingPicker.remove();
+                                                    localJq(ticketRangeInput).data('daterangepicker', null);
+                                                    existingPicker = null;
+                                                    ticketRangeInput.dataset.rangeInit = '';
+                                                }
+                                                if (ticketRangeInput.dataset.rangeInit === '1' && existingPicker) {
+                                                    if (forceShow && existingPicker.show) {
+                                                        existingPicker.show();
+                                                    } else if (!forceShow && existingPicker.hide) {
+                                                        existingPicker.hide();
+                                                    }
+                                                    return existingPicker;
+                                                }
 
-                                            localJq(ticketRangeInput).off('apply.daterangepicker.ticket').on('apply.daterangepicker.ticket', function(ev, picker) {
-                                                syncValues(picker.startDate, picker.endDate);
-                                            });
-                                            localJq(ticketRangeInput)
-                                                .off('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen')
-                                                .on('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen', function() {
-                                                    initTicketDateRange();
-                                                    const picker = localJq(this).data('daterangepicker');
-                                                    if (picker) {
-                                                        picker.show();
+                                                const hasExistingRange = Boolean(ticketStartInput.value && ticketEndInput.value);
+                                                let start = ticketStartInput.value ? window.moment(ticketStartInput.value) : window.moment().startOf('hour');
+                                                let end = ticketEndInput.value ? window.moment(ticketEndInput.value) : start.clone().add(1, 'day');
+                                                if (!start.isValid()) {
+                                                    start = window.moment().startOf('hour');
+                                                }
+                                                if (!end.isValid() || end.isBefore(start)) {
+                                                    end = start.clone().add(1, 'day');
+                                                }
+
+                                                const syncValues = function(startDate, endDate) {
+                                                    ticketStartInput.value = startDate.format('YYYY-MM-DDTHH:mm');
+                                                    ticketEndInput.value = endDate.format('YYYY-MM-DDTHH:mm');
+                                                    ticketRangeInput.value = `${startDate.format('M/DD hh:mm A')} - ${endDate.format('M/DD hh:mm A')}`;
+                                                };
+
+                                                localJq(ticketRangeInput).daterangepicker({
+                                                    timePicker: true,
+                                                    startDate: start,
+                                                    endDate: end,
+                                                    autoUpdateInput: false,
+                                                    locale: {
+                                                        format: 'M/DD hh:mm A'
                                                     }
                                                 });
 
-                                            if (hasExistingRange) {
-                                                syncValues(start, end);
-                                            } else {
-                                                ticketRangeInput.value = '';
-                                                ticketStartInput.value = '';
-                                                ticketEndInput.value = '';
-                                            }
-                                            ticketRangeInput.dataset.rangeInit = '1';
+                                                localJq(ticketRangeInput).off('apply.daterangepicker.ticket').on('apply.daterangepicker.ticket', function(ev, picker) {
+                                                    syncValues(picker.startDate, picker.endDate);
+                                                });
+                                                localJq(ticketRangeInput)
+                                                    .off('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen')
+                                                    .on('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen', function() {
+                                                        const picker = initTicketDateRange(true) || localJq(this).data('daterangepicker');
+                                                        if (picker && picker.show) {
+                                                            picker.show();
+                                                        }
+                                                    });
+                                                // belt-and-suspenders: re-fire shortly after click/focus to catch late-loading assets
+                                                if (forceShow) {
+                                                    window.setTimeout(function() {
+                                                        const latePicker = initTicketDateRange(true);
+                                                        if (latePicker && latePicker.show) {
+                                                            latePicker.show();
+                                                        }
+                                                    }, 150);
+                                                }
+
+                                                if (hasExistingRange) {
+                                                    syncValues(start, end);
+                                                } else {
+                                                    ticketRangeInput.value = '';
+                                                    ticketStartInput.value = '';
+                                                    ticketEndInput.value = '';
+                                                    if (ticketStartFallback) ticketStartFallback.value = '';
+                                                    if (ticketEndFallback) ticketEndFallback.value = '';
+                                                }
+                                                ticketRangeInput.dataset.rangeInit = '1';
+                                                const newPicker = localJq(ticketRangeInput).data('daterangepicker');
+                                                if (forceShow && newPicker && newPicker.show) {
+                                                    newPicker.show();
+                                                } else if (!forceShow && newPicker && newPicker.hide) {
+                                                    newPicker.hide(); // ensure closed after init
+                                                }
+                                                return newPicker;
+                                            };
+                                            ensureDateAssets().then(activate).catch(function() {
+                                                // If assets fail, fall back to native controls
+                                                if (ticketDateFallback) {
+                                                    ticketDateFallback.classList.remove('d-none');
+                                                }
+                                            });
                                         }
 
                                         function syncLimitState() {
@@ -1713,10 +1932,24 @@
                                             limitSelect.addEventListener('change', syncLimitState);
                                             syncLimitState();
                                         }
-                                        initTicketDateRange();
+                                        initTicketDateRange({ show: showOnInit, forceReinit: forceReinit });
                                         if (ticketRangeInput) {
-                                            ticketRangeInput.addEventListener('focus', initTicketDateRange);
-                                            ticketRangeInput.addEventListener('click', initTicketDateRange);
+                                            ticketRangeInput.addEventListener('focus', function() {
+                                                initTicketDateRange({ show: false, forceReinit: false });
+                                            });
+                                            ticketRangeInput.addEventListener('click', function() {
+                                                initTicketDateRange({ show: true, forceReinit: false });
+                                            });
+                                            // Bind without showing
+                                            initTicketDateRange({ show: false, forceReinit: forceReinit });
+                                        }
+                                        if (ticketStartFallback && ticketEndFallback) {
+                                            ticketStartFallback.addEventListener('change', function() {
+                                                ticketStartInput.value = ticketStartFallback.value;
+                                            });
+                                            ticketEndFallback.addEventListener('change', function() {
+                                                ticketEndInput.value = ticketEndFallback.value;
+                                            });
                                         }
 
                                         if (removeBtn) {
@@ -1762,11 +1995,22 @@
                                             mergeImageSelections(eventImagesInput.files);
                                         });
                                     }
+                                    function kickTicketRanges(forceShow) {
+                                        document.querySelectorAll('#ticket-lines-container .ticket-line').forEach(function(row) {
+                                            bindTicketRow(row, { show: Boolean(forceShow), forceReinit: false });
+                                        });
+                                    }
+
                                     if (addTicketLineBtn && ticketLineTemplate && ticketLinesContainer) {
                                         addTicketLineBtn.addEventListener('click', function() {
-                                            appendNewTicketRow();
+                                            const newRow = appendNewTicketRow();
+                                            if (typeof saveDraft === 'function') {
+                                                saveDraft();
+                                            }
+                                            // Bind picker for the new row without auto-opening
+                                            window.setTimeout(function() { bindTicketRow(newRow, { forceReinit: true, show: false }); }, 0);
                                         });
-                                        ticketLinesContainer.querySelectorAll('.ticket-line').forEach(bindTicketRow);
+                                        kickTicketRanges(false);
                                     }
                                     // Initial render for images (helps when browser retains file list on back navigation)
                                     if (eventImagesInput && eventImagesInput.files && eventImagesInput.files.length) {
@@ -2046,8 +2290,61 @@
                                                 fields[0].value = value;
                                             }
                                         });
+                                        if (existingImagesHidden && payload.existing_image_ids) {
+                                            existingImagesHidden.value = payload.existing_image_ids;
+                                            existingImagesHidden.dataset.cleared = '0';
+                                            renderImagePreviews([]);
+                                        }
+                                        if (payload.specialty_id_list && specialtySelect) {
+                                            const ids = Array.isArray(payload.specialty_id_list) ? payload.specialty_id_list : String(payload.specialty_id_list).split(',').map(x => x.trim()).filter(Boolean);
+                                            ids.forEach((id) => {
+                                                const option = specialtySelect.querySelector(`option[value="${id}"]`);
+                                                if (option) {
+                                                    option.selected = true;
+                                                }
+                                            });
+                                            specialtySelect.dispatchEvent(new Event('change'));
+                                        }
+                                        if (payload.case_id_list && caseSelect) {
+                                            const ids = Array.isArray(payload.case_id_list) ? payload.case_id_list : String(payload.case_id_list).split(',').map(x => x.trim()).filter(Boolean);
+                                            ids.forEach((id) => {
+                                                const option = caseSelect.querySelector(`option[value="${id}"]`);
+                                                if (option) {
+                                                    option.selected = true;
+                                                }
+                                            });
+                                            caseSelect.dispatchEvent(new Event('change'));
+                                        }
+                                        if (payload.thumbnail_image_url) {
+                                            currentThumbUrl = payload.thumbnail_image_url;
+                                            updateThumbPreview(currentThumbUrl);
+                                        }
+                                        if (payload.badge_image_url && previewBadge) {
+                                            previewBadge.src = payload.badge_image_url;
+                                            previewBadge.style.display = 'block';
+                                            if (badgeExistingNote) {
+                                                badgeExistingNote.textContent = 'Keeping existing badge background. Upload a new image to replace.';
+                                                badgeExistingNote.classList.remove('d-none');
+                                            }
+                                        } else if (badgeExistingNote) {
+                                            badgeExistingNote.textContent = '';
+                                            badgeExistingNote.classList.add('d-none');
+                                        }
+                                        // Restore thumbnail (card background) preference
+                                        if (payload.thumbnail_image_url) {
+                                            currentThumbUrl = payload.thumbnail_image_url;
+                                            updateThumbPreview(currentThumbUrl);
+                                        } else if (existingImagesHidden && existingImagesHidden.value && existingImagesHidden.dataset.cleared !== '1') {
+                                            const firstExistingId = existingImagesHidden.value.split(',').map(id => id.trim()).filter(Boolean)[0];
+                                            if (firstExistingId) {
+                                                currentThumbUrl = `/web/image/event.application.image/${firstExistingId}/image/720x0`;
+                                                updateThumbPreview(currentThumbUrl);
+                                            }
+                                        }
                                         if (ticketLinesContainer) {
-                                            ticketLinesContainer.querySelectorAll('.ticket-line').forEach(bindTicketRow);
+                                            ticketLinesContainer.querySelectorAll('.ticket-line').forEach(function(row) {
+                                                bindTicketRow(row);
+                                            });
                                         }
                                         toggleVenueFields();
                                         updateStates();
@@ -2093,11 +2390,12 @@
                                             newRangeInput.dataset.rangeRetryStarted = '0';
                                         }
                                         ticketLinesContainer.appendChild(newRow);
-                                        bindTicketRow(newRow);
+                                        bindTicketRow(newRow, { show: false, forceReinit: true });
                                         // Kick the date-range picker once the row is in the DOM so the control opens reliably.
                                         if (newRangeInput) {
                                             const triggerInit = function() {
                                                 newRangeInput.dispatchEvent(new Event('focus', { bubbles: true }));
+                                                newRangeInput.dispatchEvent(new Event('click', { bubbles: true }));
                                             };
                                             if (window.requestAnimationFrame) {
                                                 window.requestAnimationFrame(triggerInit);
@@ -2266,8 +2564,9 @@
                                             <t t-esc="application.partner_id.name"/>
                                         </div>
                                         <div class="col-md-6">
-                                            <strong>Location:</strong><br/>
-                                            <t t-esc="application.full_address or application.location or 'Not specified'"/>
+                                            <strong>Format:</strong><br/>
+                                            <t t-if="application.venue_type == 'online'">Online</t>
+                                            <t t-else="">Physical</t>
                                         </div>
                                     </div>
                                     <div class="row mb-3">
@@ -2282,7 +2581,57 @@
                                     </div>
                                     <div class="mb-3" t-if="application.description">
                                         <strong>Description:</strong><br/>
-                                        <t t-raw="application.description"/>
+                                        <div class="border rounded p-3 bg-light" style="white-space: pre-line; word-break: break-word;">
+                                            <t t-esc="application.description"/>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong t-if="application.venue_type == 'online'">Online Details:</strong>
+                                        <strong t-else="">Venue:</strong><br/>
+                                        <t t-if="application.venue_type == 'online'">
+                                            <div><strong>Platform:</strong> <t t-esc="application.online_platform or 'Not set'"/></div>
+                        <div><strong>Join Link:</strong> <a t-if="application.online_link" t-att-href="application.online_link" target="_blank" rel="noopener"><t t-esc="application.online_link"/></a><t t-else="">Not provided</t></div>
+                                        </t>
+                                        <t t-else="">
+                                            <div><t t-esc="application.venue_name or application.location or 'Not specified'"/></div>
+                                            <div t-if="application.street_address or application.city">
+                                                <t t-esc="application.street_address or ''"/>
+                                                <t t-if="application.street_address2"><br/><t t-esc="application.street_address2"/></t>
+                                                <t t-if="application.city"><br/><t t-esc="application.city"/></t>
+                                                <t t-if="application.state_id"><t t-esc="', ' + application.state_id.name"/></t>
+                                                <t t-if="application.zip_code"><t t-esc="', ' + application.zip_code"/></t>
+                                                <t t-if="application.country_id"><br/><t t-esc="application.country_id.name"/></t>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <div class="mb-3" t-if="application.image_ids">
+                                        <strong>Gallery:</strong>
+                                        <div class="row g-3 mt-1">
+                                            <t t-foreach="application.image_ids" t-as="img">
+                                                <div class="col-6 col-md-4 col-lg-3">
+                                                    <div class="card h-100 shadow-sm">
+                                                        <img t-att-src="'/web/image/event.application.image/%s/image/800x0' % img.id" class="card-img-top" style="object-fit: cover; height: 140px;" t-if="img.image"/>
+                                                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center text-muted" style="height: 140px;" t-if="not img.image">
+                                                            <i class="fa fa-image me-1"></i> No image
+                                                        </div>
+                                                        <div class="card-body p-2">
+                                                            <div class="small text-muted text-truncate">
+                                                                <t t-esc="img.name or 'Image'"/>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3" t-if="application.badge_image">
+                                        <strong>Badge Background:</strong>
+                                        <div class="card shadow-sm" style="max-width: 360px;">
+                                            <div class="card-img-top" t-att-style="'height: 180px; background-size: cover; background-position: center; background-image: url(/web/image/event.application/%s/badge_image/720x0);' % application.id"></div>
+                                            <div class="card-body py-2">
+                                                <div class="small text-muted">Preview of uploaded badge background</div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Status Messages -->
@@ -2308,12 +2657,185 @@
                                 </div>
                                 <div class="card-footer">
                                     <a href="/my/event/applications" class="btn btn-secondary">Back to Applications</a>
+                                    <a t-if="application.state == 'rejected'" t-attf-href="/my/event/application/#{application.id}/resubmit" class="btn btn-primary ms-2">Edit &amp; Resubmit</a>
                                     <a href="/my/events" class="btn btn-outline-primary" t-if="application.state == 'published'">My Events</a>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </t>
+        </template>
+
+        <template id="event_application_review_page" name="Event Application Review">
+            <t t-call="website.layout">
+                <div class="container my-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-9">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3 class="mb-0">Review Your Event</h3>
+                                <a href="/event/apply" class="btn btn-outline-secondary">Edit Form</a>
+                            </div>
+
+                            <div class="card mb-3 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex flex-column flex-md-row align-items-start gap-3">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <span class="badge bg-primary-subtle text-primary">Preview</span>
+                                                <h4 class="mb-0"><t t-esc="application_payload.get('name') or 'Untitled Event'"/></h4>
+                                            </div>
+                                            <p class="text-muted mb-2">
+                                                <i class="fa fa-map-marker text-primary me-1"></i>
+                                                <t t-esc="application_payload.get('venue_type') == 'online' and (application_payload.get('online_platform') or 'Online event') or (application_payload.get('venue_name') or application_payload.get('city') or 'Physical venue')"/>
+                                            </p>
+                                            <div class="small text-muted">
+                                                <i class="fa fa-calendar text-primary me-1"></i>
+                                                <strong>Starts:</strong> <t t-esc="application_payload.get('date_begin') or '-'"/> ·
+                                                <strong>Ends:</strong> <t t-esc="application_payload.get('date_end') or '-'"/>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="badge bg-info text-dark px-3 py-2">
+                                                <i class="fa fa-coins me-1"></i>
+                                                Submission cost: <t t-esc="application_payload.get('submission_point_cost') or 0"/> pts
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <strong>Event Details</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="fw-semibold text-muted text-uppercase small">Contact</div>
+                                            <div><i class="fa fa-envelope me-2 text-primary"></i><t t-esc="application_payload.get('contact_email') or 'Not provided'"/></div>
+                                            <div><i class="fa fa-phone me-2 text-primary"></i><t t-esc="application_payload.get('contact_phone') or 'Not provided'"/></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="fw-semibold text-muted text-uppercase small">Venue</div>
+                                            <t t-if="application_payload.get('venue_type') == 'online'">
+                                                <div><strong>Platform:</strong> <t t-esc="application_payload.get('online_platform') or 'Online'"/></div>
+                                                <div class="text-truncate"><strong>Link:</strong> <t t-esc="application_payload.get('online_link') or '-'"/></div>
+                                            </t>
+                                            <t t-else="">
+                                                <div><strong>Venue:</strong> <t t-esc="application_payload.get('venue_name') or 'Physical venue'"/></div>
+                                                <div class="text-truncate"><t t-esc="application_payload.get('street_address') or application_payload.get('address_input') or ''"/></div>
+                                                <div class="text-truncate"><t t-esc="application_payload.get('city') or ''"/> <t t-if="application_payload.get('zip_code')">(<t t-esc="application_payload.get('zip_code')"/>)</t></div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3" t-if="application_payload.get('description')">
+                                        <div class="fw-semibold text-muted text-uppercase small mb-1">Description</div>
+                                        <div class="border rounded p-3 bg-light" style="white-space: pre-line; word-break: break-word;">
+                                            <t t-esc="application_payload.get('description')"/>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6" t-if="specialty_names or application_payload.get('specialty_other_text') or application_payload.get('specialty_ids')">
+                                            <div class="fw-semibold text-muted text-uppercase small mb-1">Specialties</div>
+                                            <ul class="list-unstyled mb-0">
+                                                <li t-foreach="specialty_names" t-as="spec"><i class="fa fa-check text-success me-1"></i><t t-esc="spec"/></li>
+                                                <t t-foreach="application_payload.get('specialty_other_text', '').split(',')" t-as="spec">
+                                                    <li t-if="spec.strip()"><i class="fa fa-plus text-primary me-1"></i><t t-esc="spec"/></li>
+                                                </t>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6" t-if="case_names or application_payload.get('case_other_text') or application_payload.get('case_ids')">
+                                            <div class="fw-semibold text-muted text-uppercase small mb-1">Cases</div>
+                                            <ul class="list-unstyled mb-0">
+                                                <li t-foreach="case_names" t-as="case"><i class="fa fa-clipboard-check text-success me-1"></i><t t-esc="case"/></li>
+                                                <t t-foreach="application_payload.get('case_other_text', '').split(',')" t-as="case">
+                                                    <li t-if="case.strip()"><i class="fa fa-plus text-primary me-1"></i><t t-esc="case"/></li>
+                                                </t>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <strong>Tickets Preview</strong>
+                                    <span class="badge bg-secondary" t-esc="len(application_payload.get('ticket_lines') or [])"/> ticket(s)
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Sales Window</th>
+                                                <th class="text-center">Limited</th>
+                                                <th class="text-center">Max Qty</th>
+                                                <th class="text-end">Points</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-if="not application_payload.get('ticket_lines')">
+                                                <td colspan="5" class="text-center text-muted py-4">No tickets added.</td>
+                                            </tr>
+                                            <tr t-foreach="application_payload.get('ticket_lines') or []" t-as="ticket">
+                                                <td><t t-esc="ticket.get('name')"/></td>
+                                                <td>
+                                                    <div class="small text-muted">
+                                                        <i class="fa fa-play text-success me-1"></i><t t-esc="ticket.get('start_sale_datetime') or '—'"/>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        <i class="fa fa-stop text-danger me-1"></i><t t-esc="ticket.get('end_sale_datetime') or '—'"/>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span t-if="ticket.get('seats_limited')" class="badge bg-warning text-dark">Yes</span>
+                                                    <span t-else="" class="badge bg-success-subtle text-success">No</span>
+                                                </td>
+                                                <td class="text-center"><t t-esc="ticket.get('seats_max') or '—'"/></td>
+                                                <td class="text-end fw-semibold"><t t-esc="ticket.get('point_cost') or 0"/></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="/event/apply" class="btn btn-outline-secondary">
+                                    <i class="fa fa-arrow-left"></i> Edit Details
+                                </a>
+                                <a href="/event/apply/payment" class="btn btn-primary">
+                                    Proceed to Payment <i class="fa fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        <template id="event_application_resubmit_redirect" name="Event Application Resubmit Redirect">
+            <t t-call="website.layout">
+                <div class="container my-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-6 text-center">
+                            <h4 class="mb-2">Loading your application...</h4>
+                            <p class="text-muted">We’re restoring your previous answers so you can edit and resubmit.</p>
+                            <p class="text-muted small">If nothing happens, <a href="/event/apply">click here</a>.</p>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    (function() {
+                        try {
+                            const payload = JSON.parse(atob('<t t-esc="draft_b64"/>'));
+                            sessionStorage.setItem('event_application_form_draft_v1', JSON.stringify(payload));
+                        } catch (e) {
+                            console.error('Failed to restore draft for resubmission', e);
+                        }
+                        window.location.href = '/event/apply';
+                    })();
+                </script>
             </t>
         </template>
 

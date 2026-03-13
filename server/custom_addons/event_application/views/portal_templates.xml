@@ -2511,6 +2511,17 @@
                                                     <i class="fa fa-users"></i> Registrations
                                                 </a>
                                             </t>
+                                            <t t-if="app.state in ('draft', 'rejected')">
+                                                <a t-attf-href="/my/event/application/#{app.id}/resubmit" class="btn btn-sm btn-primary">
+                                                    <i class="fa fa-refresh"></i> Edit &amp; Resubmit
+                                                </a>
+                                                <form t-if="app.state == 'draft'" t-att-action="'/my/event/application/%s/delete' % app.id" method="post" class="d-inline ea-app-delete-form">
+                                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                    <button type="submit" class="btn btn-sm btn-danger">
+                                                        <i class="fa fa-trash"></i> Delete
+                                                    </button>
+                                                </form>
+                                            </t>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -2526,6 +2537,34 @@
                         if (event.persisted || fromBackForward) {
                             window.location.reload();
                         }
+                    });
+                    // Handle draft delete via fetch to avoid navigation
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.querySelectorAll('.ea-app-delete-form').forEach(function(form) {
+                            form.addEventListener('submit', function(ev) {
+                                ev.preventDefault();
+                                if (!window.confirm('Delete this draft application?')) {
+                                    return;
+                                }
+                                const action = form.getAttribute('action');
+                                const csrf = form.querySelector('input[name="csrf_token"]')?.value || '';
+                                fetch(action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                    },
+                                    body: `csrf_token=${encodeURIComponent(csrf)}`,
+                                }).then(function(resp) {
+                                    if (resp.ok) {
+                                        window.location.reload();
+                                    } else {
+                                        alert('Failed to delete draft. Please try again.');
+                                    }
+                                }).catch(function() {
+                                    alert('Failed to delete draft. Please try again.');
+                                });
+                            });
+                        });
                     });
                     ]]>
                 </script>

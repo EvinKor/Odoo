@@ -32,6 +32,75 @@
             <field name="perm_unlink">1</field>
         </record>
 
+        <!-- Image tree for application images -->
+        <!-- Image list for application images -->
+        <record id="view_event_application_image_tree" model="ir.ui.view">
+            <field name="name">event.application.image.list</field>
+            <field name="model">event.application.image</field>
+            <field name="arch" type="xml">
+                <list editable="bottom" string="Gallery Images">
+                    <field name="sequence" widget="handle"/>
+                    <field name="name"/>
+                    <field name="image" widget="image" class="oe_avatar"/>
+                    <button name="action_set_thumbnail"
+                            type="object"
+                            string="Set as thumbnail"
+                            class="btn btn-sm btn-outline-primary"/>
+                    <field name="application_id" invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Form view for single gallery image (with Set as Thumbnail action) -->
+        <record id="view_event_application_image_form" model="ir.ui.view">
+            <field name="name">event.application.image.form</field>
+            <field name="model">event.application.image</field>
+            <field name="arch" type="xml">
+                <form string="Gallery Image">
+                    <header>
+                        <button name="action_set_thumbnail" type="object" string="Set as thumbnail" class="btn-primary"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="sequence"/>
+                            <field name="image" widget="image" class="oe_avatar"/>
+                            <field name="application_id" invisible="1"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Kanban view for gallery images (quick thumbnail pick) -->
+        <record id="view_event_application_image_kanban" model="ir.ui.view">
+            <field name="name">event.application.image.kanban</field>
+            <field name="model">event.application.image</field>
+            <field name="arch" type="xml">
+                <kanban default_group_by="application_id">
+                    <field name="name"/>
+                    <field name="sequence"/>
+                    <field name="image"/>
+                    <field name="application_id"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_global_click">
+                                <div class="o_kanban_image">
+                                    <img t-att-src="kanban_image('event.application.image', 'image', record.id.raw_value)"/>
+                                </div>
+                                <div class="o_kanban_details">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                                <div class="mt-2 d-flex gap-2">
+                                    <button type="object" name="action_set_thumbnail" class="btn btn-sm btn-primary">Set as thumbnail</button>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
         <!-- Ticket line access (use model search to avoid xmlid lookup timing issues on upgrade) -->
         <record id="access_event_application_ticket_user" model="ir.model.access">
             <field name="name">event.application.ticket.user</field>
@@ -83,6 +152,17 @@
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
             <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- Action: Application Gallery (placed early so smart button resolves during view load) -->
+        <record id="action_event_application_gallery" model="ir.actions.act_window">
+            <field name="name">Application Gallery</field>
+            <field name="res_model">event.application.image</field>
+            <field name="view_mode">list,kanban,form</field>
+            <field name="view_id" ref="event_application.view_event_application_image_tree"/>
+            <field name="domain">[('application_id','=', active_id)]</field>
+            <field name="context">{'default_application_id': active_id}</field>
+            <field name="target">current</field>
         </record>
 
         <!-- List View -->
@@ -184,6 +264,16 @@
                                     <span class="o_stat_text">View Event</span>
                                 </div>
                             </button>
+                            <button type="action"
+                                    class="oe_stat_button"
+                                    icon="fa-image"
+                                    groups="base.group_user"
+                                    name="%(event_application.action_event_application_gallery)d"
+                                    context="{'search_default_application_id': id, 'default_application_id': id}">
+                                <div class="o_field_widget o_stat_info">
+                                    <span class="o_stat_text">Gallery</span>
+                                </div>
+                            </button>
                         </div>
                         <field name="submission_alert_seen" invisible="1"/>
                         <widget name="web_ribbon" title="NEW SUBMISSION" bg_color="text-bg-danger" invisible="state != 'submitted' or submission_alert_seen"/>
@@ -242,7 +332,6 @@
                             <page string="Tickets">
                                 <field name="ticket_line_ids">
                                     <list editable="bottom">
-                                        <field name="sequence" widget="handle"/>
                                         <field name="name"/>
                                         <field name="start_sale_datetime"/>
                                         <field name="end_sale_datetime"/>
@@ -262,10 +351,16 @@
                             <page string="Images">
                                 <group>
                                     <group>
-                                        <field name="thumbnail_image" widget="image" class="oe_avatar"/>
+                                        <label for="thumbnail_image"/>
+                                        <field name="thumbnail_image" widget="image" class="oe_avatar" nolabel="1"/>
                                     </group>
                                 </group>
-                                <field name="image_ids"/>
+                                <separator string="Gallery Images"/>
+                                <field name="image_ids"
+                                       context="{'default_application_id': id}"
+                                       mode="list"
+                                       widget="one2many_list"
+                                       string="Gallery Images"/>
                             </page>
                         </notebook>
                     </sheet>

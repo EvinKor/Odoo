@@ -532,6 +532,16 @@ class EventApplicationPortal(CustomerPortal):
             'applications': applications,
             'event_notification_count': self._get_event_notification_count(),
         })
+
+    @http.route(['/my/event/application/<int:application_id>/delete'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
+    def event_application_delete(self, application_id, **kwargs):
+        application = request.env['event.application'].sudo().browse(application_id)
+        if not application.exists() or application.partner_id.id != request.env.user.partner_id.id:
+            return request.redirect('/my/event/applications')
+        if application.state != 'draft':
+            return request.redirect('/my/event/applications')
+        application.unlink()
+        return request.redirect('/my/event/applications')
     
     @http.route(['/event/apply'], type='http', auth='user', website=True)
     def event_application_form(self, **kwargs):
@@ -752,6 +762,18 @@ class EventApplicationPortal(CustomerPortal):
 
         max_upload_bytes = 2 * 1024 * 1024  # 2 MB per image
 
+        def _bin_to_b64(val):
+            """Return a base64 string from raw bytes/memoryview or existing base64 bytes."""
+            if isinstance(val, memoryview):
+                val = val.tobytes()
+            if isinstance(val, bytes):
+                try:
+                    # most Odoo image fields already store base64 in bytes
+                    return val.decode('ascii')
+                except Exception:
+                    return base64.b64encode(val).decode('ascii')
+            return val
+
         badge_image = False
         badge_file = request.httprequest.files.get('badge_image')
         if badge_file and badge_file.filename:
@@ -759,6 +781,7 @@ class EventApplicationPortal(CustomerPortal):
             if badge_bytes and len(badge_bytes) > max_upload_bytes:
                 return None, 'image_too_large'
             badge_image = base64.b64encode(badge_bytes).decode('ascii') if badge_bytes else False
+        badge_image = _bin_to_b64(badge_image)
 
         card_bg_image = False
 
@@ -798,9 +821,10 @@ class EventApplicationPortal(CustomerPortal):
                 for idx, img in enumerate(existing_app.image_ids.sorted('sequence')):
                     if not img.image:
                         continue
+                    img_data = _bin_to_b64(img.image)
                     gallery_images.append({
                         'name': img.name or f"Image {idx + 1}",
-                        'image': img.image,
+                        'image': img_data,
                         'sequence': (idx + 1) * 10,
                     })
                 if gallery_images and thumbnail_image is False:
@@ -812,9 +836,10 @@ class EventApplicationPortal(CustomerPortal):
                 for idx, img in enumerate(request.env['event.application.image'].sudo().browse(existing_ids)):
                     if not img.image:
                         continue
+                    img_data = _bin_to_b64(img.image)
                     gallery_images.append({
                         'name': img.name or f"Image {idx + 1}",
-                        'image': img.image,
+                        'image': img_data,
                         'sequence': (idx + 1) * 10,
                     })
                 if gallery_images and thumbnail_image is False:
@@ -824,7 +849,10 @@ class EventApplicationPortal(CustomerPortal):
         if not badge_image and resubmit_id:
             existing_app = request.env['event.application'].sudo().browse(resubmit_id)
             if existing_app.exists() and existing_app.partner_id.id == request.env.user.partner_id.id:
-                badge_image = existing_app.badge_image or False
+                existing_badge = existing_app.badge_image
+                if existing_badge:
+                    badge_image = existing_badge if isinstance(existing_badge, str) else base64.b64encode(existing_badge).decode('ascii')
+                    badge_image = _bin_to_b64(badge_image)
 
         payload = {
             'name': post.get('event_name'),
@@ -917,21 +945,91 @@ class EventApplicationPortal(CustomerPortal):
         if ticket_lines:
             vals['ticket_line_ids'] = [(0, 0, line) for line in ticket_lines]
 
-        if payload.get('badge_image'):
-            vals['badge_image'] = payload.get('badge_image')
-        if payload.get('thumbnail_image'):
-            vals['thumbnail_image'] = payload.get('thumbnail_image')
-        gallery_images = payload.get('gallery_images') or []
+        def _clean_image(val):
+            """Normalize image value to pure base64 string or return False."""
+            if not val:
+                return False
+            if isinstance(val, bytes):
+                val = base64.b64encode(val).decode('ascii')
+            if isinstance(val, str) and val.startswith('data:'):
+                # strip data URI prefix
+                parts = val.split(',', 1)
+                val = parts[1] if len(parts) > 1 else ''
+            try:
+                base64.b64decode(val, validate=True)
+                return val
+            except Exception:
+                return False
+
+        if _clean_image(payload.get('badge_image')):
+            vals['badge_image'] = _clean_image(payload.get('badge_image'))
+        if _clean_image(payload.get('thumbnail_image')):
+            vals['thumbnail_image'] = _clean_image(payload.get('thumbnail_image'))
+        gallery_images = []
+        for img_vals in payload.get('gallery_images') or []:
+            if not isinstance(img_vals, dict):
+                continue
+            img_copy = dict(img_vals)
+            img_copy['image'] = _clean_image(img_copy.get('image'))
+            if img_copy['image']:
+                gallery_images.append(img_copy)
         if gallery_images:
             vals['image_ids'] = [(0, 0, img_vals) for img_vals in gallery_images]
         return vals
+
+    def _sanitize_payload_for_session(self, payload):
+        """Ensure payload is JSON-serializable (no raw bytes)."""
+        clean = dict(payload or {})
+        def _to_iso(val):
+            from datetime import date, datetime
+            if isinstance(val, (datetime, date)):
+                return val.isoformat()
+            return val
+        def _to_b64(val):
+            if isinstance(val, bytes):
+                val = base64.b64encode(val).decode('ascii')
+            if isinstance(val, str) and val.startswith('data:'):
+                parts = val.split(',', 1)
+                val = parts[1] if len(parts) > 1 else ''
+            try:
+                base64.b64decode(val or '', validate=True)
+                return val
+            except Exception:
+                return False
+        # datetime fields
+        for key in ('date_begin', 'date_end', 'registration_start', 'registration_end'):
+            clean[key] = _to_iso(clean.get(key))
+        # Single images
+        clean['badge_image'] = _to_b64(clean.get('badge_image'))
+        clean['thumbnail_image'] = _to_b64(clean.get('thumbnail_image'))
+        # Gallery images
+        gallery = []
+        for img in clean.get('gallery_images') or []:
+            if not isinstance(img, dict):
+                continue
+            img_copy = dict(img)
+            img_copy['image'] = _to_b64(img_copy.get('image'))
+            if img_copy['image']:
+                gallery.append(img_copy)
+        clean['gallery_images'] = gallery
+        # Ticket lines datetimes
+        tickets = []
+        for line in clean.get('ticket_lines') or []:
+            if not isinstance(line, dict):
+                continue
+            line_copy = dict(line)
+            line_copy['start_sale_datetime'] = _to_iso(line_copy.get('start_sale_datetime'))
+            line_copy['end_sale_datetime'] = _to_iso(line_copy.get('end_sale_datetime'))
+            tickets.append(line_copy)
+        clean['ticket_lines'] = tickets
+        return clean
     
     @http.route(['/event/apply/submit'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
     def event_application_submit(self, **post):
         payload, error_code = self._build_application_payload(post)
         if error_code:
             return request.redirect(f'/event/apply?error={error_code}')
-        request.session[self._application_payment_session_key()] = payload
+        request.session[self._application_payment_session_key()] = self._sanitize_payload_for_session(payload)
         return request.redirect('/event/apply/review')
 
     @http.route(['/event/apply/review'], type='http', auth='user', website=True, methods=['GET'])

@@ -9,6 +9,18 @@ class EventApplicationImage(models.Model):
     sequence = fields.Integer(default=10)
     image = fields.Image(string='Image', required=True)
     application_id = fields.Many2one('event.application', string='Application', ondelete='cascade', index=True)
+    is_thumbnail = fields.Boolean(string='Thumbnail', compute='_compute_is_thumbnail', store=False)
+
+    @api.depends('application_id.thumbnail_image', 'image')
+    def _compute_is_thumbnail(self):
+        for rec in self:
+            rec.is_thumbnail = bool(rec.application_id.thumbnail_image) and rec.application_id.thumbnail_image == rec.image
+
+    def action_set_thumbnail(self):
+        self.ensure_one()
+        if self.application_id:
+            self.application_id.thumbnail_image = self.image
+        return True
 
 
 class EventImage(models.Model):

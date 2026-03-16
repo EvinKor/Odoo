@@ -600,12 +600,14 @@
                                     <t t-elif="form_error == 'invalid_ticket_max'">Limited tickets require a maximum quantity greater than 0.</t>
                                     <t t-elif="form_error == 'invalid_ticket_points'">Point cost cannot be negative.</t>
                                     <t t-elif="form_error == 'image_too_large'">Each image must be 2 MB or smaller. Please resize and upload again.</t>
+                                    <t t-elif="form_error == 'badge_required'">Please upload a badge background before submitting.</t>
                                     <t t-else="">Please fix the highlighted data and submit again.</t>
                                 </div>
                             </t>
                             <form id="event-application-submit-form" action="/event/apply/submit" method="post" class="o_website_form" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                 <input type="hidden" name="resubmit_application_id" id="resubmit_application_id"/>
+                                <input type="hidden" name="existing_badge_image" id="existing_badge_image"/>
                                 
                                 <div class="row">
                                     <div class="col-12 mb-3">
@@ -759,7 +761,15 @@
                                                     <p class="ea-upload-hint">PNG or JPG, ideally 1200×600 for crisp cards.</p>
                                                 </div>
                                             </div>
-                                            <small id="badge-existing-note" class="text-muted d-none mt-1"></small>
+                                            <div class="d-flex align-items-center mt-2 gap-2">
+                                                <small id="badge-existing-note" class="text-muted d-none mt-1 mb-0"></small>
+                                                <button type="button" id="badge-clear-btn" class="btn btn-sm btn-outline-danger ms-auto">
+                                                    <i class="fa fa-times"></i> Remove badge
+                                                </button>
+                                            </div>
+                                            <div class="mt-2">
+                                                <img id="badge-thumb-preview" alt="Badge thumbnail preview" class="img-thumbnail d-none" style="max-width: 140px; height: auto;"/>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -1281,6 +1291,8 @@
                                     const previewDate = document.getElementById('event-card-date-preview');
                                     const previewBg = document.getElementById('event-card-bg-preview');
                                     const previewBadge = document.getElementById('event-card-badge-preview');
+                                    const badgeThumb = document.getElementById('badge-thumb-preview');
+                                    const badgeClearBtn = document.getElementById('badge-clear-btn');
                                     const ticketLinesContainer = document.getElementById('ticket-lines-container');
                                     const ticketLineTemplate = document.getElementById('ticket-line-template');
                                     const addTicketLineBtn = document.getElementById('add-ticket-line');
@@ -1691,7 +1703,7 @@
                                         }, 100);
                                     }
 
-                                    function updatePreviewImage(input, target, isBackground) {
+                                    function updatePreviewImage(input, target, isBackground, thumbTarget) {
                                         const file = input.files && input.files[0];
                                         if (!file) {
                                             if (isBackground) {
@@ -1699,6 +1711,10 @@
                                             } else {
                                                 target.style.display = 'none';
                                                 target.removeAttribute('src');
+                                            }
+                                            if (thumbTarget) {
+                                                thumbTarget.classList.add('d-none');
+                                                thumbTarget.removeAttribute('src');
                                             }
                                             return;
                                         }
@@ -1717,6 +1733,10 @@
                                             } else {
                                                 target.src = evt.target.result;
                                                 target.style.display = 'block';
+                                            }
+                                            if (thumbTarget) {
+                                                thumbTarget.src = evt.target.result;
+                                                thumbTarget.classList.remove('d-none');
                                             }
                                         };
                                         reader.readAsDataURL(file);
@@ -1988,8 +2008,30 @@
                                     if (eventNameInput) eventNameInput.addEventListener('input', updatePreviewText);
                                     if (dateBeginInput) dateBeginInput.addEventListener('input', updatePreviewText);
                                     if (dateEndInput) dateEndInput.addEventListener('input', updatePreviewText);
-                                    if (badgeInput && previewBadge) badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false));
+                                    if (badgeInput && previewBadge) badgeInput.addEventListener('change', () => updatePreviewImage(badgeInput, previewBadge, false, badgeThumb));
                                     if (cardBgInput && previewBg) cardBgInput.addEventListener('change', () => updatePreviewImage(cardBgInput, previewBg, true));
+                                    if (badgeClearBtn && badgeInput && previewBadge) {
+                                        badgeClearBtn.addEventListener('click', () => {
+                                            // Clear newly selected file
+                                            badgeInput.value = '';
+                                            // Clear stored existing badge
+                                            const existingBadgeHidden = document.getElementById('existing_badge_image');
+                                            if (existingBadgeHidden) {
+                                                existingBadgeHidden.value = '';
+                                            }
+                                            // Reset preview and note
+                                            previewBadge.removeAttribute('src');
+                                            previewBadge.style.display = 'none';
+                                            if (badgeThumb) {
+                                                badgeThumb.classList.add('d-none');
+                                                badgeThumb.removeAttribute('src');
+                                            }
+                                            if (badgeExistingNote) {
+                                                badgeExistingNote.textContent = '';
+                                                badgeExistingNote.classList.add('d-none');
+                                            }
+                                        });
+                                    }
                                     if (eventImagesInput) {
                                         eventImagesInput.addEventListener('change', () => {
                                             mergeImageSelections(eventImagesInput.files);
@@ -2322,9 +2364,19 @@
                                         if (payload.badge_image_url && previewBadge) {
                                             previewBadge.src = payload.badge_image_url;
                                             previewBadge.style.display = 'block';
+                                            if (badgeThumb) {
+                                                badgeThumb.src = payload.badge_image_url;
+                                                badgeThumb.classList.remove('d-none');
+                                            }
                                             if (badgeExistingNote) {
                                                 badgeExistingNote.textContent = 'Keeping existing badge background. Upload a new image to replace.';
                                                 badgeExistingNote.classList.remove('d-none');
+                                            }
+                                        }
+                                        if (payload.badge_image_b64) {
+                                            const badgeExistingHidden = document.getElementById('existing_badge_image');
+                                            if (badgeExistingHidden) {
+                                                badgeExistingHidden.value = payload.badge_image_b64;
                                             }
                                         } else if (badgeExistingNote) {
                                             badgeExistingNote.textContent = '';

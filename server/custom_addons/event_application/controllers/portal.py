@@ -643,6 +643,11 @@ class EventApplicationPortal(CustomerPortal):
             'submission_point_cost': application.submission_point_cost or self._get_submission_point_cost(),
             'existing_image_ids': ','.join(str(i) for i in application.image_ids.ids),
             'badge_image_url': application.badge_image and f"/web/image/event.application/{application.id}/badge_image/720x0" or '',
+            'badge_image_b64': (
+                application.badge_image.decode('ascii')
+                if isinstance(application.badge_image, (bytes, bytearray))
+                else (application.badge_image or '')
+            ),
             'thumbnail_choice': '0',
             'thumbnail_image_url': application.thumbnail_image and f"/web/image/event.application/{application.id}/thumbnail_image/720x0" or '',
             'specialty_id_list': application.specialty_ids.ids,
@@ -751,6 +756,23 @@ class EventApplicationPortal(CustomerPortal):
                 'point_cost': point_cost,
                 'sequence': (idx + 1) * 10,
             })
+        # Deduplicate ticket lines (prevents duplicates on repeated edit/resubmit)
+        seen_ticket_keys = set()
+        unique_ticket_lines = []
+        for line in ticket_lines:
+            key = (
+                line['name'],
+                line['start_sale_datetime'],
+                line['end_sale_datetime'],
+                line['seats_limited'],
+                line['seats_max'],
+                line['point_cost'],
+            )
+            if key in seen_ticket_keys:
+                continue
+            seen_ticket_keys.add(key)
+            unique_ticket_lines.append(line)
+        ticket_lines = unique_ticket_lines
 
         specialty_ids = self._parse_csv_int_ids(post.get('specialty_ids', ''))
         specialty_ids = list(dict.fromkeys(specialty_ids))
@@ -782,6 +804,8 @@ class EventApplicationPortal(CustomerPortal):
                 return None, 'image_too_large'
             badge_image = base64.b64encode(badge_bytes).decode('ascii') if badge_bytes else False
         badge_image = _bin_to_b64(badge_image)
+        if not badge_image:
+            badge_image = _bin_to_b64(post.get('existing_badge_image'))
 
         card_bg_image = False
 
@@ -795,6 +819,7 @@ class EventApplicationPortal(CustomerPortal):
             thumbnail_choice_idx = 0
 
         resubmit_id = int(post.get('resubmit_application_id') or 0)
+        existing_ids = self._parse_csv_int_ids(post.get('existing_image_ids', ''))
         image_files = request.httprequest.files.getlist('event_images') or []
         for idx, upload in enumerate(image_files):
             if not upload or not upload.filename:
@@ -814,24 +839,8 @@ class EventApplicationPortal(CustomerPortal):
         if thumbnail_image is False and gallery_images:
             # Default to the first uploaded image when no explicit choice
             thumbnail_image = gallery_images[0]['image']
-        # Reuse gallery from previous application if resubmitting and no new uploads
-        if not gallery_images and resubmit_id:
-            existing_app = request.env['event.application'].sudo().browse(resubmit_id)
-            if existing_app.exists() and existing_app.partner_id.id == request.env.user.partner_id.id:
-                for idx, img in enumerate(existing_app.image_ids.sorted('sequence')):
-                    if not img.image:
-                        continue
-                    img_data = _bin_to_b64(img.image)
-                    gallery_images.append({
-                        'name': img.name or f"Image {idx + 1}",
-                        'image': img_data,
-                        'sequence': (idx + 1) * 10,
-                    })
-                if gallery_images and thumbnail_image is False:
-                    thumbnail_image = gallery_images[0]['image']
-        # Fallback to explicit existing ids (hidden field)
-        if not gallery_images and post.get('existing_image_ids'):
-            existing_ids = self._parse_csv_int_ids(post.get('existing_image_ids', ''))
+        # Reuse gallery from previous application or explicit selection when no new uploads
+        if not gallery_images:
             if existing_ids:
                 for idx, img in enumerate(request.env['event.application.image'].sudo().browse(existing_ids)):
                     if not img.image:
@@ -844,7 +853,30 @@ class EventApplicationPortal(CustomerPortal):
                     })
                 if gallery_images and thumbnail_image is False:
                     thumbnail_image = gallery_images[0]['image']
-
+            elif resubmit_id:
+                existing_app = request.env['event.application'].sudo().browse(resubmit_id)
+                if existing_app.exists() and existing_app.partner_id.id == request.env.user.partner_id.id:
+                    for idx, img in enumerate(existing_app.image_ids.sorted('sequence')):
+                        if not img.image:
+                            continue
+                        img_data = _bin_to_b64(img.image)
+                        gallery_images.append({
+                            'name': img.name or f"Image {idx + 1}",
+                            'image': img_data,
+                            'sequence': (idx + 1) * 10,
+                        })
+                    if gallery_images and thumbnail_image is False:
+                        thumbnail_image = gallery_images[0]['image']
+        # Deduplicate gallery images to avoid duplicates on repeated resubmits
+        deduped_gallery = []
+        seen_gallery_keys = set()
+        for img in gallery_images:
+            key = (img.get('image'), img.get('name'))
+            if key in seen_gallery_keys:
+                continue
+            seen_gallery_keys.add(key)
+            deduped_gallery.append(img)
+        gallery_images = deduped_gallery
         # Reuse badge when resubmitting if none uploaded
         if not badge_image and resubmit_id:
             existing_app = request.env['event.application'].sudo().browse(resubmit_id)
@@ -853,10 +885,13 @@ class EventApplicationPortal(CustomerPortal):
                 if existing_badge:
                     badge_image = existing_badge if isinstance(existing_badge, str) else base64.b64encode(existing_badge).decode('ascii')
                     badge_image = _bin_to_b64(badge_image)
+        if not badge_image:
+            return None, 'badge_required'
 
         payload = {
             'name': post.get('event_name'),
             'partner_id': request.env.user.partner_id.id,
+            'resubmit_application_id': resubmit_id or False,
             'date_begin': date_begin,
             'date_end': date_end,
             'registration_start': registration_start,
@@ -892,6 +927,17 @@ class EventApplicationPortal(CustomerPortal):
             'thumbnail_image': thumbnail_image,
             'gallery_images': gallery_images,
         }
+        # Friendly URLs for previews (used in edit/resubmit flows)
+        if resubmit_id:
+            existing_app_urls = request.env['event.application'].sudo().browse(resubmit_id)
+            payload['badge_image_url'] = existing_app_urls.badge_image and f"/web/image/event.application/{resubmit_id}/badge_image/720x0" or ''
+            payload['thumbnail_image_url'] = existing_app_urls.thumbnail_image and f"/web/image/event.application/{resubmit_id}/thumbnail_image/720x0" or ''
+        else:
+            # fallback to data URIs when freshly uploaded
+            if badge_image:
+                payload['badge_image_url'] = f"data:image/png;base64,{badge_image}"
+            if thumbnail_image:
+                payload['thumbnail_image_url'] = f"data:image/png;base64,{thumbnail_image}"
         return payload, None
 
     def _build_application_vals_from_payload(self, payload):
@@ -943,7 +989,8 @@ class EventApplicationPortal(CustomerPortal):
 
         ticket_lines = payload.get('ticket_lines') or []
         if ticket_lines:
-            vals['ticket_line_ids'] = [(0, 0, line) for line in ticket_lines]
+            # Always replace the previous ticket set so resubmits don't keep old rows
+            vals['ticket_line_ids'] = [(5, 0, 0)] + [(0, 0, line) for line in ticket_lines]
 
         def _clean_image(val):
             """Normalize image value to pure base64 string or return False."""
@@ -959,10 +1006,18 @@ class EventApplicationPortal(CustomerPortal):
                 base64.b64decode(val, validate=True)
                 return val
             except Exception:
-                return False
+                try:
+                    base64.b64decode(val)
+                    return val
+                except Exception:
+                    return False
 
         if _clean_image(payload.get('badge_image')):
             vals['badge_image'] = _clean_image(payload.get('badge_image'))
+        elif payload.get('resubmit_application_id'):
+            existing_app = request.env['event.application'].sudo().browse(payload.get('resubmit_application_id'))
+            if existing_app.exists() and existing_app.badge_image:
+                vals['badge_image'] = existing_app.badge_image
         if _clean_image(payload.get('thumbnail_image')):
             vals['thumbnail_image'] = _clean_image(payload.get('thumbnail_image'))
         gallery_images = []
@@ -974,7 +1029,13 @@ class EventApplicationPortal(CustomerPortal):
             if img_copy['image']:
                 gallery_images.append(img_copy)
         if gallery_images:
-            vals['image_ids'] = [(0, 0, img_vals) for img_vals in gallery_images]
+            # Replace all existing gallery images when a new selection is provided
+            vals['image_ids'] = [(5, 0, 0)] + [(0, 0, img_vals) for img_vals in gallery_images]
+        # Final guard: if badge still missing on resubmit, copy from source application
+        if not vals.get('badge_image') and payload.get('resubmit_application_id'):
+            existing_app = request.env['event.application'].sudo().browse(payload.get('resubmit_application_id'))
+            if existing_app.exists() and existing_app.badge_image:
+                vals['badge_image'] = existing_app.badge_image
         return vals
 
     def _sanitize_payload_for_session(self, payload):
@@ -995,13 +1056,25 @@ class EventApplicationPortal(CustomerPortal):
                 base64.b64decode(val or '', validate=True)
                 return val
             except Exception:
-                return False
+                try:
+                    # accept lenient padding
+                    base64.b64decode(val or '')
+                    return val
+                except Exception:
+                    return False
         # datetime fields
         for key in ('date_begin', 'date_end', 'registration_start', 'registration_end'):
             clean[key] = _to_iso(clean.get(key))
         # Single images
         clean['badge_image'] = _to_b64(clean.get('badge_image'))
         clean['thumbnail_image'] = _to_b64(clean.get('thumbnail_image'))
+        # If badge missing but coming from an existing application, pull from DB as fallback
+        resubmit_id = clean.get('resubmit_application_id') or False
+        if resubmit_id and not clean.get('badge_image'):
+            existing_app = request.env['event.application'].sudo().browse(resubmit_id)
+            if existing_app.exists() and existing_app.badge_image:
+                val = existing_app.badge_image if isinstance(existing_app.badge_image, str) else base64.b64encode(existing_app.badge_image).decode('ascii')
+                clean['badge_image'] = _to_b64(val)
         # Gallery images
         gallery = []
         for img in clean.get('gallery_images') or []:

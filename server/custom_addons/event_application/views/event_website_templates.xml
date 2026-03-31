@@ -391,9 +391,25 @@
     </template>
 
     <template id="event_cards_description_toggle" inherit_id="website_event.events_list">
-        <xpath expr="//div[contains(@class, 'o_wevent_card_description')]" position="replace">
-            <div class="o_wevent_card_description text-muted mb-2" style="font-size: 0.875rem; line-height: 1.4;">
-                <t t-if="event.description or event.subtitle">
+        <xpath expr="//div[@id='event_details']" position="replace">
+            <div id="event_details">
+                <div class="d-flex flex-wrap gap-1 small">
+                    <t t-foreach="event.tag_ids.filtered(lambda tag: tag.category_id.website_id == website or not tag.category_id.website_id)" t-as="tag">
+                        <span t-if="tag.color"
+                            t-attf-class="badge #{'o_color_%s' % tag.color if tag.color else 'text-bg-light'}">
+                            <t t-out="tag.name"/>
+                        </span>
+                    </t>
+                </div>
+                <h5 t-attf-class="card-title my-2 #{(not event.website_published) and 'text-danger'}">
+                    <span t-field="event.name" itemprop="name"/>
+                </h5>
+                <div class="text-muted small">
+                    <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'MMMM dd, y'}"/>
+                    <span class="mx-1">•</span>
+                    <span t-out="event.date_begin" t-options="{'widget': 'datetime', 'tz_name': event.date_tz, 'format': 'h:mm a'}"/>
+                </div>
+                <div class="o_wevent_card_description text-muted mb-2" style="font-size: 0.875rem; line-height: 1.4;">
                     <style>
                         .o_wevent_events_list article {
                             min-height: 520px;
@@ -407,15 +423,17 @@
                             overflow: hidden;
                         }
                     </style>
-                    <div class="o_wevent_card_desc_preview">
-                        <t t-if="event.description">
-                            <p t-field="event.description" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
-                        </t>
-                        <t t-if="not event.description">
-                            <p t-field="event.subtitle" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
-                        </t>
-                    </div>
-                </t>
+                    <t t-if="event.description or event.subtitle">
+                        <div class="o_wevent_card_desc_preview">
+                            <t t-if="event.description">
+                                <p t-field="event.description" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                            </t>
+                            <t t-else="">
+                                <p t-field="event.subtitle" class="mb-1 text-truncate" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"/>
+                            </t>
+                        </div>
+                    </t>
+                </div>
             </div>
         </xpath>
     </template>

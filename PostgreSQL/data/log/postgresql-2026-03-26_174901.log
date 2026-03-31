@@ -1,0 +1,6 @@
+2026-03-26 17:49:01.479 +08 [8708] LOG:  database system was interrupted; last known up at 2026-03-24 22:46:49 +08
+2026-03-26 17:49:04.717 +08 [8708] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-03-26 17:49:04.723 +08 [8708] LOG:  redo starts at 0/69EF56D8
+2026-03-26 17:49:04.723 +08 [8708] LOG:  invalid record length at 0/69EF57C0: wanted 24, got 0
+2026-03-26 17:49:04.723 +08 [8708] LOG:  redo done at 0/69EF5788
+2026-03-26 17:49:04.750 +08 [8012] LOG:  database system is ready to accept connections

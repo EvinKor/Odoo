@@ -1,0 +1,35 @@
+2026-03-22 17:34:18.373 +08 [7916] LOG:  could not write temporary statistics file "pg_stat_tmp/db_70063.tmp": No space left on device
+2026-03-22 17:34:38.348 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:34:38.350 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:34:53.978 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:35:33.941 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:38:00.913 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:38:00.914 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:38:16.421 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:38:16.454 +08 [7916] LOG:  could not write temporary statistics file "pg_stat_tmp/db_97746.tmp": No space left on device
+2026-03-22 17:38:16.455 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:38:16.455 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:38:18.383 +08 [7916] LOG:  could not write temporary statistics file "pg_stat_tmp/db_70063.tmp": No space left on device
+2026-03-22 17:38:38.381 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:38:38.382 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:38:53.978 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:38:54.019 +08 [7916] LOG:  could not write temporary statistics file "pg_stat_tmp/db_13318.tmp": No space left on device
+2026-03-22 17:38:54.020 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:38:54.021 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:39:18.350 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:39:18.351 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:39:33.973 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:39:34.015 +08 [7916] LOG:  could not write temporary statistics file "pg_stat_tmp/db_70063.tmp": No space left on device
+2026-03-22 17:39:34.015 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:39:34.016 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:39:38.384 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:39:38.385 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:39:49.695 +08 [22548] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:39:54.054 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:39:54.108 +08 [7916] LOG:  could not write temporary statistics file "pg_stat_tmp/db_13318.tmp": No space left on device
+2026-03-22 17:39:54.109 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:40:10.026 +08 [25436] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:40:16.773 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2026-03-22 17:40:38.387 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2026-03-22 17:40:38.387 +08 [7916] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2026-03-22 17:40:54.003 +08 [6412] LOG:  using stale statistics instead of current ones because stats collector is not responding

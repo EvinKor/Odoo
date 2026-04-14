@@ -1,13 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="action_event_hide_from_users" model="ir.actions.server">
+        <field name="name">Hide Event from Users</field>
+        <field name="model_id" ref="event.model_event_event"/>
+        <field name="binding_model_id" ref="event.model_event_event"/>
+        <field name="state">code</field>
+        <field name="code">records.write({'website_published': False, 'is_published': False})</field>
+    </record>
+
+    <record id="action_event_show_to_users" model="ir.actions.server">
+        <field name="name">Show Event to Users</field>
+        <field name="model_id" ref="event.model_event_event"/>
+        <field name="binding_model_id" ref="event.model_event_event"/>
+        <field name="state">code</field>
+        <field name="code">records.write({'website_published': True, 'is_published': True})</field>
+    </record>
+
+    <record id="action_open_delete_event_wizard" model="ir.actions.act_window">
+        <field name="name">Delete Event</field>
+        <field name="res_model">delete.event.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_event_id': active_id}</field>
+    </record>
+
     <record id="event_event_view_form_address_only" model="ir.ui.view">
         <field name="name">event.event.form.address.only</field>
         <field name="model">event.event</field>
         <field name="inherit_id" ref="event.view_event_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="%(event_application.action_event_hide_from_users)d"
+                        string="Hide from Users"
+                        type="action"
+                        class="btn-secondary"
+                        invisible="not active or not is_published"
+                        confirm="Hide this event from public users without deleting it?"/>
+                <button name="%(event_application.action_event_show_to_users)d"
+                        string="Show to Users"
+                        type="action"
+                        class="btn-secondary"
+                        invisible="not active or is_published"/>
+                <button name="action_unarchive"
+                        string="Restore Event"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="active"/>
+            </xpath>
 
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_registrations_portal" type="object" class="oe_stat_button" icon="fa-users">
+                <button name="action_view_registrations_portal"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-users"
+                        help="Open all registrations linked to this event, including archived ones.">
                     <div class="o_field_widget o_stat_info">
                         <span class="o_stat_text">Registrations</span>
                     </div>
@@ -50,6 +96,30 @@
             </xpath>
         </field>
     </record>
+
+    <record id="action_event_view_archived" model="ir.actions.act_window">
+        <field name="name">Archived Events</field>
+        <field name="res_model">event.event</field>
+        <field name="view_mode">kanban,calendar,list,form,pivot,graph,activity</field>
+        <field name="search_view_id" ref="event.view_event_search"/>
+        <field name="domain">[('active', '=', False)]</field>
+        <field name="context">{'active_test': False, 'search_default_filter_inactive': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No archived events
+            </p>
+            <p>
+                Archived events are kept here so they stay out of the public event page without losing registration history.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_event_event_archived"
+              name="Archived Events"
+              parent="event.event_main_menu"
+              action="action_event_view_archived"
+              groups="event.group_event_user"
+              sequence="35"/>
 
     <record id="event_event_view_quick_create_venue_fields" model="ir.ui.view">
         <field name="name">event.event.form.quick.create.venue.fields</field>

@@ -15,6 +15,8 @@
         'data/specialty_data.xml',
         'data/case_data.xml',
         'wizard/reject_application_wizard_views.xml',
+        'wizard/delete_event_wizard_views.xml',
+        'wizard/event_stage_reschedule_wizard_views.xml',
         'views/event_application_views.xml',
         'views/event_settings_views.xml',
         'views/event_points_views.xml',
@@ -28,6 +30,11 @@
         'views/event_two_column_cleanup.xml',
         'views/event_filters_labels.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'event_application/static/src/js/event_kanban_stage_reschedule_patch.js',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

@@ -670,19 +670,6 @@ class EventEvent(models.Model):
     badge_image = fields.Binary(string='Badge Background')
     image_ids = fields.One2many('event.image', 'event_id', string='Gallery Images')
     thumbnail_image = fields.Image(string='Thumbnail Image')
-    
-    
-    def action_view_registrations_portal(self):
-        """Allow organizers to view registrations"""
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Event Registrations',
-            'res_model': 'event.registration',
-            'view_mode': 'list,form',
-            'domain': [('event_id', '=', self.id)],
-            'context': {'default_event_id': self.id}
-        }
 
     def write(self, vals):
         res = super().write(vals)

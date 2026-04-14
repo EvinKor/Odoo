@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_event_stage_reschedule_wizard_form" model="ir.ui.view">
+        <field name="name">event.stage.reschedule.wizard.form</field>
+        <field name="model">event.stage.reschedule.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reschedule Event">
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        Moving this event to <strong><field name="target_stage_id" readonly="1"/></strong>
+                        requires a new future event date.
+                    </div>
+                    <group>
+                        <field name="event_id" readonly="1"/>
+                        <field name="target_stage_id" readonly="1"/>
+                        <field name="date_begin"/>
+                        <field name="date_end"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm" string="Save" type="object" class="btn btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

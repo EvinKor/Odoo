@@ -1,0 +1,156 @@
+2026-04-10 10:21:19.865 +08 [37896] LOG:  database system was interrupted; last known up at 2026-03-31 16:08:45 +08
+2026-04-10 10:21:35.848 +08 [37896] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-04-10 10:21:35.861 +08 [37896] LOG:  redo starts at 0/6A347960
+2026-04-10 10:21:35.867 +08 [37896] LOG:  invalid record length at 0/6A34C850: wanted 24, got 0
+2026-04-10 10:21:35.867 +08 [37896] LOG:  redo done at 0/6A34C828
+2026-04-10 10:21:35.955 +08 [26804] LOG:  database system is ready to accept connections
+2026-04-10 10:22:59.666 +08 [5800] ERROR:  new row for relation "ir_model_data" violates check constraint "ir_model_data_name_nospaces"
+2026-04-10 10:22:59.666 +08 [5800] DETAIL:  Failing row contains (626988, 2, 2026-04-10 02:22:59.374752, 2026-04-10 02:22:59.374752, 2, 696, t, module_event_application ver1, base, ir.module.module).
+2026-04-10 10:22:59.666 +08 [5800] STATEMENT:  INSERT INTO "ir_model_data" ("create_date", "create_uid", "model", "module", "name", "noupdate", "res_id", "write_date", "write_uid") VALUES ('2026-04-10 02:22:59.374752', 2, 'ir.module.module', 'base', 'module_event_application ver1', true, 696, '2026-04-10 02:22:59.374752', 2) RETURNING "id"
+2026-04-10 10:23:02.137 +08 [5800] ERROR:  new row for relation "ir_model_data" violates check constraint "ir_model_data_name_nospaces"
+2026-04-10 10:23:02.137 +08 [5800] DETAIL:  Failing row contains (626989, 2, 2026-04-10 02:23:01.982164, 2026-04-10 02:23:01.982164, 2, 697, t, module_event_application ver1, base, ir.module.module).
+2026-04-10 10:23:02.137 +08 [5800] STATEMENT:  INSERT INTO "ir_model_data" ("create_date", "create_uid", "model", "module", "name", "noupdate", "res_id", "write_date", "write_uid") VALUES ('2026-04-10 02:23:01.982164', 2, 'ir.module.module', 'base', 'module_event_application ver1', true, 697, '2026-04-10 02:23:01.982164', 2) RETURNING "id"
+2026-04-10 10:23:05.839 +08 [5800] ERROR:  new row for relation "ir_model_data" violates check constraint "ir_model_data_name_nospaces"
+2026-04-10 10:23:05.839 +08 [5800] DETAIL:  Failing row contains (626990, 2, 2026-04-10 02:23:05.695296, 2026-04-10 02:23:05.695296, 2, 698, t, module_event_application ver1, base, ir.module.module).
+2026-04-10 10:23:05.839 +08 [5800] STATEMENT:  INSERT INTO "ir_model_data" ("create_date", "create_uid", "model", "module", "name", "noupdate", "res_id", "write_date", "write_uid") VALUES ('2026-04-10 02:23:05.695296', 2, 'ir.module.module', 'base', 'module_event_application ver1', true, 698, '2026-04-10 02:23:05.695296', 2) RETURNING "id"
+2026-04-10 10:23:55.987 +08 [5800] ERROR:  new row for relation "ir_model_data" violates check constraint "ir_model_data_name_nospaces"
+2026-04-10 10:23:55.987 +08 [5800] DETAIL:  Failing row contains (626991, 2, 2026-04-10 02:23:55.787984, 2026-04-10 02:23:55.787984, 2, 699, t, module_event_application ver1, base, ir.module.module).
+2026-04-10 10:23:55.987 +08 [5800] STATEMENT:  INSERT INTO "ir_model_data" ("create_date", "create_uid", "model", "module", "name", "noupdate", "res_id", "write_date", "write_uid") VALUES ('2026-04-10 02:23:55.787984', 2, 'ir.module.module', 'base', 'module_event_application ver1', true, 699, '2026-04-10 02:23:55.787984', 2) RETURNING "id"
+2026-04-10 10:44:06.455 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 10:44:06.455 +08 [5800] DETAIL:  Key (id)=(21) is still referenced from table "event_registration".
+2026-04-10 10:44:06.455 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (21)
+2026-04-10 11:01:05.201 +08 [32820] ERROR:  could not obtain lock on row in relation "ir_cron"
+2026-04-10 11:01:05.201 +08 [32820] STATEMENT:  SELECT * FROM ir_cron FOR UPDATE NOWAIT
+2026-04-10 11:04:23.113 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:04:23.113 +08 [5800] DETAIL:  Key (id)=(21) is still referenced from table "event_registration".
+2026-04-10 11:04:23.113 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (21)
+2026-04-10 11:06:15.127 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:06:15.127 +08 [5800] DETAIL:  Key (id)=(21) is still referenced from table "event_registration".
+2026-04-10 11:06:15.127 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (21)
+2026-04-10 11:09:29.293 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:09:29.293 +08 [5800] DETAIL:  Key (id)=(2) is still referenced from table "event_registration".
+2026-04-10 11:09:29.293 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (2)
+2026-04-10 11:29:46.304 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:29:46.304 +08 [5800] DETAIL:  Key (id)=(2) is still referenced from table "event_registration".
+2026-04-10 11:29:46.304 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (2)
+2026-04-10 11:29:53.108 +08 [4604] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:29:53.108 +08 [4604] DETAIL:  Key (id)=(22) is still referenced from table "event_registration".
+2026-04-10 11:29:53.108 +08 [4604] STATEMENT:  DELETE FROM "event_event" WHERE id IN (22)
+2026-04-10 11:32:06.682 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:32:06.682 +08 [5800] DETAIL:  Key (id)=(22) is still referenced from table "event_registration".
+2026-04-10 11:32:06.682 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (22)
+2026-04-10 11:32:38.027 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:32:38.027 +08 [5800] DETAIL:  Key (id)=(22) is still referenced from table "event_registration".
+2026-04-10 11:32:38.027 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (22)
+2026-04-10 11:33:12.119 +08 [5800] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 11:33:12.119 +08 [5800] DETAIL:  Key (id)=(22) is still referenced from table "event_registration".
+2026-04-10 11:33:12.119 +08 [5800] STATEMENT:  DELETE FROM "event_event" WHERE id IN (22)
+2026-04-10 14:15:52.407 +08 [27236] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 14:15:52.407 +08 [27236] DETAIL:  Key (id)=(22) is still referenced from table "event_registration".
+2026-04-10 14:15:52.407 +08 [27236] STATEMENT:  DELETE FROM "event_event" WHERE id IN (22)
+2026-04-10 14:23:03.115 +08 [40644] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 14:23:03.115 +08 [40644] DETAIL:  Key (id)=(22) is still referenced from table "event_registration".
+2026-04-10 14:23:03.115 +08 [40644] STATEMENT:  DELETE FROM "event_event" WHERE id IN (22)
+2026-04-10 14:26:57.912 +08 [27236] ERROR:  update or delete on table "event_event" violates foreign key constraint "event_registration_event_id_fkey" on table "event_registration"
+2026-04-10 14:26:57.912 +08 [27236] DETAIL:  Key (id)=(21) is still referenced from table "event_registration".
+2026-04-10 14:26:57.912 +08 [27236] STATEMENT:  DELETE FROM "event_event" WHERE id IN (21)
+2026-04-10 15:16:19.717 +08 [27236] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 15:16:19.727 +08 [11360] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 15:16:19.728 +08 [21396] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 15:16:19.730 +08 [8016] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 15:16:19.731 +08 [12304] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 15:16:19.732 +08 [37916] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.115 +08 [31764] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.115 +08 [4488] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.116 +08 [37012] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.116 +08 [21768] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.117 +08 [11556] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.118 +08 [33072] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:18:03.119 +08 [2968] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:23:29.599 +08 [24620] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:23:29.599 +08 [6204] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:23:29.599 +08 [34464] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:23:29.599 +08 [41316] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:23:29.601 +08 [42768] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:23:29.601 +08 [37640] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:35:48.072 +08 [40524] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:35:48.073 +08 [36196] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:35:48.073 +08 [36940] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:35:48.074 +08 [28108] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:35:48.074 +08 [34052] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:35:48.074 +08 [41424] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:54:34.056 +08 [36548] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:54:34.056 +08 [30484] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:54:34.056 +08 [39068] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:54:34.057 +08 [32864] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:54:34.057 +08 [34328] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.787 +08 [34316] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.792 +08 [13200] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.792 +08 [35624] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.794 +08 [29588] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.795 +08 [26684] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.795 +08 [40504] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 16:56:56.796 +08 [35072] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.817 +08 [18452] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.818 +08 [38280] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.819 +08 [35560] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.824 +08 [17360] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.825 +08 [19148] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.826 +08 [16856] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:00:16.826 +08 [5652] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:02:29.522 +08 [35112] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:02:29.522 +08 [41608] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:02:29.523 +08 [41140] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:02:29.523 +08 [33016] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:02:29.524 +08 [41592] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-10 17:02:29.524 +08 [10444] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

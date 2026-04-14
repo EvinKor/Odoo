@@ -1,5 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <template id="event_index_empty_state_only" inherit_id="website_event.index">
+        <xpath expr="//t[@t-call='website_event.index_topbar']" position="replace">
+            <t t-call="website_event.index_topbar">
+                <t t-set="search" t-value="original_search or search or searches['search']"/>
+            </t>
+        </xpath>
+
+        <xpath expr="//div[contains(@class, 'o_wevent_events_list')]" position="replace">
+            <div class="o_wevent_events_list">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12 text-end mb-3">
+                            <a t-if="request.env.user._is_public()"
+                               href="#eventSubmitLoginModal"
+                               class="btn btn-primary me-2"
+                               data-bs-toggle="modal">
+                                <i class="fa fa-paper-plane"></i> Submit Your Event
+                            </a>
+                            <a t-else=""
+                               href="/event/apply"
+                               class="btn btn-primary me-2">
+                                <i class="fa fa-paper-plane"></i> Submit Your Event
+                            </a>
+                            <t t-if="not request.env.user._is_public()">
+                                <a href="/my/events" class="btn btn-outline-primary">
+                                    <i class="fa fa-list"></i> Event Applications
+                                </a>
+                            </t>
+                        </div>
+                        <t t-if="event_ids">
+                            <div id="o_wevent_index_main_col" t-attf-class="col-md mb-3 #{opt_events_list_columns and 'opt_events_list_columns' or 'opt_events_list_rows'}">
+                                <div class="row g-4 g-lg-3 g-xxl-4">
+                                    <t t-call="website_event.events_list"/>
+                                </div>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="col-12 py-4">
+                                <div class="alert alert-info text-center mb-0" role="alert">
+                                    There is currently no event happening.
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <t t-if="request.env.user._is_public()">
+                    <div class="modal fade" id="eventSubmitLoginModal" tabindex="-1" aria-labelledby="eventSubmitLoginModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="eventSubmitLoginModalLabel">Login Required</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"/>
+                                </div>
+                                <div class="modal-body">
+                                    You need to log in before submitting an event application.
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <a href="/web/login?redirect=/event/apply" class="btn btn-primary">Go to Login</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
     <template id="event_index_topbar_custom" inherit_id="website_event.index_topbar">
         
         <xpath expr="//div[contains(@class, 'o_wevent_index_topbar_filters')]" position="replace">
@@ -793,7 +861,39 @@
         </xpath>
     </template>
 
+    <template id="registration_login_required_modal" name="Registration Login Required Modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Login Required</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"/>
+            </div>
+            <div class="modal-body">
+                You need to log in before registering for this event.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary js_goto_event" data-bs-dismiss="modal">Cancel</button>
+                <a t-attf-href="/web/login?redirect=/event/#{slug(event)}/register" class="btn btn-primary">Go to Login</a>
+            </div>
+        </div>
+    </template>
+
     <template id="registration_template_insufficient_points" inherit_id="website_event.registration_template">
+        <xpath expr="//button[@data-bs-target='#modal_ticket_registration']" position="replace">
+            <t t-if="event.event_registrations_open and request.env.user._is_public()">
+                <button type="button"
+                        onclick="const modalEl = document.getElementById('eventRegisterLoginModal'); if (modalEl &amp;&amp; window.bootstrap) { bootstrap.Modal.getOrCreateInstance(modalEl).show(); } return false;"
+                        t-attf-class="btn btn-primary {{cta_additional_classes}}">
+                    Register
+                </button>
+            </t>
+            <button t-elif="event.event_registrations_open"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal_ticket_registration"
+                    t-attf-class="btn btn-primary {{cta_additional_classes}}">
+                Register
+            </button>
+        </xpath>
         <xpath expr="//div[@t-if=&quot;registration_error_code == 'insufficient_seats'&quot;]" position="replace">
             <div t-if="registration_error_code in ('insufficient_seats', 'insufficient_points')" class="alert alert-danger my-3" role="alert">
                 <t t-if="registration_error_code == 'insufficient_seats'">
@@ -809,6 +909,63 @@
                     </t>
                 </t>
             </div>
+        </xpath>
+    </template>
+
+    <template id="event_register_login_modal_on_page" inherit_id="website_event.event_description_full">
+        <xpath expr="//section[@id='o_wevent_event_main']" position="attributes">
+            <attribute name="t-cache">(event, event.is_participating, request.env.user._is_public()) if not editable and event.website_published else None</attribute>
+        </xpath>
+        <xpath expr="//div[contains(@class, 'o_wevent_event_main_cta_block')]/t[@t-call='website_event.registration_template']" position="replace">
+            <t t-if="request.env.user._is_public() and event.event_registrations_open">
+                <button type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#eventRegisterLoginModal"
+                        class="btn btn-primary w-100 py-sm-3 mt-sm-2">
+                    Register
+                </button>
+            </t>
+            <t t-else="">
+                <t t-call="website_event.registration_template">
+                    <t t-set="cta_additional_classes">w-100 py-sm-3 mt-sm-2</t>
+                </t>
+            </t>
+        </xpath>
+        <xpath expr="//aside[@id='o_wevent_event_main_sidebar']/div[contains(@class, 'd-none d-lg-block')]/t[@t-call='website_event.registration_template']" position="replace">
+            <t t-if="request.env.user._is_public() and event.event_registrations_open">
+                <button type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#eventRegisterLoginModal"
+                        class="btn btn-primary w-100">
+                    Register
+                </button>
+            </t>
+            <t t-else="">
+                <t t-call="website_event.registration_template">
+                    <t t-set="cta_additional_classes">w-100</t>
+                </t>
+            </t>
+        </xpath>
+        <xpath expr="//section[@id='o_wevent_event_main']" position="after">
+            <t t-if="request.env.user._is_public() and event.event_registrations_open">
+                <div class="modal fade" id="eventRegisterLoginModal" tabindex="-1" aria-labelledby="eventRegisterLoginModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="eventRegisterLoginModalLabel">Login Required</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"/>
+                            </div>
+                            <div class="modal-body">
+                                You need to log in before registering for this event.
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <a t-attf-href="/web/login?redirect=/event/#{slug(event)}/register" class="btn btn-primary">Go to Login</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
         </xpath>
     </template>
 

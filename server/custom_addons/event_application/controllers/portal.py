@@ -18,6 +18,20 @@ from odoo.exceptions import ValidationError
 _logger = logging.getLogger(__name__)
 
 class EventApplicationPortal(CustomerPortal):
+    def _my_event_domain(self, partner, *, published_only=False, include_past=True):
+        domain = [
+            '|',
+            ('organizer_id', '=', partner.id),
+            ('application_id.partner_id', '=', partner.id),
+            ('active', '=', True),
+        ]
+        if published_only:
+            domain += ['|', ('website_published', '=', True), ('is_published', '=', True)]
+        if not include_past:
+            now_dt = fields.Datetime.now()
+            domain.append(('date_end', '>=', now_dt))
+        return domain
+
     def _normalize_online_link(self, raw_link):
         link = (raw_link or '').strip()
         if not link:
@@ -103,9 +117,13 @@ class EventApplicationPortal(CustomerPortal):
                 ('partner_id', '=', request.env.user.partner_id.id)
             ])
         if 'my_events_count' in counters:
-            values['my_events_count'] = request.env['event.event'].search_count([
-                ('organizer_id', '=', request.env.user.partner_id.id)
-            ])
+            values['my_events_count'] = request.env['event.event'].sudo().search_count(
+                self._my_event_domain(
+                    request.env.user.partner_id,
+                    published_only=True,
+                    include_past=False,
+                )
+            )
         return values
     
     @http.route(['/my/events', '/my/events/registrations'], type='http', auth='user', website=True)
@@ -127,20 +145,19 @@ class EventApplicationPortal(CustomerPortal):
             registrations_event_id = ''
         registrations_history = str(kwargs.get('registrations_history') or '').strip().lower() in ('1', 'true', 'yes', 'on')
 
-        events_domain = [
-            '|',
-            ('organizer_id', '=', partner.id),
-            ('application_id.partner_id', '=', partner.id),
-        ]
         now_dt = fields.Datetime.now()
+        events_domain = self._my_event_domain(
+            partner,
+            published_only=True,
+            include_past=(events_view == 'past'),
+        )
         if events_view == 'past':
             events_domain.append(('date_end', '<', now_dt))
-        else:
-            events_domain += ['|', ('date_end', '>=', now_dt), ('date_begin', '>=', now_dt)]
         if events_search:
             events_domain += ['|', '|', ('name', 'ilike', events_search), ('location', 'ilike', events_search), ('address_id.name', 'ilike', events_search)]
 
-        events = request.env['event.event'].sudo().search(events_domain, order='date_begin desc')
+        event_order = 'date_begin asc, id asc' if events_view != 'past' else 'date_begin desc, id desc'
+        events = request.env['event.event'].sudo().search(events_domain, order=event_order)
 
         registrations_domain_base = list(self._registration_owner_domain())
         if not registrations_history:

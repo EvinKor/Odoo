@@ -1,4 +1,5 @@
-from odoo import models, fields, api
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 
 class EventEvent(models.Model):
@@ -51,6 +52,14 @@ class EventEvent(models.Model):
     venue_state_id = fields.Many2one('res.country.state', string='Venue State')
     venue_country_id = fields.Many2one('res.country', string='Venue Country')
     card_bg_image = fields.Binary(string='Card Background')
+    registration_total_count = fields.Integer(
+        string='All Registrations',
+        compute='_compute_registration_counts',
+    )
+    registration_archived_count = fields.Integer(
+        string='Archived Registrations',
+        compute='_compute_registration_counts',
+    )
     
     # Address input field for typing complete address
     address_input = fields.Text(string='Complete Address', 
@@ -67,6 +76,125 @@ class EventEvent(models.Model):
     contact_phone = fields.Char(string='Contact Phone')
     contact_email = fields.Char(string='Contact Email')
     venue_display = fields.Text(string='Venue Details', compute='_compute_venue_display', readonly=True)
+
+    @api.depends('registration_ids', 'registration_ids.active')
+    def _compute_registration_counts(self):
+        registration_model = self.env['event.registration'].with_context(active_test=False)
+        grouped = registration_model.read_group(
+            [('event_id', 'in', self.ids)],
+            ['event_id', 'active'],
+            ['event_id', 'active'],
+            lazy=False,
+        )
+        totals = {event_id: 0 for event_id in self.ids}
+        archived = {event_id: 0 for event_id in self.ids}
+        for row in grouped:
+            event_id = row.get('event_id') and row['event_id'][0]
+            count = row.get('__count', 0)
+            if not event_id:
+                continue
+            totals[event_id] = totals.get(event_id, 0) + count
+            if row.get('active') is False:
+                archived[event_id] = archived.get(event_id, 0) + count
+        for event in self:
+            event.registration_total_count = totals.get(event.id, 0)
+            event.registration_archived_count = archived.get(event.id, 0)
+
+    def action_view_registrations_portal(self):
+        self.ensure_one()
+        action = self.env["ir.actions.actions"]._for_xml_id("event.act_event_registration_from_event")
+        action.update({
+            'domain': [('event_id', '=', self.id)],
+            'context': {
+                'default_event_id': self.id,
+                'active_test': False,
+                'search_default_taken': 0,
+                'search_default_filter_inactive': 0,
+                'name_with_seats_availability': True,
+            },
+        })
+        return action
+
+    def action_hide_from_users(self):
+        vals = {}
+        if 'website_published' in self._fields:
+            vals['website_published'] = False
+        if 'is_published' in self._fields:
+            vals['is_published'] = False
+        if vals:
+            self.write(vals)
+        return True
+
+    def action_show_to_users(self):
+        vals = {}
+        if 'website_published' in self._fields:
+            vals['website_published'] = True
+        if 'is_published' in self._fields:
+            vals['is_published'] = True
+        if vals:
+            self.write(vals)
+        return True
+
+    def action_delete_all_registrations(self):
+        registration_model = self.env['event.registration'].with_context(active_test=False)
+        for event in self:
+            registrations = registration_model.search([('event_id', '=', event.id)])
+            if registrations:
+                registrations.unlink()
+        return True
+
+    def action_open_delete_event_wizard(self):
+        self.ensure_one()
+        return {
+            'name': _('Delete Event'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'delete.event.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_event_id': self.id},
+        }
+
+    def action_delete_event_with_refund_option(self, refund_points=False):
+        registration_model = self.env['event.registration'].with_context(active_test=False)
+        wallet_model = self.env['event.points.wallet'].sudo() if 'event.points.wallet' in self.env else False
+        for event in self:
+            registrations = registration_model.search([('event_id', '=', event.id)])
+            for registration in registrations:
+                if refund_points and wallet_model and registration.partner_id:
+                    points = 0
+                    if 'points_spent' in registration._fields:
+                        points = int(registration.points_spent or 0)
+                    elif registration.event_ticket_id and 'point_cost' in registration.event_ticket_id._fields:
+                        points = int(registration.event_ticket_id.point_cost or 0)
+                    if points > 0:
+                        wallet = wallet_model.get_or_create_wallet(registration.partner_id)
+                        wallet.add_points(points, _('Event registration refund'), reference=event.name)
+                        if 'points_spent' in registration._fields:
+                            registration.write({'points_spent': 0})
+            registrations.unlink()
+            super(EventEvent, event.with_context(force_event_hard_delete=True)).unlink()
+        return {'type': 'ir.actions.client', 'tag': 'reload'}
+
+    def action_archive(self):
+        res = super().action_archive()
+        vals = {}
+        if 'website_published' in self._fields:
+            vals['website_published'] = False
+        if 'is_published' in self._fields:
+            vals['is_published'] = False
+        if vals:
+            self.write(vals)
+        return res
+
+    def action_unarchive(self):
+        return super().action_unarchive()
+
+    def unlink(self):
+        if self.env.context.get('force_event_hard_delete'):
+            return super().unlink()
+        # Soft delete for events: archive and unpublish instead of removing rows.
+        self.action_archive()
+        return True
 
     @api.depends(
         'venue_name',

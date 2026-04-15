@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="event.event_stage_new" model="event.stage">
+            <field name="description">Draft stage. This event is not shown on the public event homepage yet.</field>
+        </record>
+
+        <record id="event.event_stage_announced" model="event.stage">
+            <field name="description">Public event stage. The event is announced and visible on the event homepage while registration is still open.</field>
+        </record>
+
+        <record id="event.event_stage_booked" model="event.stage">
+            <field name="description">Registration closed stage. The event is still announced, but users can no longer register because ticket sales or registration have ended.</field>
+        </record>
+
+        <record id="event.event_stage_done" model="event.stage">
+            <field name="description">Finished event stage. The event has ended and should move to history instead of the active event homepage.</field>
+        </record>
+
+        <record id="event.event_stage_cancelled" model="event.stage">
+            <field name="description">Cancelled event stage. The event is hidden from the public homepage and should not accept any more registrations.</field>
+        </record>
+    </data>
+</odoo>

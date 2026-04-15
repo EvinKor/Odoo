@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="portal_frontend_layout_points_badge" inherit_id="portal.frontend_layout" name="Portal Header Points Badge">
+        <xpath expr="//t[@t-call='portal.user_dropdown']" position="before">
+            <li t-if="not request.env.user._is_public()"
+                t-nocache="Show the live points balance for the current signed-in user."
+                class="nav-item d-flex align-items-center">
+                <span class="nav-link pe-2 pe-lg-3">
+                    <span class="badge rounded-pill bg-warning text-dark border">
+                        <i class="fa fa-star me-1"/>
+                        <t t-esc="int((request.env['event.points.wallet'].sudo().search([('partner_id', '=', request.env.user.partner_id.id)], limit=1).balance) or 0)"/>
+                        pts
+                    </span>
+                </span>
+            </li>
+        </xpath>
+    </template>
+</odoo>

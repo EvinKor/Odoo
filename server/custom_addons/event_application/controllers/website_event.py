@@ -14,6 +14,18 @@ _logger = logging.getLogger(__name__)
 
 
 class CustomWebsiteEventController(WebsiteEventController):
+    def _public_stage_ids(self):
+        stages = request.env['event.stage'].sudo().search([])
+        live_names = {'announced', 'booked'}
+        past_names = {'ended'}
+        live_ids = stages.filtered(lambda stage: (stage.name or '').strip().lower() in live_names).ids
+        past_ids = stages.filtered(lambda stage: (stage.name or '').strip().lower() in past_names).ids
+        return {
+            'live': live_ids,
+            'past': past_ids,
+            'all': live_ids + [stage_id for stage_id in past_ids if stage_id not in live_ids],
+        }
+
     def _get_points_wallet(self):
         if request.env.user._is_public():
             return False
@@ -95,10 +107,12 @@ class CustomWebsiteEventController(WebsiteEventController):
         website = request.website
         now = Datetime.now()
         published_domain = ['|', ('website_published', '=', True), ('is_published', '=', True)]
+        public_stage_ids = self._public_stage_ids()
 
         # Base domain: published events on this website
         domain_base = expression.AND([
             published_domain,
+            [('active', '=', True)],
             [
             '|', ('website_id', '=', False), ('website_id', '=', website.id),
             ],
@@ -120,9 +134,11 @@ class CustomWebsiteEventController(WebsiteEventController):
         # Date filters
         date_filter = searches.get('date', 'upcoming')
         if date_filter == 'old':
-            group_domains.append([('date_end', '<', now)])
+            group_domains.append([('stage_id', 'in', public_stage_ids['past'] or [0])])
         elif date_filter == 'upcoming':
-            group_domains.append([('date_end', '>=', now)])
+            group_domains.append([('stage_id', 'in', public_stage_ids['live'] or [0])])
+        else:
+            group_domains.append([('stage_id', 'in', public_stage_ids['all'] or [0])])
 
         # Event type filter
         if searches.get('type'):
@@ -180,14 +196,16 @@ class CustomWebsiteEventController(WebsiteEventController):
         event_types = EventType.sudo().search([])
         
         # Calculate event counts for all, upcoming and past events
-        all_count = Event.sudo().search_count(published_domain)
+        all_count = Event.sudo().search_count(
+            expression.AND([published_domain, [('active', '=', True), ('stage_id', 'in', public_stage_ids['all'] or [0])]])
+        )
         
         upcoming_count = Event.sudo().search_count(
-            expression.AND([published_domain, [('date_end', '>=', request.env.cr.now())]])
+            expression.AND([published_domain, [('active', '=', True), ('stage_id', 'in', public_stage_ids['live'] or [0])]])
         )
         
         past_count = Event.sudo().search_count(
-            expression.AND([published_domain, [('date_end', '<', request.env.cr.now())]])
+            expression.AND([published_domain, [('active', '=', True), ('stage_id', 'in', public_stage_ids['past'] or [0])]])
         )
         
         # Build dates list in the format Odoo expects: [id, name, date_begin, event_count]
@@ -206,7 +224,7 @@ class CustomWebsiteEventController(WebsiteEventController):
             count = Event.sudo().search_count(
                 expression.AND([
                     published_domain,
-                    [('specialty_ids', 'in', [spec.id]), ('date_end', '>=', request.env.cr.now())],
+                    [('active', '=', True), ('specialty_ids', 'in', [spec.id]), ('stage_id', 'in', public_stage_ids['live'] or [0])],
                 ])
             )
             specialty_data.append({
@@ -223,7 +241,7 @@ class CustomWebsiteEventController(WebsiteEventController):
             count = Event.sudo().search_count(
                 expression.AND([
                     published_domain,
-                    [('case_ids', 'in', [case.id]), ('date_end', '>=', request.env.cr.now())],
+                    [('active', '=', True), ('case_ids', 'in', [case.id]), ('stage_id', 'in', public_stage_ids['live'] or [0])],
                 ])
             )
             case_data.append({
@@ -237,9 +255,10 @@ class CustomWebsiteEventController(WebsiteEventController):
             expression.AND([
                 published_domain,
                 [
+                    ('active', '=', True),
+                    ('stage_id', 'in', public_stage_ids['live'] or [0]),
                     ('address_id', '!=', False),
                     ('address_id.country_id', '!=', False),
-                    ('date_end', '>=', request.env.cr.now()),
                 ],
             ])
         )
@@ -293,6 +312,7 @@ class CustomWebsiteEventController(WebsiteEventController):
             # add these two to stay API-compatible with the base template,
             # even if your custom topbar uses different names:
             'types': event_types,             # stock expects "types"
+            'event_types': event_types,
             'countries': [],                  # stock expects "countries"
 
             'dates': dates,
@@ -371,19 +391,14 @@ class CustomWebsiteEventController(WebsiteEventController):
             if reg.get('event_ticket_id')
         )
         event_tickets = request.env['event.event.ticket'].browse(list(registration_tickets.keys()))
-        ticket_fields = request.env['event.event.ticket']._fields
         lines = []
         total_points = 0
-        total_amount = 0.0
         points_by_ticket = {}
         for ticket in event_tickets:
             qty = int(registration_tickets.get(ticket.id, 0))
             unit_points = int(getattr(ticket, 'point_cost', 0) or 0)
-            unit_amount = float(getattr(ticket, 'price', 0.0) or 0.0) if 'price' in ticket_fields else 0.0
             line_points = unit_points * qty
-            line_amount = unit_amount * qty
             total_points += line_points
-            total_amount += line_amount
             points_by_ticket[ticket.id] = unit_points
             lines.append({
                 'ticket_id': ticket.id,
@@ -391,15 +406,12 @@ class CustomWebsiteEventController(WebsiteEventController):
                 'qty': qty,
                 'unit_points': unit_points,
                 'line_points': line_points,
-                'unit_amount': unit_amount,
-                'line_amount': line_amount,
             })
         return {
             'lines': lines,
             'registration_tickets': registration_tickets,
             'event_tickets': event_tickets,
             'total_points': total_points,
-            'total_amount': total_amount,
             'points_by_ticket': points_by_ticket,
         }
 
@@ -439,7 +451,6 @@ class CustomWebsiteEventController(WebsiteEventController):
             'buyer_phone': payload['buyer_phone'],
             'invoice_lines': summary['lines'],
             'total_points': summary['total_points'],
-            'total_amount': summary['total_amount'],
             'payment_error_code': post.get('payment_error_code') or request.params.get('payment_error_code'),
             'required_points': post.get('required_points') or request.params.get('required_points'),
             'available_points': post.get('available_points') or request.params.get('available_points'),
@@ -451,6 +462,15 @@ class CustomWebsiteEventController(WebsiteEventController):
         payload = request.session.get(key)
         if not payload:
             return request.redirect('/event/%s/register' % event.id)
+        existing_regs = request.env['event.registration'].sudo().with_context(active_test=False).search([
+            ('x_register_batch_id', '=', payload.get('batch_id')),
+        ], limit=1) if payload.get('batch_id') and 'x_register_batch_id' in request.env['event.registration']._fields else False
+        if existing_regs:
+            return request.redirect(
+                ('/event/%s/registration/success?' % event.id) + url_encode({
+                    'registration_ids': ",".join([str(rid) for rid in existing_regs.search([('x_register_batch_id', '=', payload.get('batch_id'))]).ids]),
+                })
+            )
 
         summary = self._registration_invoice_summary(payload['registration_data'])
         if any(ticket.seats_limited and ticket.seats_available < summary['registration_tickets'].get(ticket.id) for ticket in summary['event_tickets']):
@@ -461,38 +481,52 @@ class CustomWebsiteEventController(WebsiteEventController):
 
         total_points = summary['total_points']
 
-        if request.env.user._is_public():
-            return request.redirect('/web/login?redirect=/event/%s/registration/payment' % event.id)
+        try:
+            request.session.pop(key, None)
+            if request.env.user._is_public():
+                request.session[key] = payload
+                return request.redirect('/web/login?redirect=/event/%s/registration/payment' % event.id)
 
-        wallet = self._get_points_wallet()
-        if wallet:
-            if total_points > 0 and wallet.balance < total_points:
-                return request.redirect(
-                    '/event/%s/registration/payment?%s' % (
-                        event.id,
-                        url_encode({
-                            'payment_error_code': 'insufficient_points',
-                            'required_points': total_points,
-                            'available_points': wallet.balance,
-                        }),
+            wallet = self._get_points_wallet()
+            if wallet:
+                if total_points > 0 and wallet.balance < total_points:
+                    request.session[key] = payload
+                    return request.redirect(
+                        '/event/%s/registration/payment?%s' % (
+                            event.id,
+                            url_encode({
+                                'payment_error_code': 'insufficient_points',
+                                'required_points': total_points,
+                                'available_points': wallet.balance,
+                            }),
+                        )
                     )
-                )
-            if total_points > 0:
-                wallet.spend_points(total_points, 'Event registration purchase', reference=event.name)
+                if total_points > 0:
+                    wallet.spend_points(total_points, 'Event registration purchase', reference=event.name)
 
-        if not request.env.user._is_public():
-            request.env.user.partner_id.sudo().write({
-                'name': payload['buyer_name'],
-                'email': payload['buyer_email'],
-                'phone': payload['buyer_phone'],
-            })
-
-        attendees_sudo = self._create_attendees_from_registration_post(event, payload['registration_data'])
-        if 'points_spent' in attendees_sudo._fields:
-            for attendee in attendees_sudo:
-                attendee.sudo().write({
-                    'points_spent': summary['points_by_ticket'].get(attendee.event_ticket_id.id, 0),
+            if not request.env.user._is_public():
+                request.env.user.partner_id.sudo().write({
+                    'name': payload['buyer_name'],
+                    'email': payload['buyer_email'],
+                    'phone': payload['buyer_phone'],
                 })
+
+            attendees_sudo = self._create_attendees_from_registration_post(event, payload['registration_data'])
+            attendee_update_vals = {}
+            if not request.env.user._is_public() and 'partner_id' in attendees_sudo._fields:
+                attendee_update_vals['partner_id'] = request.env.user.partner_id.id
+            if 'points_spent' in attendees_sudo._fields:
+                for attendee in attendees_sudo:
+                    vals = dict(attendee_update_vals)
+                    vals['points_spent'] = summary['points_by_ticket'].get(attendee.event_ticket_id.id, 0)
+                    if vals:
+                        attendee.sudo().write(vals)
+            elif attendee_update_vals:
+                attendees_sudo.sudo().write(attendee_update_vals)
+            registration_ids_csv = ",".join([str(rid) for rid in attendees_sudo.ids])
+        except Exception:
+            request.session[key] = payload
+            raise
 
         try:
             report_xmlid = "event.action_report_event_registration_full_page_ticket"
@@ -517,8 +551,7 @@ class CustomWebsiteEventController(WebsiteEventController):
         except Exception:
             _logger.exception("Ticket PDF generation skipped due to access/processing error.")
 
-        request.session.pop(key, None)
-        return request.redirect(('/event/%s/registration/success?' % event.id) + url_encode({'registration_ids': ",".join([str(rid) for rid in attendees_sudo.ids])}))
+        return request.redirect(('/event/%s/registration/success?' % event.id) + url_encode({'registration_ids': registration_ids_csv}))
 
     @http.route(['''/event/<model("event.event"):event>/registration/confirm'''], type='http', auth="public", methods=['POST'], website=True)
     def registration_confirm(self, event, **post):

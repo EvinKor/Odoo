@@ -4,6 +4,9 @@ from odoo.http import request
 
 
 class EventTicketController(http.Controller):
+    def _event_is_cancelled(self, event):
+        return (event.stage_id.name or "").strip().lower() == "cancelled"
+
     def _get_ticket_report(self):
         report_xmlid = "event.action_report_event_registration_full_page_ticket"
         report_id = request.env["ir.model.data"].sudo()._xmlid_to_res_id(
@@ -40,6 +43,9 @@ class EventTicketController(http.Controller):
 
         if not registration or not registration.exists():
             return None, "not_found"
+
+        if registration.state == "cancel" or self._event_is_cancelled(registration.event_id):
+            return registration, "cancelled"
 
         status = "already_checked_in" if registration.state == "done" else "pending"
         if mark_attended and registration.state != "done":
@@ -215,7 +221,9 @@ class EventTicketController(http.Controller):
                 "status": "invalid",
             })
 
-        if registration.state != "done":
+        if registration.state == "cancel" or self._event_is_cancelled(registration.event_id):
+            status = "cancelled"
+        elif registration.state != "done":
             registration.action_mark_attended()
             status = "checked_in"
         else:
@@ -250,6 +258,8 @@ class EventTicketController(http.Controller):
         )
         if status == "not_found":
             return {"ok": False, "status": status, "message": "Ticket not found or invalid."}
+        if status == "cancelled":
+            return {"ok": False, "status": status, "message": "This event has been cancelled. Self check-in is unavailable."}
 
         return {
             "ok": True,

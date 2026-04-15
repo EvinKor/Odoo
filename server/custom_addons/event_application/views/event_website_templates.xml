@@ -229,29 +229,14 @@
                 <div class="dropdown d-none d-lg-block">
                     <a href="#" role="button" class="btn btn-light dropdown-toggle mrbur-filter-btn" data-bs-toggle="dropdown" data-bs-display="static">
                         <t t-if="current_date == 'old'">Past Events</t>
-                        <t t-elif="current_date == 'today'">Today</t>
-                        <t t-elif="current_date == 'week'">This Week</t>
-                        <t t-elif="current_date == 'month'">This Month</t>
                         <t t-else="">Upcoming Events</t>
                     </a>
                     <div class="dropdown-menu mrbur-dropdown-menu">
-                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='upcoming') }}"
+                        <a t-att-href="keep('/event', date='upcoming')"
                            t-attf-class="dropdown-item #{'active' if current_date in ('upcoming', None, False) else ''}">
                             Upcoming Events
                         </a>
-                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='today') }}"
-                           t-attf-class="dropdown-item #{'active' if current_date == 'today' else ''}">
-                            Today
-                        </a>
-                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='week') }}"
-                           t-attf-class="dropdown-item #{'active' if current_date == 'week' else ''}">
-                            This Week
-                        </a>
-                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='month') }}"
-                           t-attf-class="dropdown-item #{'active' if current_date == 'month' else ''}">
-                            This Month
-                        </a>
-                        <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country', date='old') }}"
+                        <a t-att-href="keep('/event', date='old')"
                            t-attf-class="dropdown-item #{'active' if current_date == 'old' else ''}">
                             Past Events
                         </a>
@@ -271,12 +256,12 @@
                         <t t-else="">Type</t>
                     </a>
                     <div class="dropdown-menu mrbur-dropdown-menu">
-                        <a t-attf-href="/event?{{ keep_query('date', 'specialty', 'case', 'country') }}"
+                        <a t-att-href="keep('/event', type=False)"
                            t-attf-class="dropdown-item #{'active' if not current_type else ''}">
                             All Types
                         </a>
                         <t t-foreach="event_types" t-as="event_type">
-                            <a t-attf-href="/event?{{ keep_query('date', 'specialty', 'case', 'country', type=event_type.id) }}"
+                            <a t-att-href="keep('/event', type=event_type.id)"
                                t-attf-class="dropdown-item #{'active' if current_type == str(event_type.id) else ''}">
                                 <t t-esc="event_type.name"/>
                             </a>
@@ -293,12 +278,12 @@
                         <t t-else="">Specialty</t>
                     </a>
                     <div class="dropdown-menu mrbur-dropdown-menu" style="max-height: 400px; overflow-y: auto;">
-                        <a t-attf-href="/event?{{ keep_query('date', 'type', 'case', 'country') }}"
+                        <a t-att-href="keep('/event', specialty=False)"
                            t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_specialty else ''}">
                             All Specialties
                         </a>
                         <t t-foreach="specialties or []" t-as="specialty">
-                            <a t-attf-href="/event?{{ keep_query('date', 'type', 'case', 'country', specialty=specialty['id']) }}"
+                            <a t-att-href="keep('/event', specialty=specialty['id'])"
                                t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_specialty == specialty['name'] else ''}">
                                 <t t-esc="specialty['name']"/>
                                 <span class="badge text-bg-light ms-2 mrbur-count-badge">
@@ -318,12 +303,12 @@
                         <t t-else="">Cases</t>
                     </a>
                     <div class="dropdown-menu mrbur-dropdown-menu" style="max-height: 400px; overflow-y: auto;">
-                        <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'country') }}"
+                        <a t-att-href="keep('/event', case=False)"
                            t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_case else ''}">
                             All Cases
                         </a>
                         <t t-foreach="cases or []" t-as="case_item">
-                            <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'country', case=case_item['id']) }}"
+                            <a t-att-href="keep('/event', case=case_item['id'])"
                                t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_case == case_item['name'] else ''}">
                                 <t t-esc="case_item['name']"/>
                                 <span class="badge text-bg-light ms-2 mrbur-count-badge">
@@ -343,12 +328,12 @@
                         <t t-else="">Country</t>
                     </a>
                     <div class="dropdown-menu mrbur-dropdown-menu" style="max-height: 400px; overflow-y: auto;">
-                        <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'case') }}"
+                        <a t-att-href="keep('/event', country=False)"
                            t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_country_custom else ''}">
                             All Countries
                         </a>
                         <t t-foreach="custom_countries or []" t-as="country">
-                            <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'case', country=country['id']) }}"
+                            <a t-att-href="keep('/event', country=country['id'])"
                                t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_country_custom == country['name'] else ''}">
                                 <t t-esc="country['name']"/>
                                 <span class="badge text-bg-light ms-2 mrbur-count-badge">
@@ -366,16 +351,22 @@
                         
                         <t t-if="current_date and current_date != 'upcoming'">
                             <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
-                                <t t-esc="current_date"/>
-                                <a t-attf-href="/event?{{ keep_query('type', 'specialty', 'case', 'country') }}" 
+                                <t t-if="current_date == 'old'">Past Events</t>
+                                <t t-else=""><t t-esc="current_date"/></t>
+                                <a t-att-href="keep('/event', date='upcoming')" 
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
                         
                         <t t-if="current_type">
                             <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
-                                Type: <t t-esc="current_type"/>
-                                <a t-attf-href="/event?{{ keep_query('date', 'specialty', 'case', 'country') }}" 
+                                Type:
+                                <t t-foreach="event_types or []" t-as="event_type">
+                                    <t t-if="current_type == str(event_type.id)">
+                                        <t t-esc="event_type.name"/>
+                                    </t>
+                                </t>
+                                <a t-att-href="keep('/event', type=False)" 
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
@@ -383,7 +374,7 @@
                         <t t-if="current_specialty">
                             <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
                                 <t t-esc="current_specialty"/>
-                                <a t-attf-href="/event?{{ keep_query('date', 'type', 'case', 'country') }}" 
+                                <a t-att-href="keep('/event', specialty=False)" 
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
@@ -391,7 +382,7 @@
                         <t t-if="current_case">
                             <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
                                 <t t-esc="current_case"/>
-                                <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'country') }}" 
+                                <a t-att-href="keep('/event', case=False)" 
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
@@ -399,7 +390,7 @@
                         <t t-if="current_country_custom">
                             <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
                                 <t t-esc="current_country_custom"/>
-                                <a t-attf-href="/event?{{ keep_query('date', 'type', 'specialty', 'case') }}" 
+                                <a t-att-href="keep('/event', country=False)" 
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
@@ -1149,9 +1140,7 @@
                                             <tr>
                                                 <th>Ticket</th>
                                                 <th class="text-end">Qty</th>
-                                                <th class="text-end">Unit Amount</th>
                                                 <th class="text-end">Unit Points</th>
-                                                <th class="text-end">Line Amount</th>
                                                 <th class="text-end">Line Points</th>
                                             </tr>
                                         </thead>
@@ -1159,19 +1148,16 @@
                                             <tr t-foreach="invoice_lines" t-as="line">
                                                 <td><t t-esc="line['name']"/></td>
                                                 <td class="text-end"><t t-esc="line['qty']"/></td>
-                                                <td class="text-end"><t t-esc="'%.2f' % (line['unit_amount'])"/></td>
                                                 <td class="text-end"><t t-esc="line['unit_points']"/></td>
-                                                <td class="text-end"><t t-esc="'%.2f' % (line['line_amount'])"/></td>
                                                 <td class="text-end"><t t-esc="line['line_points']"/></td>
                                             </tr>
                                             <tr t-if="not invoice_lines">
-                                                <td colspan="6" class="text-center text-muted py-3">No ticket lines found.</td>
+                                                <td colspan="4" class="text-center text-muted py-3">No ticket lines found.</td>
                                             </tr>
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <th colspan="4" class="text-end">Total</th>
-                                                <th class="text-end"><t t-esc="'%.2f' % (total_amount or 0.0)"/></th>
+                                                <th colspan="3" class="text-end">Total</th>
                                                 <th class="text-end"><t t-esc="total_points or 0"/></th>
                                             </tr>
                                         </tfoot>
@@ -1180,15 +1166,32 @@
                             </div>
                             <div class="card-footer d-flex justify-content-end gap-2">
                                 <a t-attf-href="/event/#{slug(event)}/register" class="btn btn-secondary">Cancel</a>
-                                <form t-attf-action="/event/#{slug(event)}/registration/confirm-payment" method="post" class="d-inline">
+                                <form t-attf-action="/event/#{slug(event)}/registration/confirm-payment" method="post" class="d-inline ea-single-submit-form">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                    <button type="submit" class="btn btn-primary">Complete Payment &amp; Book Tickets</button>
+                                    <button type="submit" class="btn btn-primary ea-single-submit-button" data-loading-text="Processing...">Confirm Points &amp; Book Tickets</button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.ea-single-submit-form').forEach(function (form) {
+                        form.addEventListener('submit', function () {
+                            if (form.dataset.submitted === '1') {
+                                return false;
+                            }
+                            form.dataset.submitted = '1';
+                            form.querySelectorAll('.ea-single-submit-button').forEach(function (button) {
+                                button.disabled = true;
+                                button.dataset.originalText = button.innerHTML;
+                                button.innerHTML = button.dataset.loadingText || 'Processing...';
+                            });
+                        });
+                    });
+                });
+            </script>
         </t>
     </template>
 

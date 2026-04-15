@@ -12,6 +12,7 @@ access_event_event_user_delete,event.event.user.delete,model_event_event,event.g
 access_reject_application_wizard_manager,reject.application.wizard.manager,model_reject_application_wizard,base.group_system,1,1,1,1
 access_delete_event_wizard_manager,delete.event.wizard.manager,model_delete_event_wizard,base.group_system,1,1,1,1
 access_event_stage_reschedule_wizard_manager,event.stage.reschedule.wizard.manager,model_event_stage_reschedule_wizard,base.group_system,1,1,1,1
+access_event_cancel_wizard_manager,event.cancel.wizard.manager,model_event_cancel_wizard,base.group_system,1,1,1,1
 access_event_application_notification_portal,event.application.notification.portal,model_event_application_notification,base.group_portal,1,1,1,0
 access_event_application_notification_manager,event.application.notification.manager,model_event_application_notification,base.group_system,1,1,1,1
 access_event_points_wallet_manager,event.points.wallet.manager,model_event_points_wallet,base.group_system,1,1,1,1

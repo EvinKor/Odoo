@@ -100,6 +100,67 @@ class EventEvent(models.Model):
             event.registration_total_count = totals.get(event.id, 0)
             event.registration_archived_count = archived.get(event.id, 0)
 
+    def _event_stage_lookup(self):
+        relevant_names = {"new", "announced", "booked", "ended", "cancelled"}
+        lookup = {}
+        for stage in self.env["event.stage"].sudo().search([]):
+            stage_name = (stage.name or "").strip().lower()
+            if stage_name in relevant_names and stage_name not in lookup:
+                lookup[stage_name] = stage
+        return lookup
+
+    def _get_stage_name_for_id(self, stage_id):
+        if not stage_id:
+            return False
+        stage = self.env["event.stage"].sudo().browse(stage_id)
+        if not stage.exists():
+            return False
+        return (stage.name or "").strip().lower()
+
+    def _get_registration_close_datetime(self):
+        self.ensure_one()
+        ticket_end_dates = []
+        if self.event_ticket_ids and "end_sale_datetime" in self.event_ticket_ids._fields:
+            ticket_end_dates = [dt for dt in self.event_ticket_ids.mapped("end_sale_datetime") if dt]
+        if ticket_end_dates:
+            return max(ticket_end_dates)
+        application = self.application_id
+        if application and "registration_end" in application._fields and application.registration_end:
+            return application.registration_end
+        return False
+
+    def _get_auto_stage_name(self, now=None):
+        self.ensure_one()
+        now = now or fields.Datetime.now()
+        current_stage_name = (self.stage_id.name or "").strip().lower()
+        if not self.active or current_stage_name == "cancelled":
+            return False
+        if self.date_end and self.date_end < now:
+            return "ended"
+        registration_close = self._get_registration_close_datetime()
+        if registration_close and registration_close < now:
+            return "booked"
+        if bool(getattr(self, "website_published", False) or getattr(self, "is_published", False)):
+            return "announced"
+        return "new"
+
+    def _auto_sync_stage_status(self):
+        stage_lookup = self._event_stage_lookup()
+        now = fields.Datetime.now()
+        for event in self:
+            target_stage_name = event._get_auto_stage_name(now=now)
+            target_stage = stage_lookup.get(target_stage_name)
+            if target_stage and event.stage_id.id != target_stage.id:
+                event.with_context(skip_event_stage_sync=True).sudo().write({
+                    "stage_id": target_stage.id,
+                })
+
+    @api.model
+    def _cron_auto_sync_event_stage_status(self):
+        events = self.sudo().search([("active", "=", True)])
+        events._auto_sync_stage_status()
+        return True
+
     def action_view_registrations_portal(self):
         self.ensure_one()
         action = self.env["ir.actions.actions"]._for_xml_id("event.act_event_registration_from_event")
@@ -164,7 +225,7 @@ class EventEvent(models.Model):
                     points = 0
                     if 'points_spent' in registration._fields:
                         points = int(registration.points_spent or 0)
-                    elif registration.event_ticket_id and 'point_cost' in registration.event_ticket_id._fields:
+                    if points <= 0 and registration.event_ticket_id and 'point_cost' in registration.event_ticket_id._fields:
                         points = int(registration.event_ticket_id.point_cost or 0)
                     if points > 0:
                         wallet = wallet_model.get_or_create_wallet(registration.partner_id)
@@ -287,14 +348,29 @@ class EventEvent(models.Model):
         for event in records:
             if not event.address_input:
                 event.address_input = event.full_address or event.venue_full_address or False
+        if not self.env.context.get('skip_event_stage_sync'):
+            records._auto_sync_stage_status()
         return records
 
     def write(self, vals):
+        stage_name = self._get_stage_name_for_id(vals.get("stage_id")) if "stage_id" in vals else False
+        vals = dict(vals)
+        if stage_name == "cancelled":
+            if "website_published" in self._fields:
+                vals["website_published"] = False
+            if "is_published" in self._fields:
+                vals["is_published"] = False
+        should_sync_stage = (
+            not self.env.context.get('skip_event_stage_sync')
+            and bool({'date_begin', 'date_end', 'website_published', 'is_published', 'active'} & set(vals))
+        )
         result = super().write(vals)
         if 'address_input' not in vals:
             for event in self:
                 if not event.address_input:
                     event.address_input = event.full_address or event.venue_full_address or False
+        if should_sync_stage:
+            self._auto_sync_stage_status()
         return result
 
     @api.depends(
@@ -359,4 +435,28 @@ class EventEventTicket(models.Model):
         default=False,
         help='Pinned tickets are shown first.',
     )
+
+    def _sync_related_event_stages(self):
+        events = self.mapped("event_id").filtered(lambda event: event.active)
+        if events:
+            events._auto_sync_stage_status()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        tickets = super().create(vals_list)
+        tickets._sync_related_event_stages()
+        return tickets
+
+    def write(self, vals):
+        result = super().write(vals)
+        if {'start_sale_datetime', 'end_sale_datetime', 'event_id'} & set(vals):
+            self._sync_related_event_stages()
+        return result
+
+    def unlink(self):
+        related_events = self.mapped("event_id").filtered(lambda event: event.active)
+        result = super().unlink()
+        if related_events:
+            related_events._auto_sync_stage_status()
+        return result
 

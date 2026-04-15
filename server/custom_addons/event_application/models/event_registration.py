@@ -5,6 +5,20 @@ import secrets
 class EventRegistration(models.Model):
     _inherit = "event.registration"
 
+    points_spent = fields.Integer(
+        string="Points Spent",
+        default=0,
+        copy=False,
+        readonly=True,
+    )
+
+    refund_processed = fields.Boolean(
+        string="Refund Processed",
+        default=False,
+        copy=False,
+        readonly=True,
+    )
+
     x_register_batch_id = fields.Char(
         string="Registration Batch ID",
         index=True,
@@ -25,18 +39,20 @@ class EventRegistration(models.Model):
             ('not_checked_in', 'Not yet check-in'),
             ('checked_in', 'Checked-in'),
             ('absent', 'Absent'),
+            ('cancelled', 'Cancelled'),
         ],
         string="Check-in Status",
         compute='_compute_checkin_status',
         store=False,
     )
 
-    @api.depends('state')
+    @api.depends('state', 'event_id.stage_id', 'event_id.stage_id.name')
     def _compute_checkin_status(self):
         for registration in self:
-            if registration.state == 'done':
+            stage_name = (registration.event_id.stage_id.name or '').strip().lower()
+            if registration.state == 'cancel' or stage_name == 'cancelled':
+                registration.checkin_status = 'cancelled'
+            elif registration.state == 'done':
                 registration.checkin_status = 'checked_in'
-            elif registration.state == 'cancel':
-                registration.checkin_status = 'absent'
             else:
                 registration.checkin_status = 'not_checked_in'

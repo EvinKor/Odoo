@@ -1,0 +1,237 @@
+2026-04-15 11:45:34.832 +08 [42868] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 11:45:34.833 +08 [24380] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 11:45:34.833 +08 [7720] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 11:45:34.833 +08 [28920] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:10:54.690 +08 [3376] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:10:54.691 +08 [44904] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:10:54.691 +08 [38628] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:10:54.691 +08 [3544] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:10:54.692 +08 [15740] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:10:54.694 +08 [31464] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:16:10.843 +08 [28228] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:16:10.843 +08 [29528] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:16:10.846 +08 [40620] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:16:10.846 +08 [32112] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:16:10.847 +08 [22144] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:16:10.847 +08 [17484] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:21:09.393 +08 [18996] ERROR:  could not serialize access due to concurrent update
+2026-04-15 13:21:09.393 +08 [18996] STATEMENT:  
+	            INSERT INTO website_visitor (
+	                partner_id, access_token, last_connection_datetime, visit_count, lang_id,
+	                website_id, timezone, write_uid, create_uid, write_date, create_date, country_id)
+	            VALUES (
+	                56, 56, now() at time zone 'UTC', 1, 1,
+	                1, 'Asia/Kuala_Lumpur', 8, 8,
+	                now() at time zone 'UTC', now() at time zone 'UTC', (
+	                    SELECT id FROM res_country WHERE code = NULL
+	                )
+	            )
+	            ON CONFLICT (access_token)
+	            DO UPDATE SET
+	                last_connection_datetime=excluded.last_connection_datetime,
+	                visit_count = CASE WHEN website_visitor.last_connection_datetime < NOW() AT TIME ZONE 'UTC' - INTERVAL '8 hours'
+	                                    THEN website_visitor.visit_count + 1
+	                                    ELSE website_visitor.visit_count
+	                                END
+	            RETURNING id, CASE WHEN create_date = now() at time zone 'UTC' THEN 'inserted' ELSE 'updated' END AS upsert
+	        
+2026-04-15 13:45:03.675 +08 [20084] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:45:03.675 +08 [13100] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:45:03.675 +08 [37348] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 13:45:03.675 +08 [13396] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:01:07.961 +08 [13964] ERROR:  could not serialize access due to concurrent update
+2026-04-15 14:01:07.961 +08 [13964] STATEMENT:  
+	            INSERT INTO website_visitor (
+	                partner_id, access_token, last_connection_datetime, visit_count, lang_id,
+	                website_id, timezone, write_uid, create_uid, write_date, create_date, country_id)
+	            VALUES (
+	                56, 56, now() at time zone 'UTC', 1, 1,
+	                1, 'Asia/Kuala_Lumpur', 8, 8,
+	                now() at time zone 'UTC', now() at time zone 'UTC', (
+	                    SELECT id FROM res_country WHERE code = NULL
+	                )
+	            )
+	            ON CONFLICT (access_token)
+	            DO UPDATE SET
+	                last_connection_datetime=excluded.last_connection_datetime,
+	                visit_count = CASE WHEN website_visitor.last_connection_datetime < NOW() AT TIME ZONE 'UTC' - INTERVAL '8 hours'
+	                                    THEN website_visitor.visit_count + 1
+	                                    ELSE website_visitor.visit_count
+	                                END
+	            RETURNING id, CASE WHEN create_date = now() at time zone 'UTC' THEN 'inserted' ELSE 'updated' END AS upsert
+	        
+2026-04-15 14:01:07.973 +08 [26516] ERROR:  could not serialize access due to concurrent update
+2026-04-15 14:01:07.973 +08 [26516] STATEMENT:  
+	            INSERT INTO website_visitor (
+	                partner_id, access_token, last_connection_datetime, visit_count, lang_id,
+	                website_id, timezone, write_uid, create_uid, write_date, create_date, country_id)
+	            VALUES (
+	                56, 56, now() at time zone 'UTC', 1, 1,
+	                1, 'Asia/Kuala_Lumpur', 8, 8,
+	                now() at time zone 'UTC', now() at time zone 'UTC', (
+	                    SELECT id FROM res_country WHERE code = NULL
+	                )
+	            )
+	            ON CONFLICT (access_token)
+	            DO UPDATE SET
+	                last_connection_datetime=excluded.last_connection_datetime,
+	                visit_count = CASE WHEN website_visitor.last_connection_datetime < NOW() AT TIME ZONE 'UTC' - INTERVAL '8 hours'
+	                                    THEN website_visitor.visit_count + 1
+	                                    ELSE website_visitor.visit_count
+	                                END
+	            RETURNING id, CASE WHEN create_date = now() at time zone 'UTC' THEN 'inserted' ELSE 'updated' END AS upsert
+	        
+2026-04-15 14:01:27.261 +08 [13964] ERROR:  could not serialize access due to concurrent update
+2026-04-15 14:01:27.261 +08 [13964] STATEMENT:  
+	            INSERT INTO website_visitor (
+	                partner_id, access_token, last_connection_datetime, visit_count, lang_id,
+	                website_id, timezone, write_uid, create_uid, write_date, create_date, country_id)
+	            VALUES (
+	                56, 56, now() at time zone 'UTC', 1, 1,
+	                1, 'Asia/Kuala_Lumpur', 8, 8,
+	                now() at time zone 'UTC', now() at time zone 'UTC', (
+	                    SELECT id FROM res_country WHERE code = NULL
+	                )
+	            )
+	            ON CONFLICT (access_token)
+	            DO UPDATE SET
+	                last_connection_datetime=excluded.last_connection_datetime,
+	                visit_count = CASE WHEN website_visitor.last_connection_datetime < NOW() AT TIME ZONE 'UTC' - INTERVAL '8 hours'
+	                                    THEN website_visitor.visit_count + 1
+	                                    ELSE website_visitor.visit_count
+	                                END
+	            RETURNING id, CASE WHEN create_date = now() at time zone 'UTC' THEN 'inserted' ELSE 'updated' END AS upsert
+	        
+2026-04-15 14:21:46.561 +08 [35360] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:21:46.561 +08 [37824] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:21:46.562 +08 [40100] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:21:46.563 +08 [41280] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:21:46.563 +08 [21244] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:21:46.566 +08 [26852] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:21:46.567 +08 [26852] LOG:  unexpected EOF on client connection with an open transaction
+2026-04-15 14:47:32.796 +08 [35288] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:47:32.799 +08 [24816] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:47:32.799 +08 [30912] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:47:32.801 +08 [10632] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:47:32.801 +08 [44784] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:47:32.802 +08 [27200] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 14:47:32.804 +08 [31236] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:26:49.481 +08 [32788] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:26:49.481 +08 [37488] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:26:49.482 +08 [41440] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:26:49.485 +08 [45788] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:26:49.488 +08 [15168] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:26:49.490 +08 [39336] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:46:01.043 +08 [9856] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:46:01.043 +08 [38948] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:46:01.043 +08 [26836] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 15:46:01.044 +08 [4428] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:07:33.641 +08 [19836] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:07:33.641 +08 [29804] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:07:33.643 +08 [42488] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:07:33.643 +08 [44344] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:07:33.643 +08 [29832] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:07:33.644 +08 [29412] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:28:01.371 +08 [21876] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:28:01.371 +08 [30160] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:28:01.371 +08 [29932] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:28:01.371 +08 [20432] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:28:01.372 +08 [41308] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:28:01.372 +08 [35600] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.888 +08 [24168] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.890 +08 [23568] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.891 +08 [31232] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.891 +08 [25804] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.891 +08 [32164] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.891 +08 [31324] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:33:32.892 +08 [44544] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.783 +08 [44524] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.785 +08 [15388] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.786 +08 [45216] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.787 +08 [45480] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.787 +08 [33224] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.787 +08 [28216] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:38:57.787 +08 [14956] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.047 +08 [36400] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.048 +08 [18184] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.048 +08 [31096] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.049 +08 [24880] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.049 +08 [4196] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.051 +08 [10736] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-15 16:50:42.050 +08 [34548] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

@@ -13,7 +13,7 @@
                            widget="badge"
                            decoration-info="checkin_status == 'not_checked_in'"
                            decoration-success="checkin_status == 'checked_in'"
-                           decoration-danger="checkin_status == 'absent'"/>
+                           decoration-danger="checkin_status in ('absent', 'cancelled')"/>
                 </xpath>
             </field>
         </record>
@@ -30,7 +30,7 @@
                            widget="badge"
                            decoration-info="checkin_status == 'not_checked_in'"
                            decoration-success="checkin_status == 'checked_in'"
-                           decoration-danger="checkin_status == 'absent'"
+                           decoration-danger="checkin_status in ('absent', 'cancelled')"
                            class="position-absolute top-0 end-0 o_event_registration_kanban_badge"/>
                 </xpath>
             </field>

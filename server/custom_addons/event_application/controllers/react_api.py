@@ -15,7 +15,6 @@ class EventReactApi(http.Controller):
         return {
             "id": ticket.id,
             "name": ticket.name,
-            "price": float(ticket.price) if "price" in ticket_fields else 0.0,
             "point_cost": int(getattr(ticket, "point_cost", 0) or 0),
             "seats_available": ticket.seats_available if ticket.seats_limited else None,
             "seats_limited": bool(ticket.seats_limited),
@@ -309,6 +308,13 @@ class EventReactApi(http.Controller):
 
         if not reg or not reg.exists():
             return {"ok": False, "status": "not_found"}
+
+        if (reg.event_id.stage_id.name or "").strip().lower() == "cancelled":
+            return {
+                "ok": False,
+                "status": "cancelled",
+                "message": "This event has been cancelled. Check-in is unavailable.",
+            }
 
         status = "already_checked_in"
         if reg.state != "done":

@@ -22,6 +22,13 @@ class EventExternalRegisterController(http.Controller):
         except Exception:
             return False
 
+    @http.route("/event/points/balance", type="json", auth="user", website=False, csrf=False)
+    def event_points_balance(self):
+        wallet = self._get_points_wallet()
+        return {
+            "balance": int(wallet.balance or 0) if wallet else 0,
+        }
+
     @http.route("/api/event/register", type="json", auth="public", website=True, csrf=False)
     def api_event_register(self, **payload):
         """

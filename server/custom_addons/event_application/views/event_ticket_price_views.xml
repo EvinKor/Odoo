@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="event_event_ticket_view_tree_from_event_price" model="ir.ui.view">
+        <field name="name">event.event.ticket.view.list.from.event.price</field>
+        <field name="model">event.event.ticket</field>
+        <field name="inherit_id" ref="event.event_event_ticket_view_tree_from_event"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='end_sale_datetime']" position="after">
+                <field name="point_cost" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="event_event_ticket_view_tree_from_event_hide_price" model="ir.ui.view">
+        <field name="name">event.event.ticket.view.list.from.event.hide.price</field>
+        <field name="model">event.event.ticket</field>
+        <field name="inherit_id" ref="event_product.event_event_ticket_view_tree_from_event"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="replace"/>
+            <xpath expr="//field[@name='currency_id']" position="replace"/>
+        </field>
+    </record>
+
+    <record id="event_event_ticket_view_form_from_event_price" model="ir.ui.view">
+        <field name="name">event.event.ticket.view.form.from.event.price</field>
+        <field name="model">event.event.ticket</field>
+        <field name="inherit_id" ref="event.event_event_ticket_view_form_from_event"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='end_sale_datetime']" position="after">
+                <field name="point_cost"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="event_event_ticket_view_form_from_event_hide_price" model="ir.ui.view">
+        <field name="name">event.event.ticket.view.form.from.event.hide.price</field>
+        <field name="model">event.event.ticket</field>
+        <field name="inherit_id" ref="event_product.event_event_ticket_view_form_from_event"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="replace"/>
+        </field>
+    </record>
+</odoo>

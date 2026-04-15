@@ -233,6 +233,42 @@
                 <field name="date_end"/>
                 <field name="address_id"/>
                 <field name="legend_done"/>
+                <field name="active"/>
+                <field name="website_published"/>
+                <field name="is_published"/>
+                <style>
+                    .o_event_kanban_view .ea-event-card--published {
+                        background: linear-gradient(135deg, #eef8f1 0%, #ffffff 100%);
+                        border-left: 4px solid #2e8b57;
+                    }
+                    .o_event_kanban_view .ea-event-card--hidden {
+                        background: linear-gradient(135deg, #f5f6f8 0%, #ffffff 100%);
+                        border-left: 4px solid #6c757d;
+                    }
+                    .o_event_kanban_view .ea-event-card--archived {
+                        background: linear-gradient(135deg, #fff7e8 0%, #ffffff 100%);
+                        border-left: 4px solid #c98a00;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge {
+                        font-size: 0.72rem;
+                        font-weight: 600;
+                        border-radius: 999px;
+                        padding: 0.15rem 0.5rem;
+                        white-space: nowrap;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge--published {
+                        background: #dff3e4;
+                        color: #20613d;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge--hidden {
+                        background: #e9ecef;
+                        color: #495057;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge--archived {
+                        background: #fff1cf;
+                        color: #8a5a00;
+                    }
+                </style>
                 <templates>
                     <t t-name="card" class="p-0 row">
                         <aside class="col-4 text-bg-primary p-2 text-center d-flex flex-column justify-content-center">
@@ -246,7 +282,7 @@
                                     <t t-esc="luxon.DateTime.fromISO(record.date_end.raw_value).toFormat('d MMM')"/>
                                 </div>
                         </aside>
-                        <main class="col pt-3 pb-2 px-3 justify-content-between">
+                        <main t-attf-class="col pt-3 pb-2 px-3 justify-content-between #{'ea-event-card--archived' if not record.active.raw_value else 'ea-event-card--published' if (record.website_published.raw_value or record.is_published.raw_value) else 'ea-event-card--hidden'}">
                             <div>
                                 <div class="d-flex align-items-start gap-2">
                                     <div class="fw-bold fs-5 o_text_overflow flex-grow-1" t-att-title="record.name.value">
@@ -259,6 +295,17 @@
                                         <i class="fa fa-toggle-off" aria-label="Toggle Visibility"/>
                                         <span>Hide</span>
                                     </button>
+                                </div>
+                                <div class="d-flex ps-1 mb-1">
+                                    <span t-if="not record.active.raw_value" class="ea-event-visibility-badge ea-event-visibility-badge--archived">
+                                        Archived
+                                    </span>
+                                    <span t-elif="record.website_published.raw_value or record.is_published.raw_value" class="ea-event-visibility-badge ea-event-visibility-badge--published">
+                                        Published
+                                    </span>
+                                    <span t-else="" class="ea-event-visibility-badge ea-event-visibility-badge--hidden">
+                                        Hidden
+                                    </span>
                                 </div>
                                 <div class="d-flex ps-1">
                                     <i class="fa fa-map-marker mt-1 me-2 text-center ps-1" title="Location"/>

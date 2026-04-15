@@ -9,6 +9,43 @@
                 <field name="website_published"/>
                 <field name="is_published"/>
                 <field name="active"/>
+                <style>
+                    .o_event_kanban_view .ea-event-card--published {
+                        background: linear-gradient(135deg, #eef8f1 0%, #ffffff 100%);
+                        border-left: 4px solid #2e8b57;
+                    }
+                    .o_event_kanban_view .ea-event-card--hidden {
+                        background: linear-gradient(135deg, #f5f6f8 0%, #ffffff 100%);
+                        border-left: 4px solid #6c757d;
+                    }
+                    .o_event_kanban_view .ea-event-card--archived {
+                        background: linear-gradient(135deg, #fff7e8 0%, #ffffff 100%);
+                        border-left: 4px solid #c98a00;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge {
+                        font-size: 0.72rem;
+                        font-weight: 600;
+                        border-radius: 999px;
+                        padding: 0.15rem 0.5rem;
+                        white-space: nowrap;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge--published {
+                        background: #dff3e4;
+                        color: #20613d;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge--hidden {
+                        background: #e9ecef;
+                        color: #495057;
+                    }
+                    .o_event_kanban_view .ea-event-visibility-badge--archived {
+                        background: #fff1cf;
+                        color: #8a5a00;
+                    }
+                </style>
+            </xpath>
+
+            <xpath expr="//main" position="attributes">
+                <attribute name="t-attf-class">col pt-3 pb-2 px-3 justify-content-between #{'ea-event-card--archived' if not record.active.raw_value else 'ea-event-card--published' if record.website_published.raw_value else 'ea-event-card--hidden'}</attribute>
             </xpath>
 
             <xpath expr="//main/div/div[contains(@class, 'd-flex') and contains(@class, 'align-items-start') and contains(@class, 'gap-2')]" position="replace">
@@ -47,6 +84,20 @@
                             title="Restore">
                         <i class="fa fa-undo" aria-label="Restore"/>
                     </button>
+                </div>
+            </xpath>
+
+            <xpath expr="//main/div/div[contains(@class, 'd-flex') and contains(@class, 'ps-1')][1]" position="before">
+                <div class="d-flex ps-1 mb-1">
+                    <span t-if="not record.active.raw_value" class="ea-event-visibility-badge ea-event-visibility-badge--archived">
+                        Archived
+                    </span>
+                    <span t-elif="record.website_published.raw_value" class="ea-event-visibility-badge ea-event-visibility-badge--published">
+                        Published
+                    </span>
+                    <span t-else="" class="ea-event-visibility-badge ea-event-visibility-badge--hidden">
+                        Hidden
+                    </span>
                 </div>
             </xpath>
         </field>

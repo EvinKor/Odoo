@@ -1,6 +1,7 @@
 import base64
 from datetime import datetime
 import json
+import secrets
 
 from urllib.parse import quote_plus
 from urllib.parse import urlencode
@@ -18,7 +19,20 @@ from odoo.exceptions import ValidationError
 _logger = logging.getLogger(__name__)
 
 class EventApplicationPortal(CustomerPortal):
-    def _my_event_domain(self, partner, *, published_only=False, include_past=True):
+    def _portal_stage_ids(self, stage_scope):
+        stage_names_map = {
+            'live': {"new", "booked", "announced"},
+            'past': {"ended", "cancelled"},
+        }
+        wanted_names = stage_names_map.get(stage_scope) or set()
+        if not wanted_names:
+            return []
+        stages = request.env["event.stage"].sudo().search([])
+        return stages.filtered(
+            lambda stage: (stage.name or "").strip().lower() in wanted_names
+        ).ids
+
+    def _my_event_domain(self, partner, *, published_only=False, stage_scope=None):
         domain = [
             '|',
             ('organizer_id', '=', partner.id),
@@ -27,9 +41,12 @@ class EventApplicationPortal(CustomerPortal):
         ]
         if published_only:
             domain += ['|', ('website_published', '=', True), ('is_published', '=', True)]
-        if not include_past:
-            now_dt = fields.Datetime.now()
-            domain.append(('date_end', '>=', now_dt))
+        if stage_scope:
+            stage_ids = self._portal_stage_ids(stage_scope)
+            if stage_ids:
+                domain.append(('stage_id', 'in', stage_ids))
+            else:
+                domain.append(('id', '=', 0))
         return domain
 
     def _normalize_online_link(self, raw_link):
@@ -59,6 +76,11 @@ class EventApplicationPortal(CustomerPortal):
 
     def _get_event_time_status(self, event, now_dt=None):
         now_dt = now_dt or fields.Datetime.now()
+        stage_name = (event.stage_id.name or '').strip().lower()
+        if stage_name == 'cancelled':
+            return ('cancelled', 'Cancelled', 'bg-danger')
+        if stage_name == 'ended':
+            return ('past', 'Ended', 'bg-secondary')
         date_begin = event.date_begin
         date_end = event.date_end
 
@@ -67,6 +89,20 @@ class EventApplicationPortal(CustomerPortal):
         if date_begin and date_begin > now_dt:
             return ('upcoming', 'Upcoming', 'bg-success')
         return ('present', 'Present', 'bg-warning text-dark')
+
+    def _get_registration_status(self, registration, now_dt=None):
+        if registration.state == 'cancel':
+            return ('cancelled', 'Cancelled', 'bg-danger')
+        return self._get_event_time_status(registration.event_id, now_dt=now_dt)
+
+    def _event_allows_self_checkin(self, event):
+        stage_name = (event.stage_id.name or '').strip().lower()
+        return stage_name != 'cancelled'
+
+    def _registration_allows_self_checkin(self, registration):
+        if registration.state == 'cancel':
+            return False
+        return self._event_allows_self_checkin(registration.event_id)
 
 
     def _get_point_balance(self):
@@ -121,7 +157,7 @@ class EventApplicationPortal(CustomerPortal):
                 self._my_event_domain(
                     request.env.user.partner_id,
                     published_only=True,
-                    include_past=False,
+                    stage_scope='live',
                 )
             )
         return values
@@ -149,10 +185,8 @@ class EventApplicationPortal(CustomerPortal):
         events_domain = self._my_event_domain(
             partner,
             published_only=True,
-            include_past=(events_view == 'past'),
+            stage_scope='past' if events_view == 'past' else 'live',
         )
-        if events_view == 'past':
-            events_domain.append(('date_end', '<', now_dt))
         if events_search:
             events_domain += ['|', '|', ('name', 'ilike', events_search), ('location', 'ilike', events_search), ('address_id.name', 'ilike', events_search)]
 
@@ -194,7 +228,11 @@ class EventApplicationPortal(CustomerPortal):
         registration_batches = []
         for batch_id, regs in batches_map.items():
             first = regs[0]
-            status_code, status_label, status_badge = self._get_event_time_status(first.event_id, now_dt)
+            status_source = first
+            cancelled_regs = regs.filtered(lambda r: r.state == 'cancel')
+            if cancelled_regs:
+                status_source = cancelled_regs[0]
+            status_code, status_label, status_badge = self._get_registration_status(status_source, now_dt)
             download_url = (
                 f"/my/event-registrations/batch/{batch_id}/ticket"
                 if not batch_id.startswith("single-")
@@ -207,6 +245,7 @@ class EventApplicationPortal(CustomerPortal):
                 type_counter[type_name] = type_counter.get(type_name, 0) + 1
             ticket_type_labels = [f"{name} x{qty}" for name, qty in type_counter.items()]
             all_checked_in = all(r.state == 'done' for r in regs)
+            self_checkin_allowed = all(self._registration_allows_self_checkin(reg) for reg in regs)
             registration_batches.append({
                 "batch_id": batch_id,
                 "event": first.event_id,
@@ -222,6 +261,7 @@ class EventApplicationPortal(CustomerPortal):
                 "status_label": status_label,
                 "status_badge": status_badge,
                 "all_checked_in": all_checked_in,
+                "self_checkin_allowed": self_checkin_allowed,
             })
 
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
@@ -275,7 +315,11 @@ class EventApplicationPortal(CustomerPortal):
         registration_batches = []
         for batch_id, regs in batches_map.items():
             first = regs[0]
-            status_code, status_label, status_badge = self._get_event_time_status(first.event_id, now_dt)
+            status_source = first
+            cancelled_regs = regs.filtered(lambda r: r.state == 'cancel')
+            if cancelled_regs:
+                status_source = cancelled_regs[0]
+            status_code, status_label, status_badge = self._get_registration_status(status_source, now_dt)
             download_url = (
                 f"/my/event-registrations/batch/{batch_id}/ticket"
                 if not batch_id.startswith("single-")
@@ -287,6 +331,7 @@ class EventApplicationPortal(CustomerPortal):
                 type_counter[type_name] = type_counter.get(type_name, 0) + 1
             ticket_type_labels = [f"{name} x{qty}" for name, qty in type_counter.items()]
             all_checked_in = all(r.state == 'done' for r in regs)
+            self_checkin_allowed = all(self._registration_allows_self_checkin(reg) for reg in regs)
             registration_batches.append({
                 "batch_id": batch_id,
                 "event": first.event_id,
@@ -302,6 +347,7 @@ class EventApplicationPortal(CustomerPortal):
                 "status_label": status_label,
                 "status_badge": status_badge,
                 "all_checked_in": all_checked_in,
+                "self_checkin_allowed": self_checkin_allowed,
             })
 
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
@@ -327,6 +373,8 @@ class EventApplicationPortal(CustomerPortal):
             'event': registration.event_id,
             'checkin_base': checkin_base,
             'quote_plus': quote_plus,
+            'registration_status': self._get_registration_status(registration),
+            'self_checkin_allowed': self._registration_allows_self_checkin(registration),
         })
 
     @http.route(
@@ -355,6 +403,9 @@ class EventApplicationPortal(CustomerPortal):
 
         if not regs:
             return {"ok": False, "message": "Ticket not found or not accessible."}
+
+        if not all(self._registration_allows_self_checkin(reg) for reg in regs):
+            return {"ok": False, "status": "cancelled", "message": "This event has been cancelled. Self check-in is unavailable."}
 
         to_mark = regs.filtered(lambda r: r.state != "done")
         if to_mark:
@@ -395,7 +446,6 @@ class EventApplicationPortal(CustomerPortal):
             'states': states,
             'is_admin': is_admin,
             'can_edit_tickets': is_admin,
-            'allow_ticket_price': 'price' in ticket_fields,
             'allow_ticket_point_cost': 'point_cost' in ticket_fields,
         })
     
@@ -511,10 +561,6 @@ class EventApplicationPortal(CustomerPortal):
                 max_key = f'ticket_max_{ticket.id}'
                 if max_key in post and 'seats_max' in ticket_fields:
                     tvals['seats_max'] = int(post.get(max_key)) if post.get(max_key) else 0
-
-                price_key = f'ticket_price_{ticket.id}'
-                if price_key in post and 'price' in ticket_fields:
-                    tvals['price'] = float(post.get(price_key)) if post.get(price_key) else 0.0
 
                 points_key = f'ticket_point_cost_{ticket.id}'
                 if points_key in post and 'point_cost' in ticket_fields:
@@ -1148,6 +1194,9 @@ class EventApplicationPortal(CustomerPortal):
         payload = request.session.get(self._application_payment_session_key())
         if not payload:
             return request.redirect('/event/apply')
+        if not payload.get('confirm_token'):
+            payload['confirm_token'] = secrets.token_urlsafe(16)
+            request.session[self._application_payment_session_key()] = payload
         required_points = int(payload.get('submission_point_cost') or 0)
         wallet = self._get_points_wallet()
         available_points = int(wallet.get_current_balance()) if wallet else 0
@@ -1165,13 +1214,19 @@ class EventApplicationPortal(CustomerPortal):
     @http.route(['/event/apply/confirm-payment'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
     def event_application_confirm_payment(self, **post):
         try:
-            payload = request.session.get(self._application_payment_session_key())
+            session_key = self._application_payment_session_key()
+            payload = request.session.get(session_key)
             if not payload:
                 return request.redirect('/event/apply')
+            if post.get('confirm_token') != payload.get('confirm_token'):
+                return request.redirect('/event/apply/payment?payment_error_code=submit_failed')
+            request.session.pop(session_key, None)
             required_points = int(payload.get('submission_point_cost') or 0)
             wallet = self._get_points_wallet()
             available_points = int(wallet.get_current_balance()) if wallet else 0
             if required_points > 0 and available_points < required_points:
+                payload['confirm_token'] = secrets.token_urlsafe(16)
+                request.session[session_key] = payload
                 return request.redirect('/event/apply/payment?payment_error_code=insufficient_points')
             vals = self._build_application_vals_from_payload(payload)
             application = False
@@ -1183,16 +1238,21 @@ class EventApplicationPortal(CustomerPortal):
             else:
                 application = request.env['event.application'].create(vals)
             application.action_submit()
-            request.session.pop(self._application_payment_session_key(), None)
             return request.redirect('/event/apply/payment-success?' + urlencode({
                 'application_id': application.id,
             }))
         except ValidationError as e:
+            payload = request.session.get(session_key) or payload or {}
+            payload['confirm_token'] = secrets.token_urlsafe(16)
+            request.session[session_key] = payload
             return request.redirect('/event/apply/payment?' + urlencode({
                 'payment_error_code': 'submit_failed',
                 'submit_error': str(e),
             }))
         except Exception as e:
+            payload = request.session.get(session_key) or payload or {}
+            payload['confirm_token'] = secrets.token_urlsafe(16)
+            request.session[session_key] = payload
             _logger.exception("Event application confirm-payment failed")
             return request.redirect('/event/apply/payment?' + urlencode({
                 'payment_error_code': 'submit_failed',

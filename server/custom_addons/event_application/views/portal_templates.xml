@@ -14,9 +14,32 @@
                     <style>
                         .ea-ticket-card {
                             border-width: 1px;
+                            position: relative;
+                            overflow: hidden;
                         }
                         .ea-ticket-card .card-body {
                             padding: 1rem 1rem 0.75rem;
+                        }
+                        .ea-ticket-card__sticker {
+                            position: absolute;
+                            top: 0.85rem;
+                            right: 0.85rem;
+                            z-index: 2;
+                            padding: 0.2rem 0.55rem;
+                            border-radius: 999px;
+                            font-size: 0.72rem;
+                            font-weight: 700;
+                            letter-spacing: 0.04em;
+                            text-transform: uppercase;
+                            box-shadow: 0 0.2rem 0.5rem rgba(33, 37, 41, 0.12);
+                        }
+                        .ea-ticket-card__sticker--ended {
+                            background-color: rgba(108, 117, 125, 0.95);
+                            color: #fff;
+                        }
+                        .ea-ticket-card__sticker--cancelled {
+                            background-color: rgba(220, 53, 69, 0.95);
+                            color: #fff;
                         }
                         .ea-ticket-title {
                             font-size: 1.05rem;
@@ -62,6 +85,9 @@
                         .ea-ticket-footer {
                             padding-top: 0;
                             border-top: 0;
+                            display: flex;
+                            justify-content: flex-end;
+                            align-items: center;
                         }
                         .ea-event-card--past {
                             transition: background-color 0.2s ease, border-color 0.2s ease;
@@ -78,6 +104,14 @@
                             background-color: rgba(220, 53, 69, 0.16) !important;
                             border-color: rgba(220, 53, 69, 0.45) !important;
                         }
+                        .ea-ticket-card--dimmed {
+                            opacity: 0.72;
+                            filter: saturate(0.75);
+                        }
+                        .ea-ticket-card--cancelled {
+                            background-color: rgba(220, 53, 69, 0.20) !important;
+                            border-color: rgba(220, 53, 69, 0.52) !important;
+                        }
                         .ea-ticket-card--used {
                             background-color: #f8f9fa !important;
                             border-color: #ced4da !important;
@@ -91,6 +125,26 @@
                         .ea-ticket-card--used .ea-self-checkin-btn {
                             opacity: 0.65;
                             pointer-events: none;
+                        }
+                        .ea-event-stage-card--new {
+                            background-color: rgba(13, 110, 253, 0.10) !important;
+                            border-color: rgba(13, 110, 253, 0.35) !important;
+                        }
+                        .ea-event-stage-card--announced {
+                            background-color: rgba(25, 135, 84, 0.12) !important;
+                            border-color: rgba(25, 135, 84, 0.38) !important;
+                        }
+                        .ea-event-stage-card--booked {
+                            background-color: rgba(255, 193, 7, 0.18) !important;
+                            border-color: rgba(255, 193, 7, 0.42) !important;
+                        }
+                        .ea-event-stage-card--ended {
+                            background-color: rgba(108, 117, 125, 0.14) !important;
+                            border-color: rgba(108, 117, 125, 0.35) !important;
+                        }
+                        .ea-event-stage-card--cancelled {
+                            background-color: rgba(220, 53, 69, 0.12) !important;
+                            border-color: rgba(220, 53, 69, 0.35) !important;
                         }
                     </style>
                     <ul class="nav nav-tabs mb-3" role="tablist">
@@ -120,8 +174,8 @@
                     <t t-if="(current_tab or 'events') == 'events'">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <small class="text-muted">
-                                    <t t-if="(events_view or 'upcoming') == 'past'">Showing past events</t>
-                                    <t t-else="">Showing upcoming/active events</t>
+                                    <t t-if="(events_view or 'upcoming') == 'past'">Showing events in Ended or Cancelled status</t>
+                                    <t t-else="">Showing events in New, Announced, or Booked status</t>
                                 </small>
                                 <a t-if="(events_view or 'upcoming') != 'past'" href="/my/events?tab=events&amp;events_view=past" class="btn btn-sm btn-outline-secondary">
                                     View Past Events
@@ -150,19 +204,15 @@
                             <t t-if="events">
                                 <div class="row">
                                     <t t-foreach="events" t-as="event">
+                                        <t t-set="stage_name" t-value="((event.stage_id.name or '').strip().lower())"/>
                                         <div class="col-md-6 mb-4">
-                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past ea-event-card--past' if current_datetime and event.date_end and event.date_end &lt; current_datetime else 'ea-ticket-card--upcoming' if current_datetime and event.date_begin and event.date_begin &gt; current_datetime else 'ea-ticket-card--present'}">
+                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-event-stage-card--new' if stage_name == 'new' else 'ea-event-stage-card--announced' if stage_name == 'announced' else 'ea-event-stage-card--booked' if stage_name == 'booked' else 'ea-event-stage-card--ended' if stage_name == 'ended' else 'ea-event-stage-card--cancelled' if stage_name == 'cancelled' else 'ea-ticket-card--upcoming'}">
                                                 <div class="card-body">
                                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                                         <h5 class="card-title mb-0"><t t-esc="event.name"/></h5>
-                                                        <t t-if="event.application_id">
-                                                            <span t-att-class="'badge bg-secondary' if event.application_id.state == 'draft' else 'badge bg-info' if event.application_id.state == 'submitted' else 'badge bg-success' if event.application_id.state == 'approved' else 'badge bg-danger' if event.application_id.state == 'rejected' else 'badge bg-primary'">
-                                                                <t t-esc="dict(event.application_id._fields['state'].selection).get(event.application_id.state)"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-else="">
-                                                            <span class="badge bg-primary">Published</span>
-                                                        </t>
+                                                        <span t-att-class="'badge bg-primary' if stage_name == 'new' else 'badge bg-success' if stage_name == 'announced' else 'badge bg-warning text-dark' if stage_name == 'booked' else 'badge bg-secondary' if stage_name == 'ended' else 'badge bg-danger' if stage_name == 'cancelled' else 'badge bg-info'">
+                                                            <t t-esc="'New Draft' if stage_name == 'new' else 'Announced' if stage_name == 'announced' else 'Registration Closed' if stage_name == 'booked' else 'Ended' if stage_name == 'ended' else 'Cancelled' if stage_name == 'cancelled' else (event.stage_id.name or 'Unknown')"/>
+                                                        </span>
                                                     </div>
                                                     <p class="card-text">
                                                         <i class="fa fa-calendar"></i> <t t-esc="event.date_begin" t-options="{'widget': 'datetime'}"/><br/>
@@ -243,7 +293,11 @@
                                 <div class="row">
                                     <t t-foreach="registration_batches" t-as="batch">
                                         <div class="col-md-6 mb-4">
-                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''} #{'ea-ticket-card--used' if batch.get('all_checked_in') else ''}">
+                                            <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--cancelled ea-ticket-card--dimmed' if batch.get('status_code') == 'cancelled' else 'ea-ticket-card--past ea-ticket-card--dimmed' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''} #{'ea-ticket-card--used' if batch.get('all_checked_in') else ''}">
+                                                <span t-if="batch.get('status_code') in ('past', 'cancelled')"
+                                                      t-attf-class="ea-ticket-card__sticker #{'ea-ticket-card__sticker--cancelled' if batch.get('status_code') == 'cancelled' else 'ea-ticket-card__sticker--ended'}">
+                                                    <t t-esc="'Event Cancelled' if batch.get('status_code') == 'cancelled' else 'Event Ended'"/>
+                                                </span>
                                                 <div class="card-body">
                                                     <h5 class="card-title ea-ticket-title">
                                                         <t t-esc="batch['event'].name"/>
@@ -293,15 +347,6 @@
                                                     </div>
                                                 </div>
                                                 <div class="card-footer bg-transparent ea-ticket-footer">
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-primary me-2 ea-self-checkin-btn"
-                                                            t-att-data-batch-id="batch['batch_id']"
-                                                            t-att-data-used="batch.get('all_checked_in') and '1' or '0'"
-                                                            t-att-disabled="batch.get('all_checked_in') and 'disabled' or None">
-                                                        <i class="fa fa-check-circle"></i>
-                                                        <t t-if="batch.get('all_checked_in')">Used</t>
-                                                        <t t-else="">Self Check-in</t>
-                                                    </button>
                                                     <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                         <i class="fa fa-download"></i> Download Tickets
                                                     </a>
@@ -322,7 +367,7 @@
                             buttons.forEach(function (btn) {
                                 btn.addEventListener('click', function (ev) {
                                     ev.preventDefault();
-                                    if (btn.dataset.used === '1') {
+                                    if (btn.dataset.used === '1' || btn.dataset.allowed === '0') {
                                         return;
                                     }
                                     var confirmUse = window.confirm('Use this ticket now? This will self check-in and mark the ticket as used.');
@@ -390,6 +435,31 @@
                         .ea-ticket-card .card-body {
                             padding: 1rem 1rem 0.75rem;
                         }
+                        .ea-ticket-card {
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .ea-ticket-card__sticker {
+                            position: absolute;
+                            top: 0.85rem;
+                            right: 0.85rem;
+                            z-index: 2;
+                            padding: 0.2rem 0.55rem;
+                            border-radius: 999px;
+                            font-size: 0.72rem;
+                            font-weight: 700;
+                            letter-spacing: 0.04em;
+                            text-transform: uppercase;
+                            box-shadow: 0 0.2rem 0.5rem rgba(33, 37, 41, 0.12);
+                        }
+                        .ea-ticket-card__sticker--ended {
+                            background-color: rgba(108, 117, 125, 0.95);
+                            color: #fff;
+                        }
+                        .ea-ticket-card__sticker--cancelled {
+                            background-color: rgba(220, 53, 69, 0.95);
+                            color: #fff;
+                        }
                         .ea-ticket-title {
                             font-size: 1.05rem;
                             line-height: 1.35;
@@ -434,6 +504,29 @@
                         .ea-ticket-footer {
                             padding-top: 0;
                             border-top: 0;
+                            display: flex;
+                            justify-content: flex-end;
+                            align-items: center;
+                        }
+                        .ea-ticket-card--past {
+                            background-color: rgba(220, 53, 69, 0.16) !important;
+                            border-color: rgba(220, 53, 69, 0.45) !important;
+                        }
+                        .ea-ticket-card--present {
+                            background-color: rgba(255, 193, 7, 0.24) !important;
+                            border-color: rgba(255, 193, 7, 0.58) !important;
+                        }
+                        .ea-ticket-card--upcoming {
+                            background-color: rgba(25, 135, 84, 0.16) !important;
+                            border-color: rgba(25, 135, 84, 0.45) !important;
+                        }
+                        .ea-ticket-card--dimmed {
+                            opacity: 0.72;
+                            filter: saturate(0.75);
+                        }
+                        .ea-ticket-card--cancelled {
+                            background-color: rgba(220, 53, 69, 0.20) !important;
+                            border-color: rgba(220, 53, 69, 0.52) !important;
                         }
                     </style>
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -488,7 +581,11 @@
                         <div class="row">
                             <t t-foreach="registration_batches" t-as="batch">
                                 <div class="col-md-6 mb-4">
-                                    <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--past' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
+                                    <div t-attf-class="card h-100 ea-ticket-card #{'ea-ticket-card--cancelled ea-ticket-card--dimmed' if batch.get('status_code') == 'cancelled' else 'ea-ticket-card--past ea-ticket-card--dimmed' if batch.get('status_code') == 'past' else 'ea-ticket-card--upcoming' if batch.get('status_code') == 'upcoming' else 'ea-ticket-card--present' if batch.get('status_code') == 'present' else ''}">
+                                        <span t-if="batch.get('status_code') in ('past', 'cancelled')"
+                                              t-attf-class="ea-ticket-card__sticker #{'ea-ticket-card__sticker--cancelled' if batch.get('status_code') == 'cancelled' else 'ea-ticket-card__sticker--ended'}">
+                                            <t t-esc="'Event Cancelled' if batch.get('status_code') == 'cancelled' else 'Event Ended'"/>
+                                        </span>
                                         <div class="card-body">
                                             <h5 class="card-title ea-ticket-title">
                                                 <t t-esc="batch['event'].name"/>
@@ -548,6 +645,44 @@
         <template id="portal_my_event_registration_detail" name="Event Registration Detail">
             <t t-call="portal.portal_layout">
                 <div class="container mt-4 mb-5">
+                    <style>
+                        .ea-registration-detail-card {
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .ea-registration-detail-card--dimmed {
+                            opacity: 0.72;
+                            filter: saturate(0.75);
+                        }
+                        .ea-registration-detail-card--cancelled {
+                            background-color: rgba(220, 53, 69, 0.20) !important;
+                            border-color: rgba(220, 53, 69, 0.52) !important;
+                        }
+                        .ea-registration-detail-card--ended {
+                            background-color: rgba(108, 117, 125, 0.14) !important;
+                            border-color: rgba(108, 117, 125, 0.35) !important;
+                        }
+                        .ea-registration-detail-sticker {
+                            position: absolute;
+                            top: 1rem;
+                            right: 1rem;
+                            z-index: 2;
+                            padding: 0.2rem 0.55rem;
+                            border-radius: 999px;
+                            font-size: 0.72rem;
+                            font-weight: 700;
+                            letter-spacing: 0.04em;
+                            text-transform: uppercase;
+                            color: #fff;
+                            box-shadow: 0 0.2rem 0.5rem rgba(33, 37, 41, 0.12);
+                        }
+                        .ea-registration-detail-sticker--cancelled {
+                            background-color: rgba(220, 53, 69, 0.95);
+                        }
+                        .ea-registration-detail-sticker--ended {
+                            background-color: rgba(108, 117, 125, 0.95);
+                        }
+                    </style>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3><t t-esc="event.name"/></h3>
                         <a href="/my/event-registrations" class="btn btn-secondary">
@@ -555,8 +690,17 @@
                         </a>
                     </div>
 
-                    <div class="card">
+                    <div t-attf-class="card ea-registration-detail-card #{'ea-registration-detail-card--cancelled ea-registration-detail-card--dimmed' if registration_status and registration_status[0] == 'cancelled' else 'ea-registration-detail-card--ended ea-registration-detail-card--dimmed' if registration_status and registration_status[0] == 'past' else ''}">
+                        <span t-if="registration_status and registration_status[0] in ('past', 'cancelled')"
+                              t-attf-class="ea-registration-detail-sticker #{'ea-registration-detail-sticker--cancelled' if registration_status[0] == 'cancelled' else 'ea-registration-detail-sticker--ended'}">
+                            <t t-esc="'Event Cancelled' if registration_status[0] == 'cancelled' else 'Event Ended'"/>
+                        </span>
                         <div class="card-body text-center">
+                            <p class="mb-3">
+                                <span t-att-class="'badge ' + (registration_status[2] or 'bg-secondary')">
+                                    <t t-esc="registration_status[1] or 'Unknown'"/>
+                                </span>
+                            </p>
                             <div class="mb-3">
                                 <a t-attf-href="/my/event-registration/#{registration.id}/ticket" class="btn btn-outline-secondary">
                                     <i class="fa fa-download"></i> Download Ticket
@@ -568,9 +712,16 @@
                             <p class="text-muted mb-3">
                                 <t t-esc="registration.email or ''"/>
                             </p>
-                            <t t-set="checkin_url" t-value="'%s/event/registration/checkin/%s' % (checkin_base, registration.x_ticket_token)"/>
-                            <img t-att-src="'/report/barcode/?barcode_type=QR&amp;value=%s&amp;width=220&amp;height=220' % (quote_plus(checkin_url))" alt="QR Code" style="width: 220px; height: 220px;"/>
-                            <p class="mt-3 mb-0 text-muted">Show this QR code at the event entrance.</p>
+                            <t t-if="self_checkin_allowed">
+                                <t t-set="checkin_url" t-value="'%s/event/registration/checkin/%s' % (checkin_base, registration.x_ticket_token)"/>
+                                <img t-att-src="'/report/barcode/?barcode_type=QR&amp;value=%s&amp;width=220&amp;height=220' % (quote_plus(checkin_url))" alt="QR Code" style="width: 220px; height: 220px;"/>
+                                <p class="mt-3 mb-0 text-muted">Show this QR code at the event entrance.</p>
+                            </t>
+                            <t t-else="">
+                                <div class="alert alert-danger mb-0">
+                                    This ticket has been cancelled because the event was cancelled.
+                                </div>
+                            </t>
                         </div>
                     </div>
                 </div>
@@ -2978,10 +3129,12 @@
                                     </div>
                                     <div class="d-flex justify-content-end gap-2">
                                         <a href="/event/apply" class="btn btn-secondary">Cancel</a>
-                                        <form action="/event/apply/confirm-payment" method="post" class="d-inline">
+                                        <form action="/event/apply/confirm-payment" method="post" class="d-inline ea-single-submit-form">
                                             <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                            <input type="hidden" name="confirm_token" t-att-value="application_payload.get('confirm_token')"/>
                                             <button type="submit"
-                                                    class="btn btn-primary"
+                                                    class="btn btn-primary ea-single-submit-button"
+                                                    data-loading-text="Processing..."
                                                     t-att-disabled="'disabled' if required_points &gt; available_points else None">
                                                 Pay &amp; Submit Application
                                             </button>
@@ -2992,6 +3145,23 @@
                         </div>
                     </div>
                 </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        document.querySelectorAll('.ea-single-submit-form').forEach(function (form) {
+                            form.addEventListener('submit', function () {
+                                if (form.dataset.submitted === '1') {
+                                    return false;
+                                }
+                                form.dataset.submitted = '1';
+                                form.querySelectorAll('.ea-single-submit-button').forEach(function (button) {
+                                    button.disabled = true;
+                                    button.dataset.originalText = button.innerHTML;
+                                    button.innerHTML = button.dataset.loadingText || 'Processing...';
+                                });
+                            });
+                        });
+                    });
+                </script>
             </t>
         </template>
 
@@ -3272,7 +3442,6 @@
                                                           <thead>
                                                                 <tr>
                                                                     <th>Name</th>
-                                                                    <th t-if="allow_ticket_price">Price</th>
                                                                     <th t-if="allow_ticket_point_cost">Point Cost</th>
                                                                     <th>Sales Window</th>
                                                                     <th>Limited</th>
@@ -3288,15 +3457,6 @@
                                                                                t-att-value="ticket.name or ''"
                                                                                t-att-readonly="'readonly' if not can_edit_tickets else None"/>
                                                                     </td>
-                                                                    <td t-if="allow_ticket_price">
-                                                                        <input type="number"
-                                                                               step="0.01"
-                                                                               min="0"
-                                                                             t-att-name="'ticket_price_%s' % ticket.id"
-                                                                             class="form-control form-control-sm"
-                                                                             t-att-value="ticket.price or 0.0"
-                                                                             t-att-readonly="'readonly' if not can_edit_tickets else None"/>
-                                                                  </td>
                                                                   <td t-if="allow_ticket_point_cost">
                                                                       <input type="number"
                                                                              min="0"
@@ -4004,6 +4164,11 @@
                     <t t-elif="status == 'already_checked_in'">
                         <div class="alert alert-info">
                             Already checked in: <strong><t t-esc="registration.name"/></strong>
+                        </div>
+                    </t>
+                    <t t-elif="status == 'cancelled'">
+                        <div class="alert alert-danger">
+                            This ticket cannot be checked in because the event has been cancelled.
                         </div>
                     </t>
                     <t t-else="">

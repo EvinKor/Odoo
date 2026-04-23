@@ -43,58 +43,48 @@ class CustomWebsiteEventController(WebsiteEventController):
             ('partner_id', '=', request.env.user.partner_id.id),
             ('is_read', '=', False),
         ])
+
+    def _ticket_is_bookable(self, ticket, now=None):
+        now = now or fields.Datetime.now()
+        start_sale = getattr(ticket, 'start_sale_datetime', False)
+        end_sale = getattr(ticket, 'end_sale_datetime', False)
+        seats_limited = bool(getattr(ticket, 'seats_limited', False))
+        seats_available = getattr(ticket, 'seats_available', 0)
+        start_ok = not start_sale or start_sale <= now
+        end_ok = not end_sale or end_sale >= now
+        seats_ok = not seats_limited or seats_available > 0
+        return start_ok and end_ok and seats_ok
+
+    def _event_availability_key(self, event, now=None):
+        now = now or fields.Datetime.now()
+        if not getattr(event, 'event_registrations_open', False):
+            return 'unavailable'
+        if event.event_ticket_ids and any(self._ticket_is_bookable(ticket, now=now) for ticket in event.event_ticket_ids):
+            return 'booking_tickets'
+        return 'open_registering'
     
     @http.route(['/event', '/event/page/<int:page>'], type='http', auth="public", website=True, sitemap=True)
     def events(self, page=1, **searches):
-        """Override to add specialty, case, and country filters"""
+        """Override the website event listing with simplified custom filters."""
         
         # Ensure searches has all required keys
         if 'search' not in searches:
             searches['search'] = ''
         if 'date' not in searches:
             searches['date'] = 'upcoming'
-        
-        # Get specialty filter from URL
-        specialty_id = searches.get('specialty')
-        current_specialty = None
-        if specialty_id and specialty_id != 'all':
-            try:
-                specialty_id = int(specialty_id)
-                spec = request.env['event.specialty'].sudo().browse(specialty_id)
-                if spec.exists():
-                    current_specialty = spec.name
-            except:
-                specialty_id = None
-        else:
-            specialty_id = None
-            
-        # Get case filter from URL
-        case_id = searches.get('case')
-        current_case = None
-        if case_id and case_id != 'all':
-            try:
-                case_id = int(case_id)
-                case = request.env['event.case'].sudo().browse(case_id)
-                if case.exists():
-                    current_case = case.name
-            except:
-                case_id = None
-        else:
-            case_id = None
-        
-        # Get country filter from URL
-        country_id = searches.get('country')
-        current_country = None
-        if country_id and country_id != 'all':
-            try:
-                country_id = int(country_id)
-                country = request.env['res.country'].sudo().browse(country_id)
-                if country.exists():
-                    current_country = country.name
-            except:
-                country_id = None
-        else:
-            country_id = None
+        for deprecated_key in ('specialty', 'case', 'country'):
+            searches.pop(deprecated_key, None)
+
+        availability_options = [
+            ('booking_tickets', 'Booking Tickets'),
+            ('open_registering', 'Open for Registering'),
+            ('unavailable', 'Unavailable'),
+        ]
+        availability_labels = dict(availability_options)
+        current_availability = searches.get('availability')
+        if current_availability not in availability_labels:
+            searches.pop('availability', None)
+            current_availability = False
         
         # Get models first
         Event = request.env['event.event']
@@ -117,16 +107,6 @@ class CustomWebsiteEventController(WebsiteEventController):
             '|', ('website_id', '=', False), ('website_id', '=', website.id),
             ],
         ])
-
-        # Helper: parse comma-separated ID lists if needed
-        def parse_ids(raw):
-            if not raw:
-                return []
-            return [int(x) for x in str(raw).split(',') if x.isdigit()]
-
-        specialty_ids = parse_ids(searches.get('specialty'))
-        case_ids = parse_ids(searches.get('case'))
-        country_ids = parse_ids(searches.get('country'))
 
         # Build group domains (each group internally OR, groups combined as AND)
         group_domains = []
@@ -152,30 +132,20 @@ class CustomWebsiteEventController(WebsiteEventController):
         if searches.get('search'):
             group_domains.append([('name', 'ilike', searches.get('search'))])
 
-        # Custom filters
-        if specialty_ids:
-            group_domains.append([('specialty_ids', 'in', specialty_ids)])
-        if case_ids:
-            group_domains.append([('case_ids', 'in', case_ids)])
-        if country_ids:
-            group_domains.append([('address_id.country_id', 'in', country_ids)])
-
         # Combine everything: AND across groups
         domain = expression.AND([domain_base] + group_domains)
 
-        _logger.info(f"Final domain (AND logic): {domain}")
-
-        # Run search
-        events = Event.sudo().search(domain, order='date_begin asc')
-        event_count = len(events)
-        _logger.info(f"Events found: {event_count}")
-        
-        # Combine everything: AND across groups
-        domain = expression.AND([domain_base] + group_domains)
         _logger.info(f"Final domain (AND logic): {domain}")
 
         # Run search
         events = Event.sudo().search(domain, order='date_begin asc, id asc')
+        availability_counts = {key: 0 for key, _label in availability_options}
+        for event in events:
+            availability_counts[self._event_availability_key(event, now=now)] += 1
+        if current_availability:
+            events = events.filtered(
+                lambda event: self._event_availability_key(event, now=now) == current_availability
+            )
         event_count = len(events)
         _logger.info(f"Events found: {event_count}")
 
@@ -216,67 +186,6 @@ class CustomWebsiteEventController(WebsiteEventController):
             ('old', 'Past Events', False, past_count),
         ]
         
-        # Fetch all specialties with event count
-        Specialty = request.env['event.specialty']
-        specialties = Specialty.sudo().search([])
-        specialty_data = []
-        for spec in specialties:
-            count = Event.sudo().search_count(
-                expression.AND([
-                    published_domain,
-                    [('active', '=', True), ('specialty_ids', 'in', [spec.id]), ('stage_id', 'in', public_stage_ids['live'] or [0])],
-                ])
-            )
-            specialty_data.append({
-                'id': spec.id,
-                'name': spec.name,
-                'event_count': count
-            })
-        
-        # Fetch all cases with event count
-        Case = request.env['event.case']
-        cases = Case.sudo().search([])
-        case_data = []
-        for case in cases:
-            count = Event.sudo().search_count(
-                expression.AND([
-                    published_domain,
-                    [('active', '=', True), ('case_ids', 'in', [case.id]), ('stage_id', 'in', public_stage_ids['live'] or [0])],
-                ])
-            )
-            case_data.append({
-                'id': case.id,
-                'name': case.name,
-                'event_count': count
-            })
-        
-        # Fetch all countries with event count
-        events_with_country = Event.sudo().search(
-            expression.AND([
-                published_domain,
-                [
-                    ('active', '=', True),
-                    ('stage_id', 'in', public_stage_ids['live'] or [0]),
-                    ('address_id', '!=', False),
-                    ('address_id.country_id', '!=', False),
-                ],
-            ])
-        )
-        
-        countries_dict = {}
-        for event in events_with_country:
-            if event.address_id and event.address_id.country_id:
-                country = event.address_id.country_id
-                if country.id not in countries_dict:
-                    countries_dict[country.id] = {
-                        'id': country.id,
-                        'name': country.name,
-                        'event_count': 0
-                    }
-                countries_dict[country.id]['event_count'] += 1
-        
-        country_data = sorted(countries_dict.values(), key=lambda x: x['name'])
-        
         # Helper function for keeping URL parameters
         def keep(url, **kwargs):
             """Keep current search parameters and update with new ones"""
@@ -308,6 +217,16 @@ class CustomWebsiteEventController(WebsiteEventController):
             'search_tags': False,
             'current_date': searches.get('date', 'upcoming'),
             'current_type': searches.get('type'),
+            'current_availability': current_availability,
+            'availability_filters': [
+                {
+                    'key': key,
+                    'label': label,
+                    'event_count': availability_counts.get(key, 0),
+                }
+                for key, label in availability_options
+            ],
+            'availability_labels': availability_labels,
             'current_country': '',  # (only used by the stock topbar)
             # add these two to stay API-compatible with the base template,
             # even if your custom topbar uses different names:
@@ -318,23 +237,7 @@ class CustomWebsiteEventController(WebsiteEventController):
             'dates': dates,
             'keep': keep,
             'tags': [],
-
-            # your custom data (used by your replaced topbar)
-            'specialties': specialty_data,
-            'cases': case_data,
-            'custom_countries': country_data,
-            'current_specialty': current_specialty,
-            'current_case': current_case,
-            'current_country_custom': current_country,
-            'specialty': specialty_id,
-            'case': case_id,
-            'country': country_id,
         }
-        point_balance = 0
-        wallet = self._get_points_wallet()
-        if wallet:
-            point_balance = int(wallet.balance or 0)
-        values['point_balance'] = point_balance
         values['event_notification_count'] = self._get_event_notification_count()
 
         

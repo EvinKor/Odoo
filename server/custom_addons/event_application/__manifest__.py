@@ -41,6 +41,9 @@
             'event_application/static/src/js/event_points_systray.js',
             'event_application/static/src/xml/event_points_systray.xml',
         ],
+        'web.assets_frontend': [
+            'event_application/static/src/js/portal_points_badge.js',
+        ],
     },
     'installable': True,
     'application': False,

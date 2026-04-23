@@ -112,6 +112,28 @@
                             background-color: rgba(220, 53, 69, 0.20) !important;
                             border-color: rgba(220, 53, 69, 0.52) !important;
                         }
+                        .ea-custom-select {
+                            position: relative;
+                        }
+                        .ea-custom-select select {
+                            appearance: none;
+                            -webkit-appearance: none;
+                            padding-right: 2.5rem;
+                            border-radius: 999px;
+                            border: 1px solid rgba(33, 37, 41, 0.18);
+                            background: linear-gradient(180deg, #fff 0%, #f8f9fa 100%);
+                            box-shadow: 0 0.15rem 0.35rem rgba(33, 37, 41, 0.06);
+                        }
+                        .ea-custom-select:after {
+                            content: "\f107";
+                            font-family: FontAwesome;
+                            position: absolute;
+                            right: 1rem;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            color: #6c757d;
+                            pointer-events: none;
+                        }
                         .ea-ticket-card--used {
                             background-color: #f8f9fa !important;
                             border-color: #ced4da !important;
@@ -241,44 +263,35 @@
                     <t t-if="(current_tab or 'events') == 'registrations'">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <small class="text-muted">
-                                    <t t-if="registrations_history">Showing all tickets (including passed events)</t>
-                                    <t t-else="">Showing upcoming/active tickets only</t>
+                                    Showing tickets by status filter
                                 </small>
-                                <a t-if="not registrations_history" href="/my/events/registrations?registrations_history=1" class="btn btn-sm btn-outline-secondary">
-                                    View History
-                                </a>
-                                <a t-else="" href="/my/events/registrations" class="btn btn-sm btn-outline-secondary">
-                                    Show Upcoming Only
-                                </a>
                             </div>
                             <p class="small text-muted mb-2">
                                 <t t-if="registrations_filter_active">
                                     Filter on:
-                                    <t t-if="registrations_event_name"> Event = <strong><t t-esc="registrations_event_name"/></strong></t>
+                                    Status = <strong><t t-esc="'Active' if registrations_status == 'active' else 'Ended' if registrations_status == 'ended' else 'Cancelled' if registrations_status == 'cancelled' else 'All'"/></strong>
                                     <t t-if="registrations_search">
-                                        <t t-if="registrations_event_name">, </t>
+                                        , 
                                         Search = <strong><t t-esc="registrations_search"/></strong>
                                     </t>
                                 </t>
                                 <t t-else="">Filter off (showing all events)</t>
                             </p>
                             <form method="get" action="/my/events/registrations" class="row g-2 mb-3">
-                                <input t-if="registrations_history" type="hidden" name="registrations_history" value="1"/>
                                 <div class="col-md-6">
                                     <input type="text" name="registrations_search" class="form-control"
                                            t-att-value="registrations_search"
                                            placeholder="Filter by attendee, email, or event"/>
                                 </div>
                                 <div class="col-md-4">
-                                    <select name="registrations_event_id" class="form-select">
-                                        <option value="" t-att-selected="(not registrations_event_id) and 'selected' or None">All Events</option>
-                                        <t t-foreach="registration_filter_events" t-as="ev">
-                                            <option t-att-value="ev.id"
-                                                    t-att-selected="(registrations_event_id and str(ev.id) == str(registrations_event_id)) and 'selected' or None">
-                                                <t t-esc="ev.name"/>
-                                            </option>
-                                        </t>
-                                    </select>
+                                    <div class="ea-custom-select">
+                                        <select name="registrations_status" class="form-select">
+                                            <option value="active" t-att-selected="registrations_status == 'active' and 'selected' or None">Active Events</option>
+                                            <option value="ended" t-att-selected="registrations_status == 'ended' and 'selected' or None">Ended Events</option>
+                                            <option value="cancelled" t-att-selected="registrations_status == 'cancelled' and 'selected' or None">Cancelled Events</option>
+                                            <option value="all" t-att-selected="registrations_status == 'all' and 'selected' or None">All Events</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="col-md-2 d-grid">
                                     <button type="submit" class="btn btn-primary">Filter</button>
@@ -303,9 +316,15 @@
                                                         <t t-esc="batch['event'].name"/>
                                                     </h5>
                                                     <p class="mb-3">
-                                                        <span t-att-class="'badge ' + (batch.get('status_badge') or 'bg-secondary')">
-                                                            <t t-esc="batch.get('status_label') or 'Unknown'"/>
-                                                        </span>
+                                                        <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                                            <span t-att-class="'badge ' + (batch.get('ticket_status_badge') or 'bg-secondary')">
+                                                                <t t-esc="batch.get('ticket_status_label') or 'Unknown'"/>
+                                                            </span>
+                                                            <span t-if="batch.get('status_code') == 'cancelled' and batch.get('refund_status_label')"
+                                                                  t-att-class="'badge ' + ('bg-success' if batch.get('refund_status_code') == 'refunded' else 'bg-warning text-dark' if batch.get('refund_status_code') == 'partial_refunded' else 'bg-secondary')">
+                                                                <t t-esc="batch.get('refund_status_label')"/>
+                                                            </span>
+                                                        </div>
                                                     </p>
                                                     <p class="card-text ea-ticket-row">
                                                         <i class="fa fa-calendar"></i>
@@ -347,9 +366,19 @@
                                                     </div>
                                                 </div>
                                                 <div class="card-footer bg-transparent ea-ticket-footer">
-                                                    <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
+                                                    <form t-if="batch.get('can_delete')" t-attf-action="/my/event-registrations/batch/#{batch['batch_id']}/delete" method="post" class="me-2">
+                                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this ticket from your inventory?');">
+                                                            <i class="fa fa-trash"></i> Delete
+                                                        </button>
+                                                    </form>
+                                                    <a t-if="batch.get('can_download')" t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                         <i class="fa fa-download"></i> Download Tickets
                                                     </a>
+                                                    <span t-else="" class="btn btn-sm btn-outline-secondary disabled">
+                                                        <i class="fa fa-ban"></i>
+                                                        <t t-esc="'Ticket Unavailable' if batch.get('status_code') == 'cancelled' else 'Download Closed'"/>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -543,15 +572,14 @@
                                    placeholder="Search by ticket name, email, or event"/>
                         </div>
                         <div class="col-md-4">
-                            <select name="event_id" class="form-select">
-                                <option value="" t-att-selected="(not event_id) and 'selected' or None">All Events</option>
-                                <t t-foreach="events" t-as="ev">
-                                    <option t-att-value="ev.id"
-                                            t-att-selected="(event_id and str(ev.id) == str(event_id)) and 'selected' or None">
-                                        <t t-esc="ev.name"/>
-                                    </option>
-                                </t>
-                            </select>
+                            <div class="ea-custom-select">
+                                <select name="status" class="form-select">
+                                    <option value="active" t-att-selected="status_filter == 'active' and 'selected' or None">Active Events</option>
+                                    <option value="ended" t-att-selected="status_filter == 'ended' and 'selected' or None">Ended Events</option>
+                                    <option value="cancelled" t-att-selected="status_filter == 'cancelled' and 'selected' or None">Cancelled Events</option>
+                                    <option value="all" t-att-selected="status_filter == 'all' and 'selected' or None">All Events</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="col-md-2 d-grid">
                             <button type="submit" class="btn btn-primary">
@@ -591,9 +619,15 @@
                                                 <t t-esc="batch['event'].name"/>
                                             </h5>
                                             <p class="mb-3">
-                                                <span t-att-class="'badge ' + (batch.get('status_badge') or 'bg-secondary')">
-                                                    <t t-esc="batch.get('status_label') or 'Unknown'"/>
-                                                </span>
+                                                <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                                    <span t-att-class="'badge ' + (batch.get('ticket_status_badge') or 'bg-secondary')">
+                                                        <t t-esc="batch.get('ticket_status_label') or 'Unknown'"/>
+                                                    </span>
+                                                    <span t-if="batch.get('status_code') == 'cancelled' and batch.get('refund_status_label')"
+                                                          t-att-class="'badge ' + ('bg-success' if batch.get('refund_status_code') == 'refunded' else 'bg-warning text-dark' if batch.get('refund_status_code') == 'partial_refunded' else 'bg-secondary')">
+                                                        <t t-esc="batch.get('refund_status_label')"/>
+                                                    </span>
+                                                </div>
                                             </p>
                                             <p class="card-text ea-ticket-row">
                                                 <i class="fa fa-calendar"></i>
@@ -629,9 +663,19 @@
                                             </div>
                                         </div>
                                         <div class="card-footer bg-transparent ea-ticket-footer">
-                                            <a t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
+                                            <form t-if="batch.get('can_delete')" t-attf-action="/my/event-registrations/batch/#{batch['batch_id']}/delete" method="post" class="me-2">
+                                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this ticket from your inventory?');">
+                                                    <i class="fa fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                            <a t-if="batch.get('can_download')" t-attf-href="#{batch['download_url']}" class="btn btn-sm btn-outline-secondary">
                                                 <i class="fa fa-download"></i> Download Tickets
                                             </a>
+                                            <span t-else="" class="btn btn-sm btn-outline-secondary disabled">
+                                                <i class="fa fa-ban"></i>
+                                                <t t-esc="'Ticket Unavailable' if batch.get('status_code') == 'cancelled' else 'Download Closed'"/>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -697,14 +741,30 @@
                         </span>
                         <div class="card-body text-center">
                             <p class="mb-3">
-                                <span t-att-class="'badge ' + (registration_status[2] or 'bg-secondary')">
-                                    <t t-esc="registration_status[1] or 'Unknown'"/>
-                                </span>
+                                <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                    <span t-att-class="'badge ' + (ticket_status_badge or 'bg-secondary')">
+                                        <t t-esc="ticket_status_label or 'Unknown'"/>
+                                    </span>
+                                    <span t-if="registration_status and registration_status[0] == 'cancelled' and refund_status and refund_status[1]"
+                                          t-att-class="'badge ' + ('bg-success' if refund_status[0] == 'refunded' else 'bg-warning text-dark' if refund_status[0] == 'partial_refunded' else 'bg-secondary')">
+                                        <t t-esc="refund_status[1]"/>
+                                    </span>
+                                </div>
                             </p>
                             <div class="mb-3">
-                                <a t-attf-href="/my/event-registration/#{registration.id}/ticket" class="btn btn-outline-secondary">
+                                <form t-if="can_delete" t-attf-action="/my/event-registration/#{registration.id}/delete" method="post" class="d-inline-block me-2">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Delete this ticket from your inventory?');">
+                                        <i class="fa fa-trash"></i> Delete Ticket
+                                    </button>
+                                </form>
+                                <a t-if="can_download" t-attf-href="/my/event-registration/#{registration.id}/ticket" class="btn btn-outline-secondary">
                                     <i class="fa fa-download"></i> Download Ticket
                                 </a>
+                                <span t-else="" class="btn btn-outline-secondary disabled">
+                                    <i class="fa fa-ban"></i>
+                                    <t t-esc="'Ticket Unavailable' if registration_status and registration_status[0] == 'cancelled' else 'Download Closed'"/>
+                                </span>
                             </div>
                             <p class="mb-1">
                                 <strong><t t-esc="registration.name"/></strong>
@@ -750,6 +810,7 @@
                                     <t t-elif="form_error == 'invalid_ticket_date_range'">Ticket sales start date must be before end date.</t>
                                     <t t-elif="form_error == 'invalid_ticket_max'">Limited tickets require a maximum quantity greater than 0.</t>
                                     <t t-elif="form_error == 'invalid_ticket_points'">Point cost cannot be negative.</t>
+                                    <t t-elif="form_error == 'invalid_zip_code'">Please enter a valid ZIP or postal code for the selected country.</t>
                                     <t t-elif="form_error == 'image_too_large'">Each image must be 2 MB or smaller. Please resize and upload again.</t>
                                     <t t-elif="form_error == 'badge_required'">Please upload a badge background before submitting.</t>
                                     <t t-else="">Please fix the highlighted data and submit again.</t>
@@ -1954,8 +2015,7 @@
                                         const ticketEndFallback = row.querySelector('.ticket-end-fallback');
 
                                         function initTicketDateRange(config) {
-                                            const cfg = config || {};
-                                            const forceShow = Boolean(cfg.show);
+                                            const cfg = typeof config === 'boolean' ? { show: config } : (config || {});
                                             const forceReload = Boolean(cfg.forceReinit);
                                             if (!ticketRangeInput || !ticketStartInput || !ticketEndInput) {
                                                 return;
@@ -1992,12 +2052,6 @@
                                                 }
                                                 ticketRangeInput.classList.remove('d-none');
                                                 let existingPicker = localJq(ticketRangeInput).data('daterangepicker');
-                                                if (existingPicker && forceShow) {
-                                                    existingPicker.remove();
-                                                    localJq(ticketRangeInput).data('daterangepicker', null);
-                                                    existingPicker = null;
-                                                    ticketRangeInput.dataset.rangeInit = '';
-                                                }
                                                 if (ticketRangeInput.dataset.rangeInit === '1' && !existingPicker) {
                                                     ticketRangeInput.dataset.rangeInit = '';
                                                 }
@@ -2008,11 +2062,6 @@
                                                     ticketRangeInput.dataset.rangeInit = '';
                                                 }
                                                 if (ticketRangeInput.dataset.rangeInit === '1' && existingPicker) {
-                                                    if (forceShow && existingPicker.show) {
-                                                        existingPicker.show();
-                                                    } else if (!forceShow && existingPicker.hide) {
-                                                        existingPicker.hide();
-                                                    }
                                                     return existingPicker;
                                                 }
 
@@ -2045,23 +2094,7 @@
                                                 localJq(ticketRangeInput).off('apply.daterangepicker.ticket').on('apply.daterangepicker.ticket', function(ev, picker) {
                                                     syncValues(picker.startDate, picker.endDate);
                                                 });
-                                                localJq(ticketRangeInput)
-                                                    .off('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen')
-                                                    .on('click.daterangepicker.ticketopen focus.daterangepicker.ticketopen', function() {
-                                                        const picker = initTicketDateRange(true) || localJq(this).data('daterangepicker');
-                                                        if (picker && picker.show) {
-                                                            picker.show();
-                                                        }
-                                                    });
-                                                // belt-and-suspenders: re-fire shortly after click/focus to catch late-loading assets
-                                                if (forceShow) {
-                                                    window.setTimeout(function() {
-                                                        const latePicker = initTicketDateRange(true);
-                                                        if (latePicker && latePicker.show) {
-                                                            latePicker.show();
-                                                        }
-                                                    }, 150);
-                                                }
+                                                localJq(ticketRangeInput).off('click.daterangepicker.ticketopen');
 
                                                 if (hasExistingRange) {
                                                     syncValues(start, end);
@@ -2073,13 +2106,7 @@
                                                     if (ticketEndFallback) ticketEndFallback.value = '';
                                                 }
                                                 ticketRangeInput.dataset.rangeInit = '1';
-                                                const newPicker = localJq(ticketRangeInput).data('daterangepicker');
-                                                if (forceShow && newPicker && newPicker.show) {
-                                                    newPicker.show();
-                                                } else if (!forceShow && newPicker && newPicker.hide) {
-                                                    newPicker.hide(); // ensure closed after init
-                                                }
-                                                return newPicker;
+                                                return localJq(ticketRangeInput).data('daterangepicker');
                                             };
                                             ensureDateAssets().then(activate).catch(function() {
                                                 // If assets fail, fall back to native controls
@@ -2105,14 +2132,7 @@
                                         }
                                         initTicketDateRange({ show: showOnInit, forceReinit: forceReinit });
                                         if (ticketRangeInput) {
-                                            ticketRangeInput.addEventListener('focus', function() {
-                                                initTicketDateRange({ show: false, forceReinit: false });
-                                            });
-                                            ticketRangeInput.addEventListener('click', function() {
-                                                initTicketDateRange({ show: true, forceReinit: false });
-                                            });
-                                            // Bind without showing
-                                            initTicketDateRange({ show: false, forceReinit: forceReinit });
+                                            initTicketDateRange({ forceReinit: forceReinit });
                                         }
                                         if (ticketStartFallback && ticketEndFallback) {
                                             ticketStartFallback.addEventListener('change', function() {
@@ -2594,18 +2614,6 @@
                                         }
                                         ticketLinesContainer.appendChild(newRow);
                                         bindTicketRow(newRow, { show: false, forceReinit: true });
-                                        // Kick the date-range picker once the row is in the DOM so the control opens reliably.
-                                        if (newRangeInput) {
-                                            const triggerInit = function() {
-                                                newRangeInput.dispatchEvent(new Event('focus', { bubbles: true }));
-                                                newRangeInput.dispatchEvent(new Event('click', { bubbles: true }));
-                                            };
-                                            if (window.requestAnimationFrame) {
-                                                window.requestAnimationFrame(triggerInit);
-                                            } else {
-                                                window.setTimeout(triggerInit, 0);
-                                            }
-                                        }
                                         return newRow;
                                     }
 
@@ -2661,8 +2669,8 @@
                             <!-- <a href="/event/apply" class="btn btn-primary">
                                 <i class="fa fa-plus"></i> Submit New Application
                             </a> -->
-                            <a href="/my/events" class="btn btn-outline-primary">
-                                <i class="fa fa-arrow-left"></i> Back to My Events
+                            <a href="/contactus" class="btn btn-outline-primary">
+                                <i class="fa fa-envelope"></i> Contact Us
                             </a>
                             <a href="/my/event/notifications" class="btn btn-outline-secondary position-relative">
                                 <i class="fa fa-bell"></i> Notifications
@@ -3120,6 +3128,12 @@
                                 <div class="card-footer">
                                     <div class="alert alert-danger mb-3" t-if="payment_error_code == 'insufficient_points'">
                                         Insufficient points. Please top up your wallet before submitting this event.
+                                    </div>
+                                    <div class="alert alert-danger mb-3" t-if="payment_error_code == 'point_lookup_failed'">
+                                        Unable to fetch your current points from Snabbb.
+                                        <div t-if="submit_error" class="small mt-1">
+                                            <strong>Details:</strong> <t t-esc="submit_error"/>
+                                        </div>
                                     </div>
                                     <div class="alert alert-danger mb-3" t-if="payment_error_code == 'submit_failed'">
                                         Submission failed. Please review your form data and try again.

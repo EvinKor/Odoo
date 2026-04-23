@@ -6,10 +6,12 @@
                 t-nocache="Show the live points balance for the current signed-in user."
                 class="nav-item d-flex align-items-center">
                 <span class="nav-link pe-2 pe-lg-3">
-                    <span class="badge rounded-pill bg-warning text-dark border">
+                    <span class="badge rounded-pill bg-warning text-dark border px-3 py-2 js-event-portal-points-badge"
+                          data-points-endpoint="/event/apply/points/balance">
                         <i class="fa fa-star me-1"/>
-                        <t t-esc="int((request.env['event.points.wallet'].sudo().search([('partner_id', '=', request.env.user.partner_id.id)], limit=1).balance) or 0)"/>
-                        pts
+                        <span class="fw-semibold me-1">Snabbb Credit:</span>
+                        <span class="js-event-portal-points-value">...</span>
+                        <span class="ms-1">points</span>
                     </span>
                 </span>
             </li>

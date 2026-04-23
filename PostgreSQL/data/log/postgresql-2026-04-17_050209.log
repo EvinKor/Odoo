@@ -1,0 +1,14 @@
+2026-04-17 05:02:09.243 +08 [8128] LOG:  database system was shut down at 2026-04-17 05:01:25 +08
+2026-04-17 05:02:09.291 +08 [7132] LOG:  database system is ready to accept connections
+2026-04-17 17:01:20.768 +08 [14800] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-17 17:01:20.769 +08 [4316] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-17 17:01:20.769 +08 [3108] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-17 17:01:20.772 +08 [11956] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-17 17:01:20.772 +08 [33152] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-04-17 17:01:20.773 +08 [35620] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

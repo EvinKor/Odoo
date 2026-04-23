@@ -268,76 +268,26 @@
                         </t>
                     </div>
                 </div>
-                
-                <!-- Specialty Filter -->
-                <div class="dropdown d-none d-lg-block">
+
+                <!-- Availability Filter -->
+                <div class="dropdown d-none d-lg-block" t-if="availability_filters">
                     <a href="#" role="button" class="btn btn-light dropdown-toggle mrbur-filter-btn" data-bs-toggle="dropdown" data-bs-display="static">
-                        <t t-if="current_specialty">
-                            <t t-esc="current_specialty"/>
+                        <t t-if="current_availability and availability_labels.get(current_availability)">
+                            <t t-esc="availability_labels.get(current_availability)"/>
                         </t>
-                        <t t-else="">Specialty</t>
+                        <t t-else="">Availability</t>
                     </a>
-                    <div class="dropdown-menu mrbur-dropdown-menu" style="max-height: 400px; overflow-y: auto;">
-                        <a t-att-href="keep('/event', specialty=False)"
-                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_specialty else ''}">
-                            All Specialties
+                    <div class="dropdown-menu mrbur-dropdown-menu">
+                        <a t-att-href="keep('/event', availability=False)"
+                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_availability else ''}">
+                            All Availability
                         </a>
-                        <t t-foreach="specialties or []" t-as="specialty">
-                            <a t-att-href="keep('/event', specialty=specialty['id'])"
-                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_specialty == specialty['name'] else ''}">
-                                <t t-esc="specialty['name']"/>
+                        <t t-foreach="availability_filters" t-as="availability_filter">
+                            <a t-att-href="keep('/event', availability=availability_filter['key'])"
+                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_availability == availability_filter['key'] else ''}">
+                                <t t-esc="availability_filter['label']"/>
                                 <span class="badge text-bg-light ms-2 mrbur-count-badge">
-                                    <t t-esc="specialty.get('event_count', 0)"/>
-                                </span>
-                            </a>
-                        </t>
-                    </div>
-                </div>
-                
-                <!-- Case Filter -->
-                <div class="dropdown d-none d-lg-block">
-                    <a href="#" role="button" class="btn btn-light dropdown-toggle mrbur-filter-btn" data-bs-toggle="dropdown" data-bs-display="static">
-                        <t t-if="current_case">
-                            <t t-esc="current_case"/>
-                        </t>
-                        <t t-else="">Cases</t>
-                    </a>
-                    <div class="dropdown-menu mrbur-dropdown-menu" style="max-height: 400px; overflow-y: auto;">
-                        <a t-att-href="keep('/event', case=False)"
-                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_case else ''}">
-                            All Cases
-                        </a>
-                        <t t-foreach="cases or []" t-as="case_item">
-                            <a t-att-href="keep('/event', case=case_item['id'])"
-                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_case == case_item['name'] else ''}">
-                                <t t-esc="case_item['name']"/>
-                                <span class="badge text-bg-light ms-2 mrbur-count-badge">
-                                    <t t-esc="case_item.get('event_count', 0)"/>
-                                </span>
-                            </a>
-                        </t>
-                    </div>
-                </div>
-                
-                <!-- Country Filter -->
-                <div class="dropdown d-none d-lg-block">
-                    <a href="#" role="button" class="btn btn-light dropdown-toggle mrbur-filter-btn" data-bs-toggle="dropdown" data-bs-display="static">
-                        <t t-if="current_country_custom">
-                            <t t-esc="current_country_custom"/>
-                        </t>
-                        <t t-else="">Country</t>
-                    </a>
-                    <div class="dropdown-menu mrbur-dropdown-menu" style="max-height: 400px; overflow-y: auto;">
-                        <a t-att-href="keep('/event', country=False)"
-                           t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if not current_country_custom else ''}">
-                            All Countries
-                        </a>
-                        <t t-foreach="custom_countries or []" t-as="country">
-                            <a t-att-href="keep('/event', country=country['id'])"
-                               t-attf-class="dropdown-item d-flex align-items-center justify-content-between #{'active' if current_country_custom == country['name'] else ''}">
-                                <t t-esc="country['name']"/>
-                                <span class="badge text-bg-light ms-2 mrbur-count-badge">
-                                    <t t-esc="country.get('event_count', 0)"/>
+                                    <t t-esc="availability_filter.get('event_count', 0)"/>
                                 </span>
                             </a>
                         </t>
@@ -345,7 +295,7 @@
                 </div>
                 
                 <!-- Active Filters Display & Clear Button -->
-                <t t-if="current_date or current_type or current_specialty or current_case or current_country_custom">
+                <t t-if="current_date or current_type or current_availability">
                     <div class="d-flex align-items-center gap-2 ms-3">
                         <span class="small mrbur-active-label">Active filters:</span>
                         
@@ -370,27 +320,11 @@
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
-                        
-                        <t t-if="current_specialty">
+
+                        <t t-if="current_availability and availability_labels.get(current_availability)">
                             <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
-                                <t t-esc="current_specialty"/>
-                                <a t-att-href="keep('/event', specialty=False)" 
-                                   class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
-                            </span>
-                        </t>
-                        
-                        <t t-if="current_case">
-                            <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
-                                <t t-esc="current_case"/>
-                                <a t-att-href="keep('/event', case=False)" 
-                                   class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
-                            </span>
-                        </t>
-                        
-                        <t t-if="current_country_custom">
-                            <span class="badge d-flex align-items-center gap-1 mrbur-active-filter">
-                                <t t-esc="current_country_custom"/>
-                                <a t-att-href="keep('/event', country=False)" 
+                                <t t-esc="availability_labels.get(current_availability)"/>
+                                <a t-att-href="keep('/event', availability=False)" 
                                    class="text-decoration-none ms-1 mrbur-filter-remove">&#215;</a>
                             </span>
                         </t>
@@ -410,10 +344,6 @@
                                 <t t-esc="event_notification_count"/>
                             </span>
                         </a>
-                        <span class="badge bg-light text-dark">
-                            <i class="fa fa-star"></i>
-                            Points: <t t-esc="point_balance or 0"/>
-                        </span>
                     </div>
                 </t>
             </div>

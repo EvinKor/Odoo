@@ -155,6 +155,21 @@ class EventEvent(models.Model):
                     "stage_id": target_stage.id,
                 })
 
+    def _sync_registration_states_from_stage(self):
+        registration_model = self.env['event.registration'].with_context(active_test=False)
+        for event in self:
+            stage_name = (event.stage_id.name or '').strip().lower()
+            registrations = registration_model.search([('event_id', '=', event.id)])
+            if not registrations:
+                continue
+            if stage_name == 'cancelled':
+                to_cancel = registrations.filtered(lambda reg: reg.state != 'cancel')
+                if to_cancel:
+                    if hasattr(to_cancel, 'action_cancel'):
+                        to_cancel.action_cancel()
+                    else:
+                        to_cancel.sudo().write({'state': 'cancel'})
+
     @api.model
     def _cron_auto_sync_event_stage_status(self):
         events = self.sudo().search([("active", "=", True)])
@@ -365,6 +380,8 @@ class EventEvent(models.Model):
             and bool({'date_begin', 'date_end', 'website_published', 'is_published', 'active'} & set(vals))
         )
         result = super().write(vals)
+        if stage_name in ("cancelled", "ended"):
+            self._sync_registration_states_from_stage()
         if 'address_input' not in vals:
             for event in self:
                 if not event.address_input:

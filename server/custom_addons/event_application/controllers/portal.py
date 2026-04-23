@@ -2,9 +2,16 @@ import base64
 from datetime import datetime
 import json
 import secrets
+import re
 
+from urllib.error import HTTPError
+from urllib.error import URLError
+from urllib.parse import quote
 from urllib.parse import quote_plus
 from urllib.parse import urlencode
+from urllib.parse import urlencode
+from urllib.request import Request
+from urllib.request import urlopen
 
 import pytz
 import logging
@@ -18,7 +25,11 @@ from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
+
 class EventApplicationPortal(CustomerPortal):
+    _SNABBB_WALLET_BASE_URL = 'https://semistiffly-largando-alane.ngrok-free.dev/snabbb/api/wallet'
+    _SNABBB_API_KEY = 'UiFKcg6lJvSHZUuQFJxg0oDjjIm8QCON'
+
     def _portal_stage_ids(self, stage_scope):
         stage_names_map = {
             'live': {"new", "booked", "announced"},
@@ -58,6 +69,25 @@ class EventApplicationPortal(CustomerPortal):
             link = f"https://{link}"
         return link
 
+    def _normalize_text_value(self, value):
+        if value is None:
+            return False
+        value = str(value).strip()
+        return value or False
+
+    def _validate_zip_code(self, country_id, zip_code):
+        zip_code = self._normalize_text_value(zip_code)
+        if not country_id or not zip_code:
+            return True
+        country = request.env['res.country'].sudo().browse(int(country_id))
+        if not country.exists():
+            return True
+        if country.code == 'US':
+            return bool(re.match(r'^\d{5}(-\d{4})?$', zip_code))
+        if country.code == 'CA':
+            return bool(re.match(r'^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$', zip_code))
+        return True
+
     def _registration_owner_domain(self):
         partner = request.env.user.partner_id
         user_email = (request.env.user.email or partner.email or '').strip()
@@ -95,14 +125,52 @@ class EventApplicationPortal(CustomerPortal):
             return ('cancelled', 'Cancelled', 'bg-danger')
         return self._get_event_time_status(registration.event_id, now_dt=now_dt)
 
+    def _get_cancelled_refund_state(self, registrations):
+        refundable_regs = registrations.filtered(lambda r: r.state == 'cancel')
+        if not refundable_regs:
+            return ('', '')
+        if 'refund_processed' not in refundable_regs._fields:
+            return ('not_refunded', 'Refund not tracked')
+        refunded_regs = refundable_regs.filtered(lambda r: r.refund_processed)
+        if refunded_regs and len(refunded_regs) == len(refundable_regs):
+            return ('refunded', 'Refunded')
+        if refunded_regs:
+            return ('partial_refunded', 'Partially Refunded')
+        return ('not_refunded', 'Not Refunded')
+
     def _event_allows_self_checkin(self, event):
-        stage_name = (event.stage_id.name or '').strip().lower()
-        return stage_name != 'cancelled'
+        status_code, _, _ = self._get_event_time_status(event)
+        return status_code in ('upcoming', 'present')
 
     def _registration_allows_self_checkin(self, registration):
         if registration.state == 'cancel':
             return False
         return self._event_allows_self_checkin(registration.event_id)
+
+    def _get_ticket_status_display(self, status_code):
+        if status_code == 'cancelled':
+            return ('Cancelled', 'bg-danger')
+        if status_code == 'past':
+            return ('Ended', 'bg-secondary')
+        return ('Active', 'bg-success')
+
+    def _get_ticket_filter_group(self, status_code):
+        if status_code == 'cancelled':
+            return 'cancelled'
+        if status_code == 'past':
+            return 'ended'
+        return 'active'
+
+    def _matches_ticket_status_filter(self, status_code, status_filter):
+        status_filter = (status_filter or 'active').strip().lower()
+        ticket_group = self._get_ticket_filter_group(status_code)
+        if status_filter == 'ended':
+            return ticket_group == 'ended'
+        if status_filter == 'cancelled':
+            return ticket_group == 'cancelled'
+        if status_filter == 'all':
+            return True
+        return ticket_group == 'active'
 
 
     def _get_point_balance(self):
@@ -176,10 +244,9 @@ class EventApplicationPortal(CustomerPortal):
         if events_view not in ('upcoming', 'past'):
             events_view = 'upcoming'
         registrations_search = (kwargs.get('registrations_search') or '').strip()
-        registrations_event_id = (kwargs.get('registrations_event_id') or '').strip()
-        if registrations_event_id.lower() == 'all':
-            registrations_event_id = ''
-        registrations_history = str(kwargs.get('registrations_history') or '').strip().lower() in ('1', 'true', 'yes', 'on')
+        registrations_status = (kwargs.get('registrations_status') or 'active').strip().lower()
+        if registrations_status not in ('active', 'ended', 'cancelled', 'all'):
+            registrations_status = 'active'
 
         now_dt = fields.Datetime.now()
         events_domain = self._my_event_domain(
@@ -194,18 +261,12 @@ class EventApplicationPortal(CustomerPortal):
         events = request.env['event.event'].sudo().search(events_domain, order=event_order)
 
         registrations_domain_base = list(self._registration_owner_domain())
-        if not registrations_history:
-            now_dt = fields.Datetime.now()
-            registrations_domain_base += ['|', ('event_id.date_end', '>=', now_dt), ('event_id.date_begin', '>=', now_dt)]
         all_registrations = request.env['event.registration'].sudo().search(
             registrations_domain_base,
             order='create_date desc'
         )
-        registration_filter_events = all_registrations.mapped('event_id').sorted(lambda e: e.name or '')
 
         registrations_domain = list(registrations_domain_base)
-        if registrations_event_id.isdigit():
-            registrations_domain.append(('event_id', '=', int(registrations_event_id)))
         if registrations_search:
             registrations_domain += ['|', '|', ('name', 'ilike', registrations_search), ('email', 'ilike', registrations_search), ('event_id.name', 'ilike', registrations_search)]
 
@@ -214,11 +275,6 @@ class EventApplicationPortal(CustomerPortal):
             order='create_date desc'
         )
         now_dt = fields.Datetime.now()
-        selected_registration_event = False
-        if registrations_event_id.isdigit():
-            selected_registration_event = registration_filter_events.filtered(
-                lambda ev: ev.id == int(registrations_event_id)
-            )[:1]
         batches_map = {}
         for reg in registrations:
             batch_id = reg.x_register_batch_id or f"single-{reg.id}"
@@ -233,6 +289,7 @@ class EventApplicationPortal(CustomerPortal):
             if cancelled_regs:
                 status_source = cancelled_regs[0]
             status_code, status_label, status_badge = self._get_registration_status(status_source, now_dt)
+            ticket_status_label, ticket_status_badge = self._get_ticket_status_display(status_code)
             download_url = (
                 f"/my/event-registrations/batch/{batch_id}/ticket"
                 if not batch_id.startswith("single-")
@@ -258,12 +315,23 @@ class EventApplicationPortal(CustomerPortal):
                 "download_url": download_url,
                 "create_date": first.create_date,
                 "status_code": status_code,
+                "status_filter_group": self._get_ticket_filter_group(status_code),
                 "status_label": status_label,
                 "status_badge": status_badge,
+                "ticket_status_label": ticket_status_label,
+                "ticket_status_badge": ticket_status_badge,
+                "refund_status_code": self._get_cancelled_refund_state(regs)[0],
+                "refund_status_label": self._get_cancelled_refund_state(regs)[1],
+                "can_download": status_code in ('upcoming', 'present'),
+                "can_delete": status_code in ('past', 'cancelled'),
                 "all_checked_in": all_checked_in,
                 "self_checkin_allowed": self_checkin_allowed,
             })
 
+        registration_batches = [
+            batch for batch in registration_batches
+            if self._matches_ticket_status_filter(batch.get("status_code"), registrations_status)
+        ]
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
         return request.render('event_application.portal_my_events', {
             'events': events,
@@ -273,11 +341,8 @@ class EventApplicationPortal(CustomerPortal):
             'events_search': events_search,
             'events_view': events_view,
             'registrations_search': registrations_search,
-            'registrations_event_id': registrations_event_id,
-            'registrations_filter_active': bool(registrations_search or registrations_event_id),
-            'registrations_event_name': selected_registration_event.name if selected_registration_event else '',
-            'registrations_history': registrations_history,
-            'registration_filter_events': registration_filter_events,
+            'registrations_status': registrations_status,
+            'registrations_filter_active': bool(registrations_search or registrations_status != 'active'),
             'event_notification_count': self._get_event_notification_count(),
         })
 
@@ -285,27 +350,18 @@ class EventApplicationPortal(CustomerPortal):
     def my_event_registrations_index(self, **kwargs):
         """List registrations for the current portal user"""
         search = (kwargs.get('search') or '').strip()
-        event_id = (kwargs.get('event_id') or '').strip()
-        if event_id.lower() == 'all':
-            event_id = ''
+        status_filter = (kwargs.get('status') or 'active').strip().lower()
+        if status_filter not in ('active', 'ended', 'cancelled', 'all'):
+            status_filter = 'active'
         base_domain = list(self._registration_owner_domain())
         all_registrations = request.env['event.registration'].sudo().search(base_domain, order='create_date desc')
 
         domain = list(base_domain)
-        if event_id and str(event_id).isdigit():
-            domain.append(('event_id', '=', int(event_id)))
         if search:
             domain += ['|', '|', ('name', 'ilike', search), ('email', 'ilike', search), ('event_id.name', 'ilike', search)]
 
         registrations = request.env['event.registration'].sudo().search(domain, order='create_date desc')
         now_dt = fields.Datetime.now()
-
-        # Events for filter dropdown (based on all user's registrations)
-        event_ids = all_registrations.mapped('event_id').ids
-        events = request.env['event.event'].sudo().browse(event_ids).sorted(lambda e: e.name)
-        selected_event = False
-        if str(event_id).isdigit():
-            selected_event = events.filtered(lambda ev: ev.id == int(event_id))[:1]
         batches_map = {}
         for reg in registrations:
             batch_id = reg.x_register_batch_id or f"single-{reg.id}"
@@ -320,6 +376,7 @@ class EventApplicationPortal(CustomerPortal):
             if cancelled_regs:
                 status_source = cancelled_regs[0]
             status_code, status_label, status_badge = self._get_registration_status(status_source, now_dt)
+            ticket_status_label, ticket_status_badge = self._get_ticket_status_display(status_code)
             download_url = (
                 f"/my/event-registrations/batch/{batch_id}/ticket"
                 if not batch_id.startswith("single-")
@@ -344,21 +401,30 @@ class EventApplicationPortal(CustomerPortal):
                 "download_url": download_url,
                 "create_date": first.create_date,
                 "status_code": status_code,
+                "status_filter_group": self._get_ticket_filter_group(status_code),
                 "status_label": status_label,
                 "status_badge": status_badge,
+                "ticket_status_label": ticket_status_label,
+                "ticket_status_badge": ticket_status_badge,
+                "refund_status_code": self._get_cancelled_refund_state(regs)[0],
+                "refund_status_label": self._get_cancelled_refund_state(regs)[1],
+                "can_download": status_code in ('upcoming', 'present'),
+                "can_delete": status_code in ('past', 'cancelled'),
                 "all_checked_in": all_checked_in,
                 "self_checkin_allowed": self_checkin_allowed,
             })
 
+        registration_batches = [
+            batch for batch in registration_batches
+            if self._matches_ticket_status_filter(batch.get("status_code"), status_filter)
+        ]
         registration_batches.sort(key=lambda b: b.get("create_date") or "", reverse=True)
 
         return request.render('event_application.portal_my_event_registration_index', {
             'registration_batches': registration_batches,
-            'events': events,
             'search': search,
-            'event_id': str(event_id) if event_id else '',
-            'filter_active': bool(search or event_id),
-            'event_name': selected_event.name if selected_event else '',
+            'status_filter': status_filter,
+            'filter_active': bool(search or status_filter != 'active'),
         })
 
     @http.route(['/my/event-registration/<int:registration_id>'], type='http', auth='user', website=True)
@@ -368,14 +434,71 @@ class EventApplicationPortal(CustomerPortal):
         if not registration or not self._can_access_registration(registration):
             return request.redirect('/my/event-registrations')
         checkin_base = request.httprequest.url_root.rstrip('/')
+        registration_status = self._get_registration_status(registration)
+        ticket_status_label, ticket_status_badge = self._get_ticket_status_display(registration_status[0])
         return request.render('event_application.portal_my_event_registration_detail', {
             'registration': registration,
             'event': registration.event_id,
             'checkin_base': checkin_base,
             'quote_plus': quote_plus,
-            'registration_status': self._get_registration_status(registration),
+            'registration_status': registration_status,
+            'ticket_status_label': ticket_status_label,
+            'ticket_status_badge': ticket_status_badge,
+            'refund_status': self._get_cancelled_refund_state(registration),
+            'can_download': registration_status[0] in ('upcoming', 'present'),
+            'can_delete': registration_status[0] in ('past', 'cancelled'),
             'self_checkin_allowed': self._registration_allows_self_checkin(registration),
         })
+
+    @http.route(
+        ['/my/event-registration/<int:registration_id>/delete'],
+        type='http',
+        auth='user',
+        website=True,
+        methods=['POST'],
+        csrf=True,
+    )
+    def delete_my_event_registration(self, registration_id, **post):
+        registration = request.env['event.registration'].sudo().browse(registration_id)
+        if not registration.exists() or not self._can_access_registration(registration):
+            return request.redirect('/my/event-registrations')
+        status_code = self._get_registration_status(registration)[0]
+        if status_code not in ('past', 'cancelled'):
+            return request.redirect('/my/event-registration/%s' % registration_id)
+        registration.unlink()
+        return request.redirect('/my/event-registrations?deleted=1')
+
+    @http.route(
+        ['/my/event-registrations/batch/<string:batch_id>/delete'],
+        type='http',
+        auth='user',
+        website=True,
+        methods=['POST'],
+        csrf=True,
+    )
+    def delete_my_event_registration_batch(self, batch_id, **post):
+        domain = self._registration_owner_domain()
+        registrations = request.env['event.registration'].sudo().search(
+            [('x_register_batch_id', '=', batch_id)] + domain
+        )
+        if not registrations and batch_id.startswith('single-'):
+            try:
+                reg_id = int(batch_id.split('-', 1)[1])
+            except (IndexError, ValueError):
+                reg_id = False
+            if reg_id:
+                candidate = request.env['event.registration'].sudo().browse(reg_id)
+                if candidate.exists() and self._can_access_registration(candidate):
+                    registrations = candidate
+        if not registrations:
+            return request.redirect('/my/event-registrations')
+        batch_status_code = self._get_registration_status(
+            registrations.filtered(lambda reg: reg.state == 'cancel')[:1] or registrations[:1]
+        )[0]
+        if batch_status_code not in ('past', 'cancelled'):
+            return request.redirect('/my/event-registrations')
+        registrations.unlink()
+        return request.redirect('/my/event-registrations?deleted=1')
 
     @http.route(
         ['/my/event-registrations/batch/<string:batch_id>/self-checkin'],
@@ -728,6 +851,159 @@ class EventApplicationPortal(CustomerPortal):
     def _application_payment_session_key(self):
         return 'event_application_submit_payment'
 
+    def _get_application_payment_payload(self):
+        return request.session.get(self._application_payment_session_key()) or {}
+
+    def _get_application_session_email(self, payload=None):
+        payload = payload or self._get_application_payment_payload()
+        email = self._normalize_text_value(payload.get('contact_email'))
+        if email:
+            return email
+        user = request.env.user
+        return self._normalize_text_value(user.email or user.partner_id.email)
+
+    def _extract_snabbb_points(self, response_payload):
+        if isinstance(response_payload, dict):
+            for key in ('snabbb_balance', 'points', 'balance', 'point', 'wallet_points', 'game_balance'):
+                value = response_payload.get(key)
+                if value not in (None, ''):
+                    try:
+                        return int(float(value))
+                    except (TypeError, ValueError):
+                        pass
+            for key in ('data', 'result', 'wallet'):
+                nested_value = response_payload.get(key)
+                nested_points = self._extract_snabbb_points(nested_value)
+                if nested_points is not None:
+                    return nested_points
+        elif isinstance(response_payload, list):
+            for item in response_payload:
+                nested_points = self._extract_snabbb_points(item)
+                if nested_points is not None:
+                    return nested_points
+        return None
+
+    def _get_snabbb_wallet_urls(self, email):
+        rawish_email = quote(email, safe='@')
+        return [
+            f"{self._SNABBB_WALLET_BASE_URL}?email={rawish_email}",
+        ]
+
+    def _fetch_snabbb_points(self, email=None):
+        email = self._normalize_text_value(email) or self._get_application_session_email()
+        session_id = request.session.sid
+        if not email:
+            return {
+                'ok': False,
+                'error': 'missing_email',
+                'session_id': session_id,
+                'email': False,
+            }
+
+        attempted_urls = []
+        last_error = None
+        for wallet_url in self._get_snabbb_wallet_urls(email):
+            attempted_urls.append(wallet_url)
+            http_request = Request(
+                wallet_url,
+                headers={
+                    'Accept': 'application/json',
+                    'X-Snabbb-Api-Key': self._SNABBB_API_KEY,
+                    'X-Odoo-Session-Id': session_id or '',
+                },
+                method='GET',
+            )
+            try:
+                with urlopen(http_request, timeout=15) as response:
+                    raw_body = response.read().decode('utf-8', errors='replace')
+                    content_type = (response.headers.get('Content-Type') or '').lower()
+                    parsed_body = {}
+                    if raw_body:
+                        raw_body_stripped = raw_body.strip()
+                        if 'json' in content_type or raw_body_stripped.startswith(('{', '[')):
+                            parsed_body = json.loads(raw_body)
+                        else:
+                            parsed_body = {'raw': raw_body}
+                    points = self._extract_snabbb_points(parsed_body)
+                    is_html_response = 'html' in content_type or raw_body.lstrip().lower().startswith('<!doctype html')
+                    if points is None and is_html_response:
+                        last_error = {
+                            'ok': False,
+                            'error': 'snabbb_html_response',
+                            'status_code': getattr(response, 'status', 200),
+                            'message': raw_body[:1000],
+                            'session_id': session_id,
+                            'email': email,
+                            'url': wallet_url,
+                            'attempted_urls': list(attempted_urls),
+                        }
+                        continue
+                    return {
+                        'ok': True,
+                        'session_id': session_id,
+                        'email': email,
+                        'url': wallet_url,
+                        'attempted_urls': list(attempted_urls),
+                        'balance': points if points is not None else 0,
+                        'payload': parsed_body,
+                    }
+            except HTTPError as exc:
+                raw_body = exc.read().decode('utf-8', errors='replace') if hasattr(exc, 'read') else ''
+                last_error = {
+                    'ok': False,
+                    'error': 'snabbb_http_error',
+                    'status_code': getattr(exc, 'code', False),
+                    'message': raw_body or str(exc),
+                    'session_id': session_id,
+                    'email': email,
+                    'url': wallet_url,
+                    'attempted_urls': list(attempted_urls),
+                }
+                _logger.warning(
+                    "Snabbb wallet request failed with HTTP %s for %s via %s",
+                    getattr(exc, 'code', 'unknown'),
+                    email,
+                    wallet_url,
+                )
+                continue
+            except (URLError, ValueError) as exc:
+                last_error = {
+                    'ok': False,
+                    'error': 'snabbb_request_failed',
+                    'message': str(exc),
+                    'session_id': session_id,
+                    'email': email,
+                    'url': wallet_url,
+                    'attempted_urls': list(attempted_urls),
+                }
+                _logger.warning("Snabbb wallet request failed for %s via %s: %s", email, wallet_url, exc)
+                continue
+
+        return last_error or {
+            'ok': False,
+            'error': 'snabbb_request_failed',
+            'message': 'No Snabbb wallet URL returned a valid points payload.',
+            'session_id': session_id,
+            'email': email,
+            'attempted_urls': attempted_urls,
+        }
+
+    def _get_application_available_points(self, payload=None):
+        result = self._fetch_snabbb_points(email=self._get_application_session_email(payload))
+        if not result.get('ok'):
+            return {
+                'available_points': 0,
+                'payment_error_code': 'point_lookup_failed',
+                'submit_error': result.get('message') or result.get('error') or 'Unable to fetch points from Snabbb.',
+                'lookup_result': result,
+            }
+        return {
+            'available_points': int(result.get('balance') or 0),
+            'payment_error_code': False,
+            'submit_error': False,
+            'lookup_result': result,
+        }
+
     def _get_submission_point_cost(self):
         raw_value = request.env['ir.config_parameter'].sudo().get_param(
             'event_application.submission_point_cost',
@@ -951,8 +1227,20 @@ class EventApplicationPortal(CustomerPortal):
         if not badge_image:
             return None, 'badge_required'
 
+        venue_type = post.get('venue_type', 'physical')
+        country_id = int(post.get('country_id')) if post.get('country_id') else False
+        state_id = int(post.get('state_id')) if post.get('state_id') else False
+        zip_code = self._normalize_text_value(post.get('zip_code'))
+
+        if venue_type == 'online':
+            country_id = False
+            state_id = False
+            zip_code = False
+        elif not self._validate_zip_code(country_id, zip_code):
+            return None, 'invalid_zip_code'
+
         payload = {
-            'name': post.get('event_name'),
+            'name': self._normalize_text_value(post.get('event_name')),
             'partner_id': request.env.user.partner_id.id,
             'resubmit_application_id': resubmit_id or False,
             'date_begin': date_begin,
@@ -961,24 +1249,24 @@ class EventApplicationPortal(CustomerPortal):
             'registration_end': registration_end,
             'registration_limit': registration_limit,
             'max_registrations': max_registrations if registration_limit else 0,
-            'contact_phone': post.get('contact_phone'),
-            'contact_email': post.get('contact_email'),
+            'contact_phone': self._normalize_text_value(post.get('contact_phone')),
+            'contact_email': self._normalize_text_value(post.get('contact_email')),
             'description': post.get('description'),
-            'venue_type': post.get('venue_type', 'physical'),
-            'online_platform': post.get('online_platform'),
+            'venue_type': venue_type,
+            'online_platform': self._normalize_text_value(post.get('online_platform')) if venue_type == 'online' else False,
             'online_link': self._normalize_online_link(post.get('online_link')),
-            'venue_name': post.get('venue_name'),
-            'building_name': post.get('building_name'),
-            'address_input': post.get('address_input'),
-            'street_address': post.get('street_address'),
-            'street_address2': post.get('street_address2'),
-            'district': post.get('district'),
-            'floor': post.get('floor'),
-            'unit_no': post.get('unit_no'),
-            'city': post.get('city'),
-            'zip_code': post.get('zip_code'),
-            'state_id': int(post.get('state_id')) if post.get('state_id') else False,
-            'country_id': int(post.get('country_id')) if post.get('country_id') else False,
+            'venue_name': self._normalize_text_value(post.get('venue_name')) if venue_type == 'physical' else False,
+            'building_name': self._normalize_text_value(post.get('building_name')) if venue_type == 'physical' else False,
+            'address_input': self._normalize_text_value(post.get('address_input')) if venue_type == 'physical' else False,
+            'street_address': self._normalize_text_value(post.get('street_address')) if venue_type == 'physical' else False,
+            'street_address2': self._normalize_text_value(post.get('street_address2')) if venue_type == 'physical' else False,
+            'district': self._normalize_text_value(post.get('district')) if venue_type == 'physical' else False,
+            'floor': self._normalize_text_value(post.get('floor')) if venue_type == 'physical' else False,
+            'unit_no': self._normalize_text_value(post.get('unit_no')) if venue_type == 'physical' else False,
+            'city': self._normalize_text_value(post.get('city')) if venue_type == 'physical' else False,
+            'zip_code': zip_code,
+            'state_id': state_id,
+            'country_id': country_id,
             'specialty_ids': specialty_ids,
             'case_ids': case_ids,
             'specialty_other_text': ', '.join(specialty_other_names),
@@ -1198,17 +1486,18 @@ class EventApplicationPortal(CustomerPortal):
             payload['confirm_token'] = secrets.token_urlsafe(16)
             request.session[self._application_payment_session_key()] = payload
         required_points = int(payload.get('submission_point_cost') or 0)
-        wallet = self._get_points_wallet()
-        available_points = int(wallet.get_current_balance()) if wallet else 0
-        payment_error_code = kwargs.get('payment_error_code')
-        if required_points > 0 and available_points < required_points:
+        point_status = self._get_application_available_points(payload)
+        available_points = point_status['available_points']
+        payment_error_code = kwargs.get('payment_error_code') or point_status['payment_error_code']
+        submit_error = kwargs.get('submit_error') or point_status['submit_error']
+        if not payment_error_code and required_points > 0 and available_points < required_points:
             payment_error_code = payment_error_code or 'insufficient_points'
         return request.render('event_application.event_application_payment_page', {
             'application_payload': payload,
             'required_points': required_points,
             'available_points': available_points,
             'payment_error_code': payment_error_code,
-            'submit_error': kwargs.get('submit_error'),
+            'submit_error': submit_error,
         })
 
     @http.route(['/event/apply/confirm-payment'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
@@ -1218,12 +1507,28 @@ class EventApplicationPortal(CustomerPortal):
             payload = request.session.get(session_key)
             if not payload:
                 return request.redirect('/event/apply')
-            if post.get('confirm_token') != payload.get('confirm_token'):
-                return request.redirect('/event/apply/payment?payment_error_code=submit_failed')
+            posted_confirm_token = post.get('confirm_token')
+            payload_confirm_token = payload.get('confirm_token')
+            if (
+                posted_confirm_token
+                and payload_confirm_token
+                and posted_confirm_token != payload_confirm_token
+            ):
+                _logger.warning(
+                    "Event application confirm token mismatch for partner %s; proceeding with CSRF-validated submit",
+                    request.env.user.partner_id.id,
+                )
             request.session.pop(session_key, None)
             required_points = int(payload.get('submission_point_cost') or 0)
-            wallet = self._get_points_wallet()
-            available_points = int(wallet.get_current_balance()) if wallet else 0
+            point_status = self._get_application_available_points(payload)
+            available_points = point_status['available_points']
+            if point_status['payment_error_code']:
+                payload['confirm_token'] = secrets.token_urlsafe(16)
+                request.session[session_key] = payload
+                return request.redirect('/event/apply/payment?' + urlencode({
+                    'payment_error_code': point_status['payment_error_code'],
+                    'submit_error': point_status['submit_error'] or '',
+                }))
             if required_points > 0 and available_points < required_points:
                 payload['confirm_token'] = secrets.token_urlsafe(16)
                 request.session[session_key] = payload
@@ -1233,11 +1538,11 @@ class EventApplicationPortal(CustomerPortal):
             resubmit_id = int(payload.get('resubmit_application_id') or 0)
             resubmit_rec = request.env['event.application'].sudo().browse(resubmit_id) if resubmit_id else False
             if resubmit_rec and resubmit_rec.exists() and resubmit_rec.partner_id.id == request.env.user.partner_id.id and resubmit_rec.state in ('rejected', 'draft'):
-                resubmit_rec.write(vals)
+                resubmit_rec.sudo().write(vals)
                 application = resubmit_rec
             else:
-                application = request.env['event.application'].create(vals)
-            application.action_submit()
+                application = request.env['event.application'].sudo().create(vals)
+            application.sudo().with_context(skip_submission_point_deduction=True).action_submit()
             return request.redirect('/event/apply/payment-success?' + urlencode({
                 'application_id': application.id,
             }))
@@ -1271,6 +1576,14 @@ class EventApplicationPortal(CustomerPortal):
             'redirect_url': '/my/event/applications',
             'redirect_seconds': 3,
         })
+
+    @http.route(['/event/apply/points/balance'], type='json', auth='user', website=True, csrf=False)
+    def event_application_points_balance(self, **kwargs):
+        payload = self._get_application_payment_payload()
+        email = self._normalize_text_value(kwargs.get('email')) or self._get_application_session_email(payload)
+        result = self._fetch_snabbb_points(email=email)
+        result['session_payload_email'] = self._normalize_text_value(payload.get('contact_email'))
+        return result
 
     @http.route(['/my/event/application/<int:application_id>/resubmit'], type='http', auth='user', website=True)
     def event_application_resubmit(self, application_id, **kwargs):

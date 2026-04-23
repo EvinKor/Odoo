@@ -1,11 +1,24 @@
 # -*- coding: utf-8 -*-
-from odoo import http
+from odoo import fields, http
 from odoo.http import request
 
 
 class EventTicketController(http.Controller):
-    def _event_is_cancelled(self, event):
-        return (event.stage_id.name or "").strip().lower() == "cancelled"
+    def _get_event_ticket_status(self, event):
+        stage_name = (event.stage_id.name or "").strip().lower()
+        if stage_name == "cancelled":
+            return "cancelled"
+        if stage_name == "ended":
+            return "past"
+        now_dt = fields.Datetime.now()
+        if event.date_end and event.date_end < now_dt:
+            return "past"
+        if event.date_begin and event.date_begin > now_dt:
+            return "upcoming"
+        return "present"
+
+    def _ticket_is_active(self, registration):
+        return registration.state != "cancel" and self._get_event_ticket_status(registration.event_id) in ("upcoming", "present")
 
     def _get_ticket_report(self):
         report_xmlid = "event.action_report_event_registration_full_page_ticket"
@@ -44,7 +57,7 @@ class EventTicketController(http.Controller):
         if not registration or not registration.exists():
             return None, "not_found"
 
-        if registration.state == "cancel" or self._event_is_cancelled(registration.event_id):
+        if not self._ticket_is_active(registration):
             return registration, "cancelled"
 
         status = "already_checked_in" if registration.state == "done" else "pending"
@@ -71,6 +84,12 @@ class EventTicketController(http.Controller):
         regs = request.env["event.registration"].sudo().browse(ids_list).exists()
         if not regs:
             return request.not_found()
+        if any(not self._ticket_is_active(reg) for reg in regs):
+            return request.make_response(
+                "One or more tickets are no longer active.",
+                headers=[("Content-Type", "text/plain; charset=utf-8")],
+                status=403,
+            )
 
         tokens_list = []
         if tokens:
@@ -123,6 +142,12 @@ class EventTicketController(http.Controller):
         reg = request.env["event.registration"].sudo().browse(registration_id)
         if not reg.exists():
             return request.not_found()
+        if not self._ticket_is_active(reg):
+            return request.make_response(
+                "This ticket is no longer active.",
+                headers=[("Content-Type", "text/plain; charset=utf-8")],
+                status=403,
+            )
 
         # ✅ Correct report XML ID (from your list)
         report = self._get_ticket_report()
@@ -155,6 +180,8 @@ class EventTicketController(http.Controller):
         reg = request.env["event.registration"].sudo().browse(registration_id)
         if not reg.exists() or not self._can_access_registration(reg):
             return request.redirect("/my/event-registrations")
+        if not self._ticket_is_active(reg):
+            return request.redirect("/my/event-registration/%s" % registration_id)
 
         report = self._get_ticket_report()
         if not report:
@@ -186,6 +213,9 @@ class EventTicketController(http.Controller):
         )
         if not regs:
             return request.redirect("/my/event-registrations")
+        if any(not self._ticket_is_active(reg) for reg in regs):
+            first_reg = regs[:1]
+            return request.redirect("/my/event-registration/%s" % first_reg.id if first_reg else "/my/event-registrations")
 
         report = self._get_ticket_report()
         if not report:
@@ -221,7 +251,7 @@ class EventTicketController(http.Controller):
                 "status": "invalid",
             })
 
-        if registration.state == "cancel" or self._event_is_cancelled(registration.event_id):
+        if not self._ticket_is_active(registration):
             status = "cancelled"
         elif registration.state != "done":
             registration.action_mark_attended()

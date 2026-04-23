@@ -292,6 +292,9 @@ class EventApplication(models.Model):
     def action_submit(self):
         for application in self:
             values = {'state': 'submitted', 'submission_alert_seen': False}
+            if self.env.context.get('skip_submission_point_deduction'):
+                application.write(values)
+                continue
             if (
                 not application.submission_points_deducted
                 and application.submission_point_cost > 0
@@ -312,6 +315,8 @@ class EventApplication(models.Model):
                 continue
             if application.submission_point_cost <= 0:
                 continue
+            if self.env.context.get('skip_submission_point_deduction'):
+                continue
             wallet = self.env['event.points.wallet'].get_or_create_wallet(application.partner_id)
             wallet.spend_points(
                 application.submission_point_cost,
@@ -327,7 +332,8 @@ class EventApplication(models.Model):
         records = super().create(vals_list)
         submitted_records = records.filtered(lambda r: r.state == 'submitted')
         if submitted_records:
-            submitted_records._ensure_submission_points_deducted()
+            if not self.env.context.get('skip_submission_point_deduction'):
+                submitted_records._ensure_submission_points_deducted()
             submitted_records._create_admin_submission_notifications()
         return records
 
@@ -346,7 +352,8 @@ class EventApplication(models.Model):
         if self.env.context.get('skip_submission_point_sync'):
             return res
         if vals.get('state') == 'submitted':
-            self.filtered(lambda r: not r.submission_points_deducted)._ensure_submission_points_deducted()
+            if not self.env.context.get('skip_submission_point_deduction'):
+                self.filtered(lambda r: not r.submission_points_deducted)._ensure_submission_points_deducted()
             to_notify._create_admin_submission_notifications()
         return res
 
